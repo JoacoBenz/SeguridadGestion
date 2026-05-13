@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { registerPackage } from "@/server/packages/register";
+import { requireTenantRoleOrRedirect } from "@/lib/auth";
 
 export default async function IngresoPage({
   params,
@@ -13,6 +14,12 @@ export default async function IngresoPage({
     select: { id: true, name: true },
   });
   if (!tenant) notFound();
+
+  await requireTenantRoleOrRedirect(
+    tenant.id,
+    ["guard", "admin"],
+    `/${slug}/conserjeria/ingreso`,
+  );
 
   const units = await prisma.unit.findMany({
     where: { tenantId: tenant.id },

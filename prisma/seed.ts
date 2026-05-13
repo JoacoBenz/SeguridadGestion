@@ -14,8 +14,8 @@ async function main() {
   });
 
   const admin = await prisma.user.upsert({
-    where: { tenantId_email: { tenantId: tenant.id, email: "admin@edificio-libertad.test" } },
-    update: {},
+    where: { email: "admin@edificio-libertad.test" },
+    update: { tenantId: tenant.id, role: Role.admin, name: "Administración" },
     create: {
       tenantId: tenant.id,
       role: Role.admin,
@@ -25,8 +25,8 @@ async function main() {
   });
 
   const guard = await prisma.user.upsert({
-    where: { tenantId_email: { tenantId: tenant.id, email: "guardia@edificio-libertad.test" } },
-    update: {},
+    where: { email: "guardia@edificio-libertad.test" },
+    update: { tenantId: tenant.id, role: Role.guard, name: "Conserjería 24hs" },
     create: {
       tenantId: tenant.id,
       role: Role.guard,
@@ -45,8 +45,8 @@ async function main() {
 
     const residentEmail = `${label.toLowerCase()}@edificio-libertad.test`;
     const resident = await prisma.user.upsert({
-      where: { tenantId_email: { tenantId: tenant.id, email: residentEmail } },
-      update: {},
+      where: { email: residentEmail },
+      update: { tenantId: tenant.id, role: Role.resident, name: `Residente ${label}` },
       create: {
         tenantId: tenant.id,
         role: Role.resident,

@@ -50,13 +50,25 @@ All three call `recordAudit()` and use `requireTenantRole()`. Adding any new sta
 - Inbound delivery/read receipts hit `src/app/api/whatsapp/webhook/route.ts`. The route verifies `X-Hub-Signature-256` with `WHATSAPP_APP_SECRET` and updates `Notification.status` by `providerMessageId`.
 
 ### Auth
-- `src/lib/auth.ts` exposes a `Session` shape and `getSession()` / `requireSession()` / `requireTenantRole()`. The actual provider wiring (Auth.js) is not implemented yet — there is a stubbable `setSessionResolver()` used by tests. Until Auth.js is wired, **all server actions will throw `UNAUTHENTICATED`** unless a resolver is set. Wire Auth.js in `src/lib/auth.ts` rather than rewriting the call sites.
-- Roles are an enum in Prisma: `superadmin | admin | guard | resident`. Tenant scoping is bypassed for `superadmin`; everyone else must match `session.tenantId === tenantId`.
+- Auth.js v5 (NextAuth beta) is wired in `src/lib/auth/config.ts` using the Prisma adapter and the **Resend** email provider with database sessions. Magic links are the only sign-in method.
+- In dev with no `RESEND_API_KEY`, magic links are **logged to stdout** instead of being emailed. Look for `[auth:dev] Magic link for ...` in the `pnpm dev` console — that's your "inbox".
+- Auth.js requires `email` to be globally unique, which is why `User.email` carries `@unique` (not `@@unique([tenantId, email])`). One person across multiple buildings = multiple User rows. Don't reintroduce composite uniqueness on email.
+- `src/lib/auth.ts` is the consumer-facing API: `getSession()`, `requireSession()`, `requireTenantRole()`. The default resolver delegates to Auth.js's `auth()`. Tests override with `setSessionResolver()` / `resetSessionResolver()`.
+- Pages should use `requireSessionOrRedirect()` / `requireTenantRoleOrRedirect()` (redirect to `/login` or `/403`). Server actions use the throwing `requireSession()` / `requireTenantRole()` (Zod-style errors that the form handler turns into a redirect with `?error=`).
+- Roles are an enum in Prisma: `superadmin | admin | guard | resident`. New users default to `resident` with `tenantId = null` and land on `/sin-edificio` until an admin assigns them. Tenant scoping is bypassed for `superadmin`; everyone else must match `session.tenantId === tenantId`.
+- Device PIN flow (long-lived session per conserjería device + per-shift PIN) is **not yet implemented**. Guards sign in by email today.
 
 ### Routing
 - `src/app/[tenant]/...` — tenant-scoped (conserjería, admin, residente).
 - `src/app/(public)/p/[token]/page.tsx` — the public pickup page that the resident opens from the WhatsApp link. **Do not put tenant info in this URL** — the token is the capability; revealing the tenant slug to anyone who got the link forwarded is unnecessary surface area.
+- `src/app/api/auth/[...nextauth]/route.ts` — Auth.js handlers.
 - `src/app/api/whatsapp/webhook/route.ts` — Meta callbacks.
+- `src/app/login`, `src/app/sin-edificio`, `src/app/403` — auth-related public/intermediate pages.
+
+### Pickup by QR vs code
+- The conserjería has two parallel entry points for retiros: `PickupQrScanner` (client component, opens the rear camera via `@yudiel/react-qr-scanner`) and a plain text input.
+- Both end up in `src/server/packages/pickup-actions.ts`. The QR path passes the scanned URL — `extractToken()` strips the host and returns the last segment, so the action also accepts a raw token paste.
+- Don't bypass `pickup-actions.ts` to call `pickupPackage()` directly from a client — server actions are the auth/audit boundary.
 
 ## Conventions specific to this project
 
@@ -74,4 +86,8 @@ These are deferred to later phases — don't add them speculatively:
 - Push notifications.
 - Delegation links (separate from sharing the WhatsApp link).
 - Reminder cron for >3-day-old pending packages.
-- Auth.js provider wiring (the abstraction is there; the implementation isn't).
+- Admin pages: `/[tenant]/admin/{unidades,residentes,paquetes,reportes}` — only the route shells exist.
+- Resident view: `/[tenant]/residente/mis-paquetes`.
+- Superadmin tenant management.
+- Device-PIN session for shared conserjería devices (see Auth section).
+- DB-level partial unique index on `(tenantId, pickupCode) WHERE status='awaiting_pickup'` — enforced in app code via `generateUniquePickupCode()` until then.

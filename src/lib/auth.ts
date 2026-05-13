@@ -1,8 +1,10 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { auth as nextAuth } from "@/lib/auth/config";
 import type { Role } from "@prisma/client";
 
-// Minimal session shape used across server actions and pages. The full Auth.js
-// integration lives behind this function so that tests can stub it.
+// Minimal session shape used across server actions and pages. Resolved via
+// Auth.js by default; tests can override with setSessionResolver().
 export interface Session {
   userId: string;
   tenantId: string | null;
@@ -10,10 +12,25 @@ export interface Session {
   name: string;
 }
 
-let sessionResolver: () => Promise<Session | null> = async () => null;
+const defaultResolver = async (): Promise<Session | null> => {
+  const nextSession = await nextAuth();
+  if (!nextSession?.user?.id) return null;
+  return {
+    userId: nextSession.user.id,
+    tenantId: nextSession.user.tenantId,
+    role: nextSession.user.role,
+    name: nextSession.user.name,
+  };
+};
+
+let sessionResolver: () => Promise<Session | null> = defaultResolver;
 
 export function setSessionResolver(resolver: () => Promise<Session | null>): void {
   sessionResolver = resolver;
+}
+
+export function resetSessionResolver(): void {
+  sessionResolver = defaultResolver;
 }
 
 export async function getSession(): Promise<Session | null> {
@@ -23,6 +40,16 @@ export async function getSession(): Promise<Session | null> {
 export async function requireSession(): Promise<Session> {
   const session = await getSession();
   if (!session) throw new Error("UNAUTHENTICATED");
+  return session;
+}
+
+// For use in Server Components / pages. Redirects to /login if no session.
+export async function requireSessionOrRedirect(callbackPath?: string): Promise<Session> {
+  const session = await getSession();
+  if (!session) {
+    const cb = callbackPath ? `?callbackUrl=${encodeURIComponent(callbackPath)}` : "";
+    redirect(`/login${cb}`);
+  }
   return session;
 }
 
@@ -37,8 +64,19 @@ export async function requireTenantRole(
   return session;
 }
 
-// Helper used by the seed and admin bootstrap to look up the current user
-// without a request context (e.g., from CLI scripts).
+// Page-level guard: redirects to /login if no session, /403 if wrong tenant/role.
+export async function requireTenantRoleOrRedirect(
+  tenantId: string,
+  allowed: Role[],
+  callbackPath?: string,
+): Promise<Session> {
+  const session = await requireSessionOrRedirect(callbackPath);
+  if (session.role === "superadmin") return session;
+  if (session.tenantId !== tenantId) redirect("/403");
+  if (!allowed.includes(session.role)) redirect("/403");
+  return session;
+}
+
 export async function getUserById(id: string) {
   return prisma.user.findUnique({ where: { id } });
 }

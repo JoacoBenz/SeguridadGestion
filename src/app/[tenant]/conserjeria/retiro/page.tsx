@@ -1,6 +1,8 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { pickupPackage } from "@/server/packages/pickup";
+import { requireTenantRoleOrRedirect } from "@/lib/auth";
+import { pickupByCodeAction } from "@/server/packages/pickup-actions";
+import { PickupQrScanner } from "@/components/pickup-qr-scanner";
 
 export default async function RetiroPage({
   params,
@@ -18,24 +20,9 @@ export default async function RetiroPage({
   });
   if (!tenant) notFound();
 
-  async function action(formData: FormData) {
-    "use server";
-    const codeRaw = formData.get("pickupCode");
-    if (typeof codeRaw !== "string" || !codeRaw.trim()) {
-      redirect(`/${slug}/conserjeria/retiro?error=Ingres%C3%A1+un+c%C3%B3digo`);
-    }
-    const code = codeRaw.trim().toUpperCase();
-    try {
-      const result = await pickupPackage({
-        tenantId: tenant!.id,
-        pickupCode: code,
-      });
-      redirect(`/${slug}/conserjeria/retiro?ok=Depto+${result.unitLabel}`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "ERROR";
-      redirect(`/${slug}/conserjeria/retiro?error=${encodeURIComponent(msg)}`);
-    }
-  }
+  await requireTenantRoleOrRedirect(tenant.id, ["guard", "admin"], `/${slug}/conserjeria/retiro`);
+
+  const action = pickupByCodeAction.bind(null, slug);
 
   return (
     <main className="mx-auto max-w-md px-4 py-6">
@@ -55,29 +42,34 @@ export default async function RetiroPage({
         </p>
       )}
 
-      <form action={action} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Código de retiro (6 caracteres)</span>
+      <section className="mb-8">
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+          Por QR
+        </h2>
+        <PickupQrScanner tenantSlug={slug} />
+      </section>
+
+      <section>
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+          Por código
+        </h2>
+        <form action={action} className="flex flex-col gap-3">
           <input
             name="pickupCode"
-            autoFocus
             required
             inputMode="text"
             autoCapitalize="characters"
+            placeholder="ABC234"
             className="rounded border border-slate-300 px-3 py-3 text-center font-mono text-2xl tracking-widest"
           />
-        </label>
-        <button
-          type="submit"
-          className="rounded-lg bg-brand px-4 py-3 font-semibold text-brand-fg"
-        >
-          Confirmar retiro
-        </button>
-      </form>
-
-      <p className="mt-6 text-sm text-slate-500">
-        Para escaneo de QR con la cámara, usá el botón en pantalla principal (próximamente).
-      </p>
+          <button
+            type="submit"
+            className="rounded-lg bg-brand px-4 py-3 font-semibold text-brand-fg"
+          >
+            Confirmar retiro
+          </button>
+        </form>
+      </section>
     </main>
   );
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { requireTenantRoleOrRedirect } from "@/lib/auth";
 
 export default async function ConserjeriaHome({
   params,
@@ -13,6 +14,8 @@ export default async function ConserjeriaHome({
     select: { id: true, name: true },
   });
   if (!tenant) notFound();
+
+  await requireTenantRoleOrRedirect(tenant.id, ["guard", "admin"], `/${slug}/conserjeria`);
 
   const pendientes = await prisma.package.findMany({
     where: { tenantId: tenant.id, status: "awaiting_pickup" },
