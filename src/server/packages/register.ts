@@ -4,7 +4,7 @@ import { generateUniquePickupCode } from "@/lib/codes";
 import { recordAudit } from "@/lib/audit";
 import { requireTenantRole } from "@/lib/auth";
 import { getWhatsAppClient } from "@/lib/whatsapp/client";
-import { pickupPageUrl } from "@/lib/urls";
+import { qrImageUrl } from "@/lib/urls";
 
 const RegisterPackageInput = z.object({
   tenantId: z.string().min(1),
@@ -68,7 +68,7 @@ export async function registerPackage(
 
   const notifiedPhones: string[] = [];
   const whatsapp = getWhatsAppClient();
-  const link = pickupPageUrl(pkg.pickupToken);
+  const headerImageUrl = qrImageUrl(pkg.pickupToken);
 
   for (const membership of unit.residents) {
     const resident = membership.user;
@@ -76,14 +76,15 @@ export async function registerPackage(
     try {
       const sent = await whatsapp.sendTemplate({
         to: resident.phone,
-        template: "paquete_recibido_v1",
-        params: [resident.name, unit.label, tenant.name, pickupCode, link],
+        template: "paquete_recibido_v2",
+        params: [resident.name, tenant.name, unit.label, pickupCode],
+        headerImageUrl,
       });
       await prisma.notification.create({
         data: {
           packageId: pkg.id,
           channel: "whatsapp",
-          templateName: "paquete_recibido_v1",
+          templateName: "paquete_recibido_v2",
           recipientPhone: resident.phone,
           providerMessageId: sent.providerMessageId,
           status: "sent",
@@ -96,7 +97,7 @@ export async function registerPackage(
         data: {
           packageId: pkg.id,
           channel: "whatsapp",
-          templateName: "paquete_recibido_v1",
+          templateName: "paquete_recibido_v2",
           recipientPhone: resident.phone,
           status: "failed",
           errorPayload: { message: err instanceof Error ? err.message : String(err) },

@@ -9,7 +9,6 @@ describe("WhatsApp client (dev LoggingClient)", () => {
   beforeEach(() => {
     delete process.env.WHATSAPP_PHONE_NUMBER_ID;
     delete process.env.WHATSAPP_ACCESS_TOKEN;
-    // Re-importing isn't enough because the module caches the client; reset via setter.
     setWhatsAppClient(null);
     logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
   });
@@ -21,15 +20,30 @@ describe("WhatsApp client (dev LoggingClient)", () => {
     logSpy.mockRestore();
   });
 
-  it("loguea un mensaje y devuelve un id provider determinístico-ish", async () => {
+  it("loguea con headerImageUrl cuando la plantilla lo requiere", async () => {
     const client = getWhatsAppClient();
     const result = await client.sendTemplate({
       to: "+5491100000001",
-      template: "paquete_recibido_v1",
-      params: ["Juan", "3B", "Edificio Libertad", "ABCDEF", "https://example.test/p/abc1234"],
+      template: "paquete_recibido_v2",
+      params: ["Juan", "Edificio Libertad", "3B", "ABCDEF"],
+      headerImageUrl: "https://example.test/api/qr/abc1234",
     });
     expect(result.providerMessageId).toMatch(/^dev-/);
     expect(logSpy).toHaveBeenCalled();
+    const logged = logSpy.mock.calls.map((c) => c[0]).join("\n");
+    expect(logged).toContain("headerImage=https://example.test/api/qr/abc1234");
+  });
+
+  it("tira si la plantilla con header image no recibe headerImageUrl", async () => {
+    const client = getWhatsAppClient();
+    await expect(
+      client.sendTemplate({
+        to: "+5491100000001",
+        template: "paquete_recibido_v2",
+        params: ["Juan", "Edificio Libertad", "3B", "ABCDEF"],
+        // headerImageUrl omitida a propósito
+      }),
+    ).rejects.toThrow(/headerImageUrl/);
   });
 
   it("tira si el largo de params no coincide con la plantilla", async () => {
@@ -37,9 +51,20 @@ describe("WhatsApp client (dev LoggingClient)", () => {
     await expect(
       client.sendTemplate({
         to: "+5491100000001",
-        template: "paquete_recibido_v1",
+        template: "paquete_recibido_v2",
         params: ["solo uno"],
+        headerImageUrl: "https://example.test/api/qr/abc1234",
       }),
     ).rejects.toThrow();
+  });
+
+  it("no requiere headerImageUrl para plantillas sin header image", async () => {
+    const client = getWhatsAppClient();
+    const result = await client.sendTemplate({
+      to: "+5491100000001",
+      template: "paquete_retirado_v1",
+      params: ["13/05/2026", "09:42"],
+    });
+    expect(result.providerMessageId).toMatch(/^dev-/);
   });
 });

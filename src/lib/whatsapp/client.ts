@@ -4,6 +4,9 @@ export interface SendTemplateInput {
   to: string;
   template: TemplateName;
   params: string[];
+  // Requerido para plantillas con hasImageHeader. Meta descarga la imagen al
+  // armar el mensaje, así que tiene que ser una URL pública.
+  headerImageUrl?: string;
 }
 
 export interface SendTemplateResult {
@@ -14,13 +17,52 @@ export interface WhatsAppClient {
   sendTemplate(input: SendTemplateInput): Promise<SendTemplateResult>;
 }
 
+interface TemplateComponent {
+  type: "header" | "body";
+  parameters: Array<
+    | { type: "text"; text: string }
+    | { type: "image"; image: { link: string } }
+  >;
+}
+
+function buildComponents(
+  template: TemplateName,
+  params: string[],
+  headerImageUrl?: string,
+): TemplateComponent[] {
+  const spec = TEMPLATES[template];
+  const components: TemplateComponent[] = [];
+
+  if (spec.hasImageHeader) {
+    if (!headerImageUrl) {
+      throw new Error(`Template ${template} requires headerImageUrl`);
+    }
+    components.push({
+      type: "header",
+      parameters: [{ type: "image", image: { link: headerImageUrl } }],
+    });
+  }
+
+  components.push({
+    type: "body",
+    parameters: params.map((text) => ({ type: "text", text })),
+  });
+
+  return components;
+}
+
 class MetaCloudClient implements WhatsAppClient {
   constructor(
     private readonly phoneNumberId: string,
     private readonly accessToken: string,
   ) {}
 
-  async sendTemplate({ to, template, params }: SendTemplateInput): Promise<SendTemplateResult> {
+  async sendTemplate({
+    to,
+    template,
+    params,
+    headerImageUrl,
+  }: SendTemplateInput): Promise<SendTemplateResult> {
     assertParamCount(template, params);
     const spec = TEMPLATES[template];
     const url = `https://graph.facebook.com/v21.0/${this.phoneNumberId}/messages`;
@@ -32,12 +74,7 @@ class MetaCloudClient implements WhatsAppClient {
       template: {
         name: spec.name,
         language: { code: spec.language },
-        components: [
-          {
-            type: "body",
-            parameters: params.map((text) => ({ type: "text", text })),
-          },
-        ],
+        components: buildComponents(template, params, headerImageUrl),
       },
     };
 
@@ -65,10 +102,22 @@ class MetaCloudClient implements WhatsAppClient {
 }
 
 class LoggingClient implements WhatsAppClient {
-  async sendTemplate({ to, template, params }: SendTemplateInput): Promise<SendTemplateResult> {
+  async sendTemplate({
+    to,
+    template,
+    params,
+    headerImageUrl,
+  }: SendTemplateInput): Promise<SendTemplateResult> {
     assertParamCount(template, params);
+    if (TEMPLATES[template].hasImageHeader && !headerImageUrl) {
+      throw new Error(`Template ${template} requires headerImageUrl`);
+    }
     const fakeId = `dev-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    console.log(`[whatsapp:dev] → ${to} template=${template} params=${JSON.stringify(params)} id=${fakeId}`);
+    console.log(
+      `[whatsapp:dev] → ${to} template=${template} params=${JSON.stringify(params)}${
+        headerImageUrl ? ` headerImage=${headerImageUrl}` : ""
+      } id=${fakeId}`,
+    );
     return { providerMessageId: fakeId };
   }
 }
