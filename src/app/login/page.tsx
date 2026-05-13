@@ -1,6 +1,9 @@
+import { z } from "zod";
 import { signIn } from "@/lib/auth/config";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+
+const EmailSchema = z.string().trim().toLowerCase().email();
 
 export default async function LoginPage({
   searchParams,
@@ -18,15 +21,21 @@ export default async function LoginPage({
 
   async function action(formData: FormData) {
     "use server";
-    const email = formData.get("email");
-    if (typeof email !== "string" || !email.includes("@")) {
-      redirect("/login?error=Email%20inv%C3%A1lido");
+    const parsed = EmailSchema.safeParse(formData.get("email"));
+    if (!parsed.success) {
+      redirect(`/login?error=${encodeURIComponent("Email inválido")}`);
     }
-    await signIn("resend", {
-      email,
-      redirect: false,
-      redirectTo: callbackUrl ?? "/",
-    });
+    const email = parsed.data;
+    try {
+      await signIn("resend", {
+        email,
+        redirect: false,
+        redirectTo: callbackUrl ?? "/",
+      });
+    } catch (err) {
+      console.error("[login] signIn failed", err);
+      redirect(`/login?error=${encodeURIComponent("No pudimos enviar el link. Probá de nuevo.")}`);
+    }
     redirect(`/login?sent=${encodeURIComponent(email)}`);
   }
 

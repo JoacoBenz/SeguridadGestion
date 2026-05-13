@@ -67,8 +67,9 @@ All three call `recordAudit()` and use `requireTenantRole()`. Adding any new sta
 
 ### Pickup by QR vs code
 - The conserjería has two parallel entry points for retiros: `PickupQrScanner` (client component, opens the rear camera via `@yudiel/react-qr-scanner`) and a plain text input.
-- Both end up in `src/server/packages/pickup-actions.ts`. The QR path passes the scanned URL — `extractToken()` strips the host and returns the last segment, so the action also accepts a raw token paste.
+- Both end up in `src/server/packages/pickup-actions.ts`. The QR path passes the scanned URL — `extractPickupToken()` in `src/server/packages/pickup-token.ts` (a pure module, kept separate from the `"use server"` boundary so it's unit-testable) strips host/query/fragment and validates the format. Random scanned strings never reach the DB.
 - Don't bypass `pickup-actions.ts` to call `pickupPackage()` directly from a client — server actions are the auth/audit boundary.
+- **`redirect()` in server actions throws `NEXT_REDIRECT`** — never wrap a success `redirect()` inside a `try/catch` that catches all errors, or the success path gets swallowed and converted into `?error=NEXT_REDIRECT`. Move success redirects outside the `try` block.
 
 ## Conventions specific to this project
 

@@ -87,7 +87,7 @@ export function getWhatsAppClient(): WhatsAppClient {
   return cached;
 }
 
-// For tests.
-export function setWhatsAppClient(client: WhatsAppClient): void {
+// For tests. Pass null to clear the cache and let getWhatsAppClient() re-resolve from env.
+export function setWhatsAppClient(client: WhatsAppClient | null): void {
   cached = client;
 }

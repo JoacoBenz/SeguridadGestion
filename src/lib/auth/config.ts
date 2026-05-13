@@ -23,7 +23,9 @@ const authConfig: NextAuthConfig = {
   providers: [
     Resend({
       from: process.env.EMAIL_FROM ?? "PaqueteOK <no-reply@paqueteok.app>",
-      apiKey: process.env.RESEND_API_KEY ?? "dev-no-key",
+      // Required by Auth.js typing. The actual send happens in sendVerificationRequest,
+      // which short-circuits to console in dev when this is empty.
+      apiKey: process.env.RESEND_API_KEY ?? "",
       async sendVerificationRequest({ identifier, url }) {
         if (!process.env.RESEND_API_KEY) {
           console.log("");

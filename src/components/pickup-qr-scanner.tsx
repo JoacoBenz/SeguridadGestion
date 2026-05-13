@@ -26,7 +26,7 @@ export function PickupQrScanner({ tenantSlug }: Props) {
         const result = await pickupByTokenAction(tenantSlug, first);
         setActive(false);
         router.replace(
-          `/${tenantSlug}/conserjeria/retiro?ok=Depto+${encodeURIComponent(result.unitLabel)}`,
+          `/${tenantSlug}/conserjeria/retiro?ok=${encodeURIComponent(`Depto ${result.unitLabel}`)}`,
         );
         router.refresh();
       } catch (err) {

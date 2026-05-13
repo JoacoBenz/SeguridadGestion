@@ -8,6 +8,13 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      # Dummy values so prisma generate and Next.js config validation
+      # don't fail. Tests stub the session resolver and the WhatsApp client,
+      # so no real services are contacted.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
+      AUTH_SECRET: ci-only-not-secret
+      PUBLIC_BASE_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

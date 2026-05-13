@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { auth as nextAuth } from "@/lib/auth/config";
 import type { Role } from "@prisma/client";
 
 // Minimal session shape used across server actions and pages. Resolved via
@@ -12,7 +11,9 @@ export interface Session {
   name: string;
 }
 
+// Lazy-imported so unit tests that stub the resolver never load Auth.js.
 const defaultResolver = async (): Promise<Session | null> => {
+  const { auth: nextAuth } = await import("@/lib/auth/config");
   const nextSession = await nextAuth();
   if (!nextSession?.user?.id) return null;
   return {
