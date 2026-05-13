@@ -16,10 +16,10 @@ export default function Home() {
           Ir a la conserjería del edificio piloto
         </Link>
         <Link
-          href="/edificio-libertad/admin"
+          href="/login"
           className="rounded-lg border border-slate-300 px-4 py-2 text-center"
         >
-          Panel de administración
+          Iniciar sesión
         </Link>
       </div>
     </main>
