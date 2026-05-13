@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: paqueteok-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: paqueteok
+      POSTGRES_PASSWORD: paqueteok
+      POSTGRES_DB: paqueteok
+    ports:
+      - "5432:5432"
+    volumes:
+      - paqueteok-pg:/var/lib/postgresql/data
+
+volumes:
+  paqueteok-pg:

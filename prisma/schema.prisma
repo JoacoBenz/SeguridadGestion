@@ -1,0 +1,167 @@
+// Multi-tenant package management for residential buildings.
+// Tenant = building (consorcio). All tenant-scoped tables carry tenantId.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  superadmin
+  admin
+  guard
+  resident
+}
+
+enum PackageStatus {
+  awaiting_pickup
+  picked_up
+  cancelled
+}
+
+enum NotificationStatus {
+  queued
+  sent
+  delivered
+  read
+  failed
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  address   String?
+  timezone  String   @default("America/Argentina/Buenos_Aires")
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+  units     Unit[]
+  packages  Package[]
+  auditLogs AuditLog[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  tenantId     String?
+  role         Role
+  name         String
+  email        String?
+  phone        String?
+  pinHash      String?
+  emailVerifiedAt DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant            Tenant?         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  unitMemberships   UnitResident[]
+  packagesReceived  Package[]       @relation("PackageReceivedBy")
+  packagesDelivered Package[]       @relation("PackagePickedUpBy")
+  auditLogs         AuditLog[]
+
+  @@unique([tenantId, email])
+  @@unique([tenantId, phone])
+  @@index([tenantId, role])
+}
+
+model Unit {
+  id        String   @id @default(cuid())
+  tenantId  String
+  label     String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  residents UnitResident[]
+  packages  Package[]
+
+  @@unique([tenantId, label])
+  @@index([tenantId])
+}
+
+model UnitResident {
+  unitId    String
+  userId    String
+  isPrimary Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([unitId, userId])
+  @@index([userId])
+}
+
+model Package {
+  id                 String         @id @default(cuid())
+  tenantId           String
+  unitId             String
+  receivedByUserId   String
+  carrier            String?
+  photoUrl           String?
+  notes              String?
+  pickupCode         String
+  pickupToken        String         @default(cuid())
+  status             PackageStatus  @default(awaiting_pickup)
+  receivedAt         DateTime       @default(now())
+  pickedUpAt         DateTime?
+  pickedUpByUserId   String?
+  pickupPhotoUrl     String?
+  cancelledAt        DateTime?
+  cancelledReason    String?
+
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  unit           Unit           @relation(fields: [unitId], references: [id])
+  receivedBy     User           @relation("PackageReceivedBy", fields: [receivedByUserId], references: [id])
+  pickedUpBy     User?          @relation("PackagePickedUpBy", fields: [pickedUpByUserId], references: [id])
+  notifications  Notification[]
+
+  // Pickup code uniqueness is enforced only across active packages — see migration that
+  // adds a partial unique index on (tenantId, pickupCode) WHERE status = 'awaiting_pickup'.
+  @@unique([tenantId, pickupToken])
+  @@index([tenantId, status, receivedAt])
+  @@index([unitId, status])
+}
+
+model Notification {
+  id                String             @id @default(cuid())
+  packageId         String
+  channel           String             @default("whatsapp")
+  templateName      String
+  recipientPhone    String
+  providerMessageId String?
+  status            NotificationStatus @default(queued)
+  sentAt            DateTime?
+  errorPayload      Json?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([packageId])
+  @@index([providerMessageId])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  tenantId     String?
+  actorUserId  String?
+  action       String
+  entityType   String
+  entityId     String
+  metadata     Json     @default("{}")
+  at           DateTime @default(now())
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  actor  User?   @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, at])
+  @@index([entityType, entityId])
+}

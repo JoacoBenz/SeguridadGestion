@@ -1,0 +1,113 @@
+import { z } from "zod";
+import { prisma } from "@/lib/db";
+import { recordAudit } from "@/lib/audit";
+import { requireTenantRole } from "@/lib/auth";
+import { isValidPickupCode } from "@/lib/codes";
+import { getWhatsAppClient } from "@/lib/whatsapp/client";
+
+const PickupInput = z
+  .object({
+    tenantId: z.string().min(1),
+    pickupCode: z.string().optional(),
+    pickupToken: z.string().optional(),
+    pickupPhotoUrl: z.string().url().optional(),
+  })
+  .refine((v) => v.pickupCode || v.pickupToken, {
+    message: "Hay que enviar pickupCode o pickupToken",
+  });
+
+export type PickupInput = z.infer<typeof PickupInput>;
+
+export interface PickupResult {
+  packageId: string;
+  unitLabel: string;
+  pickedUpAt: Date;
+}
+
+export async function pickupPackage(raw: PickupInput): Promise<PickupResult> {
+  const input = PickupInput.parse(raw);
+  const session = await requireTenantRole(input.tenantId, ["guard", "admin"]);
+
+  if (input.pickupCode && !isValidPickupCode(input.pickupCode)) {
+    throw new Error("INVALID_CODE");
+  }
+
+  const pkg = await prisma.package.findFirst({
+    where: {
+      tenantId: input.tenantId,
+      status: "awaiting_pickup",
+      ...(input.pickupToken
+        ? { pickupToken: input.pickupToken }
+        : { pickupCode: input.pickupCode }),
+    },
+    include: {
+      unit: {
+        include: {
+          residents: { include: { user: { select: { phone: true, name: true } } } },
+        },
+      },
+    },
+  });
+
+  if (!pkg) throw new Error("PACKAGE_NOT_FOUND");
+
+  const now = new Date();
+  await prisma.package.update({
+    where: { id: pkg.id },
+    data: {
+      status: "picked_up",
+      pickedUpAt: now,
+      pickedUpByUserId: session.userId,
+      pickupPhotoUrl: input.pickupPhotoUrl,
+    },
+  });
+
+  await recordAudit({
+    tenantId: input.tenantId,
+    actorUserId: session.userId,
+    action: "package.picked_up",
+    entityType: "Package",
+    entityId: pkg.id,
+    metadata: {
+      via: input.pickupToken ? "qr" : "code",
+      withPhoto: Boolean(input.pickupPhotoUrl),
+    },
+  });
+
+  const whatsapp = getWhatsAppClient();
+  for (const membership of pkg.unit.residents) {
+    const phone = membership.user.phone;
+    if (!phone) continue;
+    try {
+      const sent = await whatsapp.sendTemplate({
+        to: phone,
+        template: "paquete_retirado_v1",
+        params: [pkg.receivedAt.toLocaleDateString("es-AR"), now.toLocaleTimeString("es-AR")],
+      });
+      await prisma.notification.create({
+        data: {
+          packageId: pkg.id,
+          channel: "whatsapp",
+          templateName: "paquete_retirado_v1",
+          recipientPhone: phone,
+          providerMessageId: sent.providerMessageId,
+          status: "sent",
+          sentAt: new Date(),
+        },
+      });
+    } catch (err) {
+      await prisma.notification.create({
+        data: {
+          packageId: pkg.id,
+          channel: "whatsapp",
+          templateName: "paquete_retirado_v1",
+          recipientPhone: phone,
+          status: "failed",
+          errorPayload: { message: err instanceof Error ? err.message : String(err) },
+        },
+      });
+    }
+  }
+
+  return { packageId: pkg.id, unitLabel: pkg.unit.label, pickedUpAt: now };
+}
