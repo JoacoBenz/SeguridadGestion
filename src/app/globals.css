@@ -3,11 +3,23 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 html,
 body {
-  background: #f8fafc;
-  color: #0f172a;
+  background: #0a0a0b;
+  color: #f4f4f5;
+}
+
+/* Selección de texto en ámbar — mantiene la marca cuando alguien copia un código */
+::selection {
+  background: #fbbf24;
+  color: #0a0a0b;
+}
+
+/* Scrollbar fino para tablets */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3f3f46 transparent;
 }

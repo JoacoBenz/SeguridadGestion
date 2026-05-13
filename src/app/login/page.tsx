@@ -41,35 +41,44 @@ export default async function LoginPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
-      <h1 className="text-2xl font-bold">Entrar a PaqueteOK</h1>
-      <p className="mt-2 text-slate-600">Te enviamos un link al email para iniciar sesión.</p>
+      <div className="mb-2 inline-block">
+        <span className="font-mono text-xs uppercase tracking-[0.3em] text-accent">
+          PaqueteOK
+        </span>
+      </div>
+      <h1 className="text-3xl font-bold tracking-tight">Entrar</h1>
+      <p className="mt-2 text-ink-400">
+        Te mandamos un link al email para iniciar sesión.
+      </p>
 
       {sent && (
-        <p className="mt-4 rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-emerald-900">
-          Te mandamos un link a <strong>{sent}</strong>. Revisá tu casilla.
+        <p className="mt-6 rounded-xl border border-positive/40 bg-positive/10 px-4 py-3 text-sm text-positive">
+          Te mandamos un link a <strong className="text-ink-100">{sent}</strong>. Revisá tu casilla.
         </p>
       )}
       {error && (
-        <p className="mt-4 rounded border border-rose-300 bg-rose-50 px-3 py-2 text-rose-900">
+        <p className="mt-6 rounded-xl border border-critical/40 bg-critical/10 px-4 py-3 text-sm text-critical">
           {error}
         </p>
       )}
 
-      <form action={action} className="mt-6 flex flex-col gap-3">
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Email</span>
+      <form action={action} className="mt-8 flex flex-col gap-4">
+        <label className="flex flex-col gap-2">
+          <span className="text-xs font-semibold uppercase tracking-widest text-ink-400">
+            Email
+          </span>
           <input
             name="email"
             type="email"
             required
             autoFocus
             placeholder="tu@email.com"
-            className="rounded border border-slate-300 px-3 py-2"
+            className="rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-ink-100 placeholder:text-ink-500 focus:border-accent focus:outline-none"
           />
         </label>
         <button
           type="submit"
-          className="rounded-lg bg-brand px-4 py-3 font-semibold text-brand-fg"
+          className="rounded-2xl bg-accent px-4 py-4 text-lg font-bold text-accent-fg transition-transform active:scale-[0.98]"
         >
           Enviar link de acceso
         </button>
