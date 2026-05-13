@@ -3,6 +3,17 @@ import { PrismaClient, Role } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
+  const superadmin = await prisma.user.upsert({
+    where: { email: "super@paqueteok.test" },
+    update: { role: Role.superadmin, tenantId: null, name: "Operador SaaS" },
+    create: {
+      role: Role.superadmin,
+      tenantId: null,
+      name: "Operador SaaS",
+      email: "super@paqueteok.test",
+    },
+  });
+
   const tenant = await prisma.tenant.upsert({
     where: { slug: "edificio-libertad" },
     update: {},
@@ -64,9 +75,10 @@ async function main() {
   }
 
   console.log("Seed listo.");
-  console.log(`Tenant: ${tenant.slug}`);
-  console.log(`Admin:  ${admin.email}`);
-  console.log(`Guard:  ${guard.email}`);
+  console.log(`Tenant:     ${tenant.slug}`);
+  console.log(`Superadmin: ${superadmin.email}`);
+  console.log(`Admin:      ${admin.email}`);
+  console.log(`Guard:      ${guard.email}`);
 }
 
 main()

@@ -64,11 +64,19 @@ All three call `recordAudit()` and use `requireTenantRole()`. Adding any new sta
 - Device PIN flow (long-lived session per conserjería device + per-shift PIN) is **not yet implemented**. Guards sign in by email today.
 
 ### Routing
-- `src/app/[tenant]/...` — tenant-scoped (conserjería, admin, residente).
+- `src/app/[tenant]/conserjeria/...` — guard + admin: register, retire, list pending.
+- `src/app/[tenant]/admin/...` — admin only. Layout gates with `requireTenantRoleOrRedirect(["admin"])`. Sub-routes: `unidades`, `residentes`, `paquetes`, `reportes`. Server actions live in `src/server/admin/{units,residents,packages}.ts` and re-resolve the tenant from the slug to verify membership before any write.
+- `src/app/superadmin/...` — superadmin only (not under `[tenant]`). Lists tenants and creates new ones. `src/server/superadmin/tenants.ts::createTenantAction` creates the tenant + upserts an admin user with the supplied email; that user's first login is a magic link.
 - `src/app/api/qr/[token]/route.ts` — public PNG of the pickup QR. See "Resident notification" above for the contract.
 - `src/app/api/auth/[...nextauth]/route.ts` — Auth.js handlers.
 - `src/app/api/whatsapp/webhook/route.ts` — Meta callbacks.
 - `src/app/login`, `src/app/sin-edificio`, `src/app/403` — auth-related public/intermediate pages.
+
+### Admin & superadmin
+- **Admin server actions** all follow the same shape: `(slug: string, formData: FormData) => Promise<void>`, called via `action.bind(null, slug)` in the page. They re-resolve the tenant from the slug and call `requireTenantRole(tenantId, ["admin"])` — never trust the slug alone. On Prisma FK errors (`P2003`) they surface a friendly message ("la unidad tiene paquetes asociados, cancelalos primero") instead of letting Next.js error-boundary it. Every mutation writes a `recordAudit()` entry.
+- **Cancel** uses the existing `src/server/packages/cancel.ts`; the admin page just wraps it. The audit log records who cancelled and why.
+- **Residents**: creating a resident creates a `User` (role=resident, with tenantId) **and** the `UnitResident` join in a single action. "Borrar" deletes the User row; if they have `Package.receivedBy`/`pickedUpBy` history, the FK restrict bubbles up as a clear error pointing to "Desvincular" instead. "Desvincular" only deletes the `UnitResident` row, preserving package history.
+- **Superadmin** does NOT receive a `tenantId` (they're cross-tenant); `requireTenantRole` bypasses tenant scoping for them, so they can land in any `/[tenant]/admin` directly. The `/superadmin/...` routes additionally check `session.role === "superadmin"` and bounce to `/403` otherwise.
 
 ### Pickup by QR vs code
 - The conserjería has two parallel entry points for retiros: `PickupQrScanner` (client component, opens the rear camera via `@yudiel/react-qr-scanner`) and a plain text input.
