@@ -4,7 +4,11 @@
 export type TemplateName =
   | "paquete_recibido_v2"
   | "paquete_retirado_v1"
-  | "paquete_pendiente_v1";
+  | "paquete_pendiente_v1"
+  | "portero_bienvenida_v1"
+  | "puerta_visitante_v1"
+  | "incidente_aviso_v1"
+  | "aviso_general_v1";
 
 export interface TemplateSpec {
   name: TemplateName;
@@ -32,6 +36,30 @@ export const TEMPLATES: Record<TemplateName, TemplateSpec> = {
     name: "paquete_pendiente_v1",
     language: "es_AR",
     bodyParamCount: 1, // fecha de ingreso
+  },
+  // Onboarding: anuncia el portero virtual. Params: nombre, edificio.
+  portero_bienvenida_v1: {
+    name: "portero_bienvenida_v1",
+    language: "es_AR",
+    bodyParamCount: 2,
+  },
+  // Door prompt: ¿abrimos? Params: nombre, visitante, edificio.
+  puerta_visitante_v1: {
+    name: "puerta_visitante_v1",
+    language: "es_AR",
+    bodyParamCount: 3,
+  },
+  // Alerta a admin sobre incidente crítico. Params: adminName, tenantName, shortDesc.
+  incidente_aviso_v1: {
+    name: "incidente_aviso_v1",
+    language: "es_AR",
+    bodyParamCount: 3,
+  },
+  // Aviso general a residentes desde admin. Params: residentName, tenantName, body.
+  aviso_general_v1: {
+    name: "aviso_general_v1",
+    language: "es_AR",
+    bodyParamCount: 3,
   },
 };
 

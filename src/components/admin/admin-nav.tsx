@@ -22,7 +22,13 @@ export function AdminNav({ slug, tenantName }: Props) {
     { href: base, label: "Inicio", exact: true },
     { href: `${base}/unidades`, label: "Unidades" },
     { href: `${base}/residentes`, label: "Residentes" },
+    { href: `${base}/personal`, label: "Personal" },
     { href: `${base}/paquetes`, label: "Paquetes" },
+    { href: `${base}/autorizaciones`, label: "Autorizaciones" },
+    { href: `${base}/incidentes`, label: "Incidentes" },
+    { href: `${base}/avisos`, label: "Avisos" },
+    { href: `${base}/reglamento`, label: "Reglamento" },
+    { href: `${base}/objetos`, label: "Objetos" },
     { href: `${base}/reportes`, label: "Reportes" },
   ];
 

@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { handleInboundMessage } from "@/server/chat/inbound";
 
 // Meta sends GET for verification handshake and POST for status callbacks.
 // https://developers.facebook.com/docs/graph-api/webhooks/getting-started
@@ -49,6 +50,8 @@ export async function POST(req: Request) {
     return new NextResponse("invalid json", { status: 400 });
   }
 
+  const inboundMessages: Array<{ id: string; from: string; body: string; timestampSec: number }> = [];
+
   for (const entry of body.entry ?? []) {
     for (const change of entry.changes ?? []) {
       for (const status of change.value?.statuses ?? []) {
@@ -59,7 +62,33 @@ export async function POST(req: Request) {
           })
           .catch(() => undefined);
       }
+      for (const msg of change.value?.messages ?? []) {
+        const text = msg.text?.body ?? msg.button?.text ?? msg.interactive?.button_reply?.title ?? "";
+        if (!msg.id || !msg.from || !text) continue;
+        inboundMessages.push({
+          id: msg.id,
+          from: msg.from,
+          body: text,
+          timestampSec: Number(msg.timestamp ?? Math.floor(Date.now() / 1000)),
+        });
+      }
     }
+  }
+
+  // Ack Meta before dispatching — retries on non-2xx, and dispatch can be slow.
+  if (inboundMessages.length > 0) {
+    void Promise.all(
+      inboundMessages.map((m) =>
+        handleInboundMessage({
+          providerMessageId: m.id,
+          from: m.from,
+          body: m.body,
+          timestampSec: m.timestampSec,
+        }).catch((err) => {
+          console.error("[whatsapp/webhook] dispatch failed", err);
+        }),
+      ),
+    );
   }
 
   return NextResponse.json({ ok: true });
@@ -83,6 +112,14 @@ interface WebhookPayload {
     changes?: Array<{
       value?: {
         statuses?: Array<{ id: string; status: string }>;
+        messages?: Array<{
+          id?: string;
+          from?: string;
+          timestamp?: string;
+          text?: { body?: string };
+          button?: { text?: string };
+          interactive?: { button_reply?: { title?: string } };
+        }>;
       };
     }>;
   }>;

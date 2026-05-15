@@ -31,6 +31,53 @@ enum NotificationStatus {
   failed
 }
 
+enum VisitorEventKind {
+  announced
+  door_prompt
+}
+
+enum VisitorStatus {
+  pending
+  confirmed
+  rejected
+  arrived
+  cancelled
+  expired
+}
+
+enum RecurringAuthStatus {
+  active
+  paused
+  revoked
+}
+
+enum IssueKind {
+  maintenance
+  noise
+  suspicious
+  panic
+  incident
+}
+
+enum IssueSeverity {
+  low
+  normal
+  high
+  critical
+}
+
+enum IssueStatus {
+  open
+  acknowledged
+  resolved
+}
+
+enum LostFoundStatus {
+  lost
+  claimed
+  disposed
+}
+
 model Tenant {
   id        String   @id @default(cuid())
   slug      String   @unique
@@ -41,10 +88,17 @@ model Tenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users     User[]
-  units     Unit[]
-  packages  Package[]
-  auditLogs AuditLog[]
+  users          User[]
+  units          Unit[]
+  packages       Package[]
+  auditLogs      AuditLog[]
+  visitorEvents  VisitorEvent[]
+  chatSessions   ChatSession[]
+  recurringAuths RecurringAuthorization[]
+  issues         Issue[]
+  broadcasts     Broadcast[]
+  faqEntries     FaqEntry[]
+  lostFoundItems LostFoundItem[]
 }
 
 model User {
@@ -57,16 +111,28 @@ model User {
   image         String?
   phone         String?   @unique
   pinHash       String?
+  vacationStart DateTime?
+  vacationEnd   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  tenant            Tenant?         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  unitMemberships   UnitResident[]
-  packagesReceived  Package[]       @relation("PackageReceivedBy")
-  packagesDelivered Package[]       @relation("PackagePickedUpBy")
-  auditLogs         AuditLog[]
-  accounts          Account[]
-  sessions          Session[]
+  tenant                 Tenant?                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  unitMemberships        UnitResident[]
+  packagesReceived       Package[]                @relation("PackageReceivedBy")
+  packagesDelivered      Package[]                @relation("PackagePickedUpBy")
+  auditLogs              AuditLog[]
+  accounts               Account[]
+  sessions               Session[]
+  chatSession            ChatSession?
+  visitorEventsRequested VisitorEvent[]           @relation("VisitorEventRequester")
+  visitorEventsDecided   VisitorEvent[]           @relation("VisitorEventDecider")
+  recurringAuthsCreated  RecurringAuthorization[] @relation("RecurringAuthCreator")
+  issuesReported         Issue[]                  @relation("IssueReporter")
+  issuesAcknowledged     Issue[]                  @relation("IssueAck")
+  issuesResolved         Issue[]                  @relation("IssueResolver")
+  broadcastsSent         Broadcast[]              @relation("BroadcastSender")
+  lostFoundPosted        LostFoundItem[]          @relation("LostFoundPoster")
+  lostFoundClaimed       LostFoundItem[]          @relation("LostFoundClaimer")
 
   @@index([tenantId, role])
 }
@@ -116,9 +182,12 @@ model Unit {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  residents UnitResident[]
-  packages  Package[]
+  tenant         Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  residents      UnitResident[]
+  packages       Package[]
+  visitorEvents  VisitorEvent[]
+  recurringAuths RecurringAuthorization[]
+  issues         Issue[]
 
   @@unique([tenantId, label])
   @@index([tenantId])
@@ -127,7 +196,7 @@ model Unit {
 model UnitResident {
   unitId    String
   userId    String
-  isPrimary Boolean @default(false)
+  isPrimary Boolean  @default(false)
   createdAt DateTime @default(now())
 
   unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
@@ -138,28 +207,28 @@ model UnitResident {
 }
 
 model Package {
-  id                 String         @id @default(cuid())
-  tenantId           String
-  unitId             String
-  receivedByUserId   String
-  carrier            String?
-  photoUrl           String?
-  notes              String?
-  pickupCode         String
-  pickupToken        String         @default(cuid())
-  status             PackageStatus  @default(awaiting_pickup)
-  receivedAt         DateTime       @default(now())
-  pickedUpAt         DateTime?
-  pickedUpByUserId   String?
-  pickupPhotoUrl     String?
-  cancelledAt        DateTime?
-  cancelledReason    String?
+  id               String        @id @default(cuid())
+  tenantId         String
+  unitId           String
+  receivedByUserId String
+  carrier          String?
+  photoUrl         String?
+  notes            String?
+  pickupCode       String
+  pickupToken      String        @default(cuid())
+  status           PackageStatus @default(awaiting_pickup)
+  receivedAt       DateTime      @default(now())
+  pickedUpAt       DateTime?
+  pickedUpByUserId String?
+  pickupPhotoUrl   String?
+  cancelledAt      DateTime?
+  cancelledReason  String?
 
-  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  unit           Unit           @relation(fields: [unitId], references: [id])
-  receivedBy     User           @relation("PackageReceivedBy", fields: [receivedByUserId], references: [id])
-  pickedUpBy     User?          @relation("PackagePickedUpBy", fields: [pickedUpByUserId], references: [id])
-  notifications  Notification[]
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  unit          Unit           @relation(fields: [unitId], references: [id])
+  receivedBy    User           @relation("PackageReceivedBy", fields: [receivedByUserId], references: [id])
+  pickedUpBy    User?          @relation("PackagePickedUpBy", fields: [pickedUpByUserId], references: [id])
+  notifications Notification[]
 
   // Pickup code uniqueness is enforced only across active packages — see migration that
   // adds a partial unique index on (tenantId, pickupCode) WHERE status = 'awaiting_pickup'.
@@ -188,18 +257,162 @@ model Notification {
 }
 
 model AuditLog {
-  id           String   @id @default(cuid())
-  tenantId     String?
-  actorUserId  String?
-  action       String
-  entityType   String
-  entityId     String
-  metadata     Json     @default("{}")
-  at           DateTime @default(now())
+  id          String   @id @default(cuid())
+  tenantId    String?
+  actorUserId String?
+  action      String
+  entityType  String
+  entityId    String
+  metadata    Json     @default("{}")
+  at          DateTime @default(now())
 
   tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   actor  User?   @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@index([tenantId, at])
   @@index([entityType, entityId])
+}
+
+model VisitorEvent {
+  id                String           @id @default(cuid())
+  tenantId          String
+  unitId            String
+  kind              VisitorEventKind
+  visitorName       String
+  vehiclePlate      String?
+  expectedTime      DateTime?
+  status            VisitorStatus    @default(pending)
+  requestedByUserId String
+  decidedByUserId   String?
+  decidedAt         DateTime?
+  notes             String?
+  createdAt         DateTime         @default(now())
+
+  tenant      Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  unit        Unit   @relation(fields: [unitId], references: [id])
+  requestedBy User   @relation("VisitorEventRequester", fields: [requestedByUserId], references: [id])
+  decidedBy   User?  @relation("VisitorEventDecider", fields: [decidedByUserId], references: [id])
+
+  @@index([tenantId, status, createdAt])
+  @@index([unitId, createdAt])
+}
+
+model ChatSession {
+  id             String    @id @default(cuid())
+  tenantId       String
+  userId         String    @unique
+  phone          String    @unique
+  state          String    @default("MENU")
+  context        Json      @default("{}")
+  lastInboundAt  DateTime?
+  lastOutboundAt DateTime?
+  updatedAt      DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model InboundMessageDedupe {
+  providerMessageId String   @id
+  processedAt       DateTime @default(now())
+}
+
+model RecurringAuthorization {
+  id              String              @id @default(cuid())
+  tenantId        String
+  unitId          String
+  createdByUserId String
+  name            String
+  daysOfWeek      Int[]
+  startTime       String
+  endTime         String
+  validUntil      DateTime?
+  status          RecurringAuthStatus @default(active)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  unit      Unit   @relation(fields: [unitId], references: [id])
+  createdBy User   @relation("RecurringAuthCreator", fields: [createdByUserId], references: [id])
+
+  @@index([tenantId, status])
+  @@index([unitId])
+}
+
+model Issue {
+  id                   String        @id @default(cuid())
+  tenantId             String
+  unitId               String?
+  kind                 IssueKind
+  severity             IssueSeverity @default(normal)
+  status               IssueStatus   @default(open)
+  title                String
+  body                 String
+  reportedByUserId     String
+  reportedByRole       Role
+  acknowledgedByUserId String?
+  acknowledgedAt       DateTime?
+  resolvedByUserId     String?
+  resolvedAt           DateTime?
+  resolutionNote       String?
+  createdAt            DateTime      @default(now())
+
+  tenant         Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  unit           Unit?  @relation(fields: [unitId], references: [id])
+  reportedBy     User   @relation("IssueReporter", fields: [reportedByUserId], references: [id])
+  acknowledgedBy User?  @relation("IssueAck", fields: [acknowledgedByUserId], references: [id])
+  resolvedBy     User?  @relation("IssueResolver", fields: [resolvedByUserId], references: [id])
+
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, kind, status])
+}
+
+model Broadcast {
+  id             String   @id @default(cuid())
+  tenantId       String
+  sentByUserId   String
+  subject        String
+  body           String
+  recipientCount Int      @default(0)
+  sentAt         DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sentBy User   @relation("BroadcastSender", fields: [sentByUserId], references: [id])
+
+  @@index([tenantId, sentAt])
+}
+
+model FaqEntry {
+  id        String   @id @default(cuid())
+  tenantId  String
+  ordinal   Int
+  question  String
+  answer    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, ordinal])
+}
+
+model LostFoundItem {
+  id              String          @id @default(cuid())
+  tenantId        String
+  description     String
+  foundLocation   String?
+  foundAt         DateTime        @default(now())
+  postedByUserId  String
+  status          LostFoundStatus @default(lost)
+  claimedByUserId String?
+  claimedAt       DateTime?
+  createdAt       DateTime        @default(now())
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  postedBy  User   @relation("LostFoundPoster", fields: [postedByUserId], references: [id])
+  claimedBy User?  @relation("LostFoundClaimer", fields: [claimedByUserId], references: [id])
+
+  @@index([tenantId, status, foundAt])
 }

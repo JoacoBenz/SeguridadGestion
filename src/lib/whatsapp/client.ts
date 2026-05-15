@@ -13,8 +13,14 @@ export interface SendTemplateResult {
   providerMessageId: string;
 }
 
+export interface SendTextInput {
+  to: string;
+  body: string;
+}
+
 export interface WhatsAppClient {
   sendTemplate(input: SendTemplateInput): Promise<SendTemplateResult>;
+  sendText(input: SendTextInput): Promise<SendTemplateResult>;
 }
 
 interface TemplateComponent {
@@ -99,6 +105,34 @@ class MetaCloudClient implements WhatsAppClient {
     }
     return { providerMessageId: messageId };
   }
+
+  async sendText({ to, body }: SendTextInput): Promise<SendTemplateResult> {
+    const url = `https://graph.facebook.com/v21.0/${this.phoneNumberId}/messages`;
+    const payload = {
+      messaging_product: "whatsapp",
+      to,
+      type: "text",
+      text: { body },
+    };
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Meta API ${res.status}: ${errorText}`);
+    }
+    const json = (await res.json()) as { messages?: Array<{ id: string }> };
+    const messageId = json.messages?.[0]?.id;
+    if (!messageId) {
+      throw new Error("Meta API no devolvió message id");
+    }
+    return { providerMessageId: messageId };
+  }
 }
 
 class LoggingClient implements WhatsAppClient {
@@ -118,6 +152,12 @@ class LoggingClient implements WhatsAppClient {
         headerImageUrl ? ` headerImage=${headerImageUrl}` : ""
       } id=${fakeId}`,
     );
+    return { providerMessageId: fakeId };
+  }
+
+  async sendText({ to, body }: SendTextInput): Promise<SendTemplateResult> {
+    const fakeId = `dev-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    console.log(`[whatsapp:dev] → ${to} text=${JSON.stringify(body)} id=${fakeId}`);
     return { providerMessageId: fakeId };
   }
 }

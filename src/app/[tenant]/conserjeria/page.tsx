@@ -3,37 +3,203 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { PackageCard } from "@/components/conserjeria/package-card";
+import { AuthorizationCard } from "@/components/conserjeria/authorization-card";
+import { AutoRefresh } from "@/components/conserjeria/auto-refresh";
+import { IncidentQuickForm } from "@/components/conserjeria/incident-quick-form";
+import { guardReportIssueAction } from "@/server/admin/issues";
 
 export default async function ConserjeriaHome({
   params,
+  searchParams,
 }: {
   params: Promise<{ tenant: string }>;
+  searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
   const { tenant: slug } = await params;
+  const { ok, error } = await searchParams;
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
     select: { id: true, name: true },
   });
   if (!tenant) notFound();
 
-  await requireTenantRoleOrRedirect(tenant.id, ["guard", "admin"], `/${slug}/conserjeria`);
+  const session = await requireTenantRoleOrRedirect(
+    tenant.id,
+    ["guard", "admin"],
+    `/${slug}/conserjeria`,
+  );
+  const canSeeAdmin = session.role === "admin" || session.role === "superadmin";
 
-  const pendientes = await prisma.package.findMany({
-    where: { tenantId: tenant.id, status: "awaiting_pickup" },
-    orderBy: { receivedAt: "desc" },
-    include: { unit: { select: { label: true } } },
-    take: 50,
-  });
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const todayDow = now.getDay();
+
+  const [pendientes, visitors, recurringToday, residentsOnVacation, openIssues, units] =
+    await Promise.all([
+      prisma.package.findMany({
+        where: { tenantId: tenant.id, status: "awaiting_pickup" },
+        orderBy: { receivedAt: "desc" },
+        include: { unit: { select: { label: true } } },
+        take: 50,
+      }),
+      prisma.visitorEvent.findMany({
+        where: {
+          tenantId: tenant.id,
+          status: { in: ["pending", "confirmed"] },
+          createdAt: { gte: startOfDay, lte: endOfDay },
+        },
+        include: { unit: { select: { label: true } } },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.recurringAuthorization.findMany({
+        where: {
+          tenantId: tenant.id,
+          status: "active",
+          daysOfWeek: { has: todayDow },
+          OR: [{ validUntil: null }, { validUntil: { gte: startOfDay } }],
+        },
+        include: { unit: { select: { label: true } } },
+        orderBy: { startTime: "asc" },
+      }),
+      prisma.user.findMany({
+        where: {
+          tenantId: tenant.id,
+          role: "resident",
+          vacationStart: { lte: endOfDay },
+          vacationEnd: { gte: startOfDay },
+        },
+        include: { unitMemberships: { select: { unitId: true } } },
+      }),
+      prisma.issue.findMany({
+        where: {
+          tenantId: tenant.id,
+          status: { in: ["open", "acknowledged"] },
+          kind: { in: ["panic", "suspicious"] },
+        },
+        orderBy: [{ severity: "desc" }, { createdAt: "desc" }],
+        include: { unit: { select: { label: true } } },
+        take: 10,
+      }),
+      prisma.unit.findMany({
+        where: { tenantId: tenant.id },
+        select: { id: true, label: true },
+        orderBy: { label: "asc" },
+      }),
+    ]);
+
+  const vacationUnitIds = new Set(
+    residentsOnVacation.flatMap((u) => u.unitMemberships.map((m) => m.unitId)),
+  );
+
+  const reportIncident = guardReportIssueAction.bind(null, slug);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col px-4 pb-28 pt-6">
-      <header className="mb-8 flex items-baseline justify-between">
+      <AutoRefresh />
+
+      <header className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <p className="text-sm text-ink-400">{tenant.name}</p>
           <h1 className="text-2xl font-bold tracking-tight">Conserjería</h1>
         </div>
-        <PendingBadge count={pendientes.length} />
+        <div className="flex items-center gap-2">
+          <PendingBadge count={pendientes.length} />
+          <Link
+            href={`/${slug}/conserjeria/actividad`}
+            className="rounded-xl border border-ink-700 bg-ink-800 px-3 py-1.5 text-xs text-ink-300 transition-colors hover:text-ink-100"
+          >
+            Actividad →
+          </Link>
+          {canSeeAdmin && (
+            <Link
+              href={`/${slug}/admin`}
+              className="rounded-xl border border-ink-700 bg-ink-800 px-3 py-1.5 text-xs text-ink-300 transition-colors hover:text-ink-100"
+            >
+              Administración →
+            </Link>
+          )}
+        </div>
       </header>
+
+      {ok && (
+        <div className="mb-4 rounded-xl border border-positive/40 bg-positive/10 px-4 py-3 text-sm text-positive">
+          {ok}
+        </div>
+      )}
+      {error && (
+        <div className="mb-4 rounded-xl border border-critical/40 bg-critical/10 px-4 py-3 text-sm text-critical">
+          {error}
+        </div>
+      )}
+
+      {openIssues.length > 0 && (
+        <section className="mb-6">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-warn">
+            Atención
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {openIssues.map((it) => (
+              <li
+                key={it.id}
+                className={`rounded-2xl border bg-ink-800 px-5 py-3 ${
+                  it.severity === "critical" ? "border-critical/60" : "border-warn/40"
+                }`}
+              >
+                <p className="flex items-center gap-2 text-xs text-ink-400">
+                  <span className="rounded-full border border-warn/40 bg-warn/10 px-2 py-0.5 text-warn">
+                    {it.kind === "panic" ? "🚨 Pánico" : "Sospechoso"}
+                  </span>
+                  {it.unit && (
+                    <span className="rounded-full border border-ink-700 px-2 py-0.5">
+                      unidad {it.unit.label}
+                    </span>
+                  )}
+                  <span>{it.createdAt.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span>
+                </p>
+                <p className="mt-1 text-sm text-ink-100">{it.body}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className="mb-6">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-400">
+          Autorizaciones de hoy
+        </h2>
+        {visitors.length === 0 && recurringToday.length === 0 ? (
+          <p className="text-sm text-ink-500">Sin autorizaciones para hoy.</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {visitors.map((v) => (
+              <AuthorizationCard
+                key={`v-${v.id}`}
+                unitLabel={v.unit.label}
+                who={v.visitorName}
+                kind="visitor"
+                detail={
+                  v.expectedTime
+                    ? `Llegada ${v.expectedTime.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`
+                    : "Sin hora específica"
+                }
+                vehiclePlate={v.vehiclePlate}
+                onVacation={vacationUnitIds.has(v.unitId)}
+              />
+            ))}
+            {recurringToday.map((r) => (
+              <AuthorizationCard
+                key={`r-${r.id}`}
+                unitLabel={r.unit.label}
+                who={r.name}
+                kind="recurring"
+                detail={`${r.startTime}–${r.endTime}`}
+                onVacation={vacationUnitIds.has(r.unitId)}
+              />
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="flex-1">
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-400">
@@ -61,7 +227,7 @@ export default async function ConserjeriaHome({
         )}
       </section>
 
-      <FloatingActions slug={slug} />
+      <FloatingActions slug={slug} units={units} action={reportIncident} />
     </main>
   );
 }
@@ -83,10 +249,18 @@ function PendingBadge({ count }: { count: number }) {
   );
 }
 
-function FloatingActions({ slug }: { slug: string }) {
+function FloatingActions({
+  slug,
+  units,
+  action,
+}: {
+  slug: string;
+  units: { id: string; label: string }[];
+  action: (formData: FormData) => Promise<void>;
+}) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-10 border-t border-ink-800 bg-ink-900/95 backdrop-blur">
-      <div className="mx-auto flex max-w-3xl gap-3 px-4 py-3">
+      <div className="mx-auto flex max-w-3xl gap-2 px-4 py-3">
         <Link
           href={`/${slug}/conserjeria/ingreso`}
           className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-ink-700 bg-ink-800 py-4 font-semibold text-ink-100 transition-colors hover:border-ink-500"
@@ -94,6 +268,7 @@ function FloatingActions({ slug }: { slug: string }) {
           <span className="text-lg" aria-hidden>＋</span>
           Registrar
         </Link>
+        <IncidentQuickForm slug={slug} units={units} action={action} />
         <Link
           href={`/${slug}/conserjeria/retiro`}
           className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-accent py-4 font-semibold text-accent-fg transition-transform active:scale-[0.98]"
