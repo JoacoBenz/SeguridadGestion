@@ -17,12 +17,9 @@ const CreateInput = z.object({
   unitId: z.string().min(1),
   name: z.string().trim().min(1).max(120),
   daysOfWeek: z
-    .string()
-    .transform((s) =>
-      s
-        .split(",")
-        .map((n) => Number(n.trim()))
-        .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6),
+    .array(z.string())
+    .transform((arr) =>
+      arr.map((n) => Number(n)).filter((n) => Number.isInteger(n) && n >= 0 && n <= 6),
     )
     .refine((arr) => arr.length > 0, "Elegí al menos un día"),
   startTime: z.string().regex(HHMM, "Hora inválida"),
@@ -37,12 +34,12 @@ async function resolveTenant(slug: string): Promise<string> {
 
 export async function createRecurringAuthAction(slug: string, formData: FormData) {
   const tenantId = await resolveTenant(slug);
-  const session = await requireTenantRole(tenantId, ["admin"]);
+  const session = await requireTenantRole(tenantId, ["admin", "guard"]);
 
   const parsed = CreateInput.safeParse({
     unitId: formData.get("unitId"),
     name: formData.get("name"),
-    daysOfWeek: formData.get("daysOfWeek") ?? "",
+    daysOfWeek: formData.getAll("daysOfWeek"),
     startTime: formData.get("startTime"),
     endTime: formData.get("endTime"),
   });
@@ -72,7 +69,7 @@ export async function createRecurringAuthAction(slug: string, formData: FormData
 
 export async function pauseRecurringAuthAction(slug: string, formData: FormData) {
   const tenantId = await resolveTenant(slug);
-  await requireTenantRole(tenantId, ["admin"]);
+  await requireTenantRole(tenantId, ["admin", "guard"]);
   const id = formData.get("authorizationId");
   if (typeof id !== "string" || !id) {
     redirect(`/${slug}/admin/autorizaciones?error=${encodeURIComponent("Falta id")}`);
@@ -83,7 +80,7 @@ export async function pauseRecurringAuthAction(slug: string, formData: FormData)
 
 export async function revokeRecurringAuthAction(slug: string, formData: FormData) {
   const tenantId = await resolveTenant(slug);
-  await requireTenantRole(tenantId, ["admin"]);
+  await requireTenantRole(tenantId, ["admin", "guard"]);
   const id = formData.get("authorizationId");
   if (typeof id !== "string" || !id) {
     redirect(`/${slug}/admin/autorizaciones?error=${encodeURIComponent("Falta id")}`);
@@ -100,7 +97,7 @@ const VacationInput = z.object({
 
 export async function setUserVacationAction(slug: string, formData: FormData) {
   const tenantId = await resolveTenant(slug);
-  const session = await requireTenantRole(tenantId, ["admin"]);
+  const session = await requireTenantRole(tenantId, ["admin", "guard"]);
   const parsed = VacationInput.safeParse({
     userId: formData.get("userId"),
     start: formData.get("start"),
@@ -139,7 +136,7 @@ export async function setUserVacationAction(slug: string, formData: FormData) {
 
 export async function clearUserVacationAction(slug: string, formData: FormData) {
   const tenantId = await resolveTenant(slug);
-  const session = await requireTenantRole(tenantId, ["admin"]);
+  const session = await requireTenantRole(tenantId, ["admin", "guard"]);
   const userId = formData.get("userId");
   if (typeof userId !== "string" || !userId) {
     redirect(`/${slug}/admin/autorizaciones?error=${encodeURIComponent("Falta id")}`);

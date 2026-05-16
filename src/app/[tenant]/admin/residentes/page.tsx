@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import {
   createResidentAction,
   deleteResidentAction,
@@ -27,6 +28,7 @@ export default async function ResidentesPage({
     select: { id: true },
   });
   if (!tenant) notFound();
+  await requireTenantRoleOrRedirect(tenant.id, ["admin"], `/${slug}/admin/residentes`);
 
   const [units, residents] = await Promise.all([
     prisma.unit.findMany({

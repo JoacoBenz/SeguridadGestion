@@ -7,6 +7,7 @@ import {
   clearUserVacationAction,
   setUserVacationAction,
 } from "@/server/admin/authorizations";
+import { clearExpiredVacationsForTenant } from "@/server/access/clear-expired-vacations";
 
 const DAY_LABEL = ["D", "L", "M", "M", "J", "V", "S"];
 
@@ -22,6 +23,8 @@ export default async function AutorizacionesPage({
 
   const tenant = await prisma.tenant.findUnique({ where: { slug }, select: { id: true } });
   if (!tenant) notFound();
+
+  await clearExpiredVacationsForTenant(tenant.id);
 
   const [auths, units, residentsOnVacation] = await Promise.all([
     prisma.recurringAuthorization.findMany({
@@ -92,22 +95,35 @@ export default async function AutorizacionesPage({
               className="rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 text-ink-100 placeholder:text-ink-500 focus:border-accent focus:outline-none"
             />
           </label>
-          <label className="flex flex-col gap-1 sm:col-span-2">
-            <span className="text-xs text-ink-400">Días (0=Dom, 1=Lun…)</span>
-            <input
-              name="daysOfWeek"
-              required
-              placeholder="1,2,3,4,5"
-              className="rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 font-mono text-ink-100 focus:border-accent focus:outline-none"
-            />
-          </label>
+          <fieldset className="flex flex-wrap items-center gap-3 sm:col-span-2">
+            <legend className="mb-1 w-full text-xs text-ink-400">Días</legend>
+            {[
+              { v: "1", l: "L" },
+              { v: "2", l: "M" },
+              { v: "3", l: "M" },
+              { v: "4", l: "J" },
+              { v: "5", l: "V" },
+              { v: "6", l: "S" },
+              { v: "0", l: "D" },
+            ].map((d) => (
+              <label key={d.v} className="flex cursor-pointer items-center gap-1 text-sm text-ink-200">
+                <input
+                  type="checkbox"
+                  name="daysOfWeek"
+                  value={d.v}
+                  className="h-4 w-4 rounded border-ink-700 bg-ink-900 text-accent focus:ring-accent"
+                />
+                {d.l}
+              </label>
+            ))}
+          </fieldset>
           <label className="flex flex-col gap-1 sm:col-span-1">
             <span className="text-xs text-ink-400">Desde</span>
             <input
               name="startTime"
+              type="time"
               required
-              placeholder="08:00"
-              pattern="^([01]\\d|2[0-3]):[0-5]\\d$"
+              defaultValue="08:00"
               className="rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 font-mono text-ink-100 focus:border-accent focus:outline-none"
             />
           </label>
@@ -115,9 +131,9 @@ export default async function AutorizacionesPage({
             <span className="text-xs text-ink-400">Hasta</span>
             <input
               name="endTime"
+              type="time"
               required
-              placeholder="12:00"
-              pattern="^([01]\\d|2[0-3]):[0-5]\\d$"
+              defaultValue="12:00"
               className="rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 font-mono text-ink-100 focus:border-accent focus:outline-none"
             />
           </label>

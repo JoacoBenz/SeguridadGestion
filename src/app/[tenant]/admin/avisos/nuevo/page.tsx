@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { sendBroadcastAction } from "@/server/admin/broadcasts";
 
 export default async function NuevoAvisoPage({
@@ -13,6 +14,7 @@ export default async function NuevoAvisoPage({
   const { error } = await searchParams;
   const tenant = await prisma.tenant.findUnique({ where: { slug }, select: { id: true } });
   if (!tenant) notFound();
+  await requireTenantRoleOrRedirect(tenant.id, ["admin"], `/${slug}/admin/avisos/nuevo`);
 
   const residentCount = await prisma.user.count({
     where: { tenantId: tenant.id, role: "resident", phone: { not: null } },

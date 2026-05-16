@@ -13,25 +13,33 @@ interface Props {
   codeAction: (formData: FormData) => Promise<void>;
 }
 
+interface QrSuccess {
+  unitLabel: string;
+}
+
+const POPUP_MS = 1600;
+
 export function PickupFlow({ tenantSlug, codeAction }: Props) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("qr");
   const [error, setError] = useState<string | null>(null);
   const [scanning, startTransition] = useTransition();
   const [lastHandled, setLastHandled] = useState<string | null>(null);
+  const [qrSuccess, setQrSuccess] = useState<QrSuccess | null>(null);
 
   function onScan(codes: IDetectedBarcode[]) {
     const first = codes[0]?.rawValue;
-    if (!first || first === lastHandled) return;
+    if (!first || first === lastHandled || qrSuccess) return;
     setLastHandled(first);
     setError(null);
     startTransition(async () => {
       try {
         const result = await pickupByTokenAction(tenantSlug, first);
-        router.replace(
-          `/${tenantSlug}/conserjeria/retiro?ok=${encodeURIComponent(`Depto ${result.unitLabel}`)}`,
-        );
-        router.refresh();
+        setQrSuccess({ unitLabel: result.unitLabel });
+        setTimeout(() => {
+          router.replace(`/${tenantSlug}/conserjeria`);
+          router.refresh();
+        }, POPUP_MS);
       } catch (err) {
         setError(err instanceof Error ? err.message : "ERROR");
         setTimeout(() => setLastHandled(null), 1500);
@@ -41,7 +49,7 @@ export function PickupFlow({ tenantSlug, codeAction }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
-      <Segmented mode={mode} onChange={setMode} />
+      <Segmented mode={mode} onChange={setMode} disabled={!!qrSuccess} />
 
       {mode === "qr" ? (
         <div className="flex flex-col items-center gap-3">
@@ -54,6 +62,7 @@ export function PickupFlow({ tenantSlug, codeAction }: Props) {
               constraints={{ facingMode: "environment" }}
               formats={["qr_code"]}
               styles={{ container: { width: "100%", aspectRatio: "1 / 1" } }}
+              paused={!!qrSuccess}
             />
             <div
               aria-hidden
@@ -76,24 +85,87 @@ export function PickupFlow({ tenantSlug, codeAction }: Props) {
         </form>
       )}
 
-      {error && (
+      {error && !qrSuccess && (
         <p
           role="alert"
-          className="mx-auto max-w-sm rounded-xl border border-critical/40 bg-critical/10 px-4 py-3 text-center text-sm text-critical"
+          className="mx-auto max-w-sm animate-slide-in-down rounded-xl border border-critical/40 bg-critical/10 px-4 py-3 text-center text-sm text-critical"
         >
           {error}
         </p>
       )}
+
+      {qrSuccess && <QrSuccessPopup unitLabel={qrSuccess.unitLabel} />}
     </div>
   );
 }
 
-function Segmented({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
+function QrSuccessPopup({ unitLabel }: { unitLabel: string }) {
+  return (
+    <div
+      role="status"
+      aria-live="assertive"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/80 px-6 opacity-0 backdrop-blur-sm animate-backdrop-in"
+    >
+      <div className="relative flex w-full max-w-sm flex-col items-center gap-5 rounded-3xl border border-positive/40 bg-ink-900 px-6 py-8 text-center opacity-0 animate-success-pop shadow-[0_24px_60px_-12px_rgba(52,211,153,0.35)]">
+        <div className="relative flex h-24 w-24 items-center justify-center">
+          <span
+            aria-hidden
+            className="absolute inset-0 rounded-full border-2 border-positive/60 animate-halo-ring"
+          />
+          <span className="flex h-24 w-24 items-center justify-center rounded-full bg-positive/15">
+            <svg
+              viewBox="0 0 32 32"
+              className="h-12 w-12"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={3}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path
+                d="M7 16.5 L13.5 23 L25 10"
+                className="text-positive animate-check-stroke"
+                style={{ strokeDasharray: 30, strokeDashoffset: 30 }}
+              />
+            </svg>
+          </span>
+        </div>
+        <div className="opacity-0 animate-fade-rise" style={{ animationDelay: "260ms" }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-positive">
+            QR escaneado
+          </p>
+          <p className="mt-2 text-2xl font-bold text-ink-100">Entregá al residente</p>
+          <p className="mt-3 text-sm text-ink-400">
+            Depto{" "}
+            <span className="font-mono text-base font-semibold text-accent">
+              {unitLabel}
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Segmented({
+  mode,
+  onChange,
+  disabled,
+}: {
+  mode: Mode;
+  onChange: (m: Mode) => void;
+  disabled?: boolean;
+}) {
   return (
     <div
       role="tablist"
       aria-label="Modo de retiro"
-      className="mx-auto flex w-full max-w-sm rounded-2xl border border-ink-700 bg-ink-850 p-1"
+      className={
+        disabled
+          ? "pointer-events-none mx-auto flex w-full max-w-sm rounded-2xl border border-ink-700 bg-ink-850 p-1 opacity-60"
+          : "mx-auto flex w-full max-w-sm rounded-2xl border border-ink-700 bg-ink-850 p-1"
+      }
     >
       <SegmentedButton
         active={mode === "qr"}

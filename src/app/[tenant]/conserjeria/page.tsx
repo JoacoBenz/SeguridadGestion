@@ -7,6 +7,7 @@ import { AuthorizationCard } from "@/components/conserjeria/authorization-card";
 import { AutoRefresh } from "@/components/conserjeria/auto-refresh";
 import { IncidentQuickForm } from "@/components/conserjeria/incident-quick-form";
 import { guardReportIssueAction } from "@/server/admin/issues";
+import { clearExpiredVacationsForTenant } from "@/server/access/clear-expired-vacations";
 
 export default async function ConserjeriaHome({
   params,
@@ -28,14 +29,20 @@ export default async function ConserjeriaHome({
     ["guard", "admin"],
     `/${slug}/conserjeria`,
   );
-  const canSeeAdmin = session.role === "admin" || session.role === "superadmin";
+  // Guards now have access to a subset of admin tabs (paquetes, autorizaciones,
+  // incidentes, reportes, objetos), so the link is visible to them too.
+  const canSeeAdmin =
+    session.role === "admin" || session.role === "superadmin" || session.role === "guard";
+  const adminLinkLabel = session.role === "guard" ? "Panel →" : "Administración →";
+
+  await clearExpiredVacationsForTenant(tenant.id);
 
   const now = new Date();
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
   const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
   const todayDow = now.getDay();
 
-  const [pendientes, visitors, recurringToday, residentsOnVacation, openIssues, units] =
+  const [pendientes, visitors, recurringToday, residentsOnVacation, openIssues] =
     await Promise.all([
       prisma.package.findMany({
         where: { tenantId: tenant.id, status: "awaiting_pickup" },
@@ -81,11 +88,6 @@ export default async function ConserjeriaHome({
         include: { unit: { select: { label: true } } },
         take: 10,
       }),
-      prisma.unit.findMany({
-        where: { tenantId: tenant.id },
-        select: { id: true, label: true },
-        orderBy: { label: "asc" },
-      }),
     ]);
 
   const vacationUnitIds = new Set(
@@ -116,7 +118,7 @@ export default async function ConserjeriaHome({
               href={`/${slug}/admin`}
               className="rounded-xl border border-ink-700 bg-ink-800 px-3 py-1.5 text-xs text-ink-300 transition-colors hover:text-ink-100"
             >
-              Administración →
+              {adminLinkLabel}
             </Link>
           )}
         </div>
@@ -227,7 +229,7 @@ export default async function ConserjeriaHome({
         )}
       </section>
 
-      <FloatingActions slug={slug} units={units} action={reportIncident} />
+      <FloatingActions slug={slug} action={reportIncident} />
     </main>
   );
 }
@@ -251,11 +253,9 @@ function PendingBadge({ count }: { count: number }) {
 
 function FloatingActions({
   slug,
-  units,
   action,
 }: {
   slug: string;
-  units: { id: string; label: string }[];
   action: (formData: FormData) => Promise<void>;
 }) {
   return (
@@ -268,7 +268,7 @@ function FloatingActions({
           <span className="text-lg" aria-hidden>＋</span>
           Registrar
         </Link>
-        <IncidentQuickForm slug={slug} units={units} action={action} />
+        <IncidentQuickForm slug={slug} action={action} />
         <Link
           href={`/${slug}/conserjeria/retiro`}
           className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-accent py-4 font-semibold text-accent-fg transition-transform active:scale-[0.98]"

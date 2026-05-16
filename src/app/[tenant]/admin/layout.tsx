@@ -17,11 +17,18 @@ export default async function AdminLayout({
   });
   if (!tenant) notFound();
 
-  await requireTenantRoleOrRedirect(tenant.id, ["admin"], `/${slug}/admin`);
+  // Guards have read+write on a subset (paquetes, autorizaciones, incidentes,
+  // reportes, objetos). Per-page guards refuse them on admin-only routes.
+  const session = await requireTenantRoleOrRedirect(
+    tenant.id,
+    ["admin", "guard"],
+    `/${slug}/admin`,
+  );
+  const isGuardOnly = session.role === "guard";
 
   return (
     <div className="min-h-screen">
-      <AdminNav slug={slug} tenantName={tenant.name} />
+      <AdminNav slug={slug} tenantName={tenant.name} isGuardOnly={isGuardOnly} />
       <div className="mx-auto max-w-6xl px-4 pb-16 pt-6">{children}</div>
     </div>
   );

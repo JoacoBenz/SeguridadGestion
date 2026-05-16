@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { registerPackage } from "@/server/packages/register";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
-import { UnitTilePicker } from "@/components/conserjeria/unit-tile-picker";
+import { UnitFloorCarousel } from "@/components/conserjeria/unit-floor-carousel";
 
 export default async function IngresoPage({
   params,
@@ -56,7 +56,7 @@ export default async function IngresoPage({
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-400">
             Para qué departamento
           </h2>
-          <UnitTilePicker name="unitId" units={units} />
+          <UnitFloorCarousel name="unitId" units={units} />
         </section>
 
         <section>

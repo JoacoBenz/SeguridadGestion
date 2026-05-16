@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { createUnitAction, deleteUnitAction } from "@/server/admin/units";
 
 export default async function UnidadesPage({
@@ -17,6 +18,7 @@ export default async function UnidadesPage({
     select: { id: true },
   });
   if (!tenant) notFound();
+  await requireTenantRoleOrRedirect(tenant.id, ["admin"], `/${slug}/admin/unidades`);
 
   const units = await prisma.unit.findMany({
     where: { tenantId: tenant.id },

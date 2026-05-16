@@ -77,7 +77,7 @@ export function parseTimeOfDay(input: string): number | null {
 // "HH:MM-HH:MM" → { startMin, endMin } in minutes since midnight.
 export function parseTimeRange(input: string): { startMin: number; endMin: number } | null {
   const m = input.trim().match(/^(\d{1,2}:\d{2})\s*[-aA]\s*(\d{1,2}:\d{2})$/);
-  if (!m) return null;
+  if (!m || !m[1] || !m[2]) return null;
   const s = parseTimeOfDay(m[1]);
   const e = parseTimeOfDay(m[2]);
   if (s === null || e === null || s < 0 || e < 0 || e <= s) return null;
@@ -126,7 +126,7 @@ export function parseDaysOfWeek(input: string): number[] | null {
   }
 
   const range = t.match(/^([a-záé]+)\s*(?:a|-)\s*([a-záé]+)$/);
-  if (range) {
+  if (range && range[1] && range[2]) {
     const a = DAY_NAMES[range[1]];
     const b = DAY_NAMES[range[2]];
     if (a === undefined || b === undefined) return null;

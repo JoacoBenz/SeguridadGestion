@@ -58,18 +58,16 @@ export async function resolveIssueAction(slug: string, formData: FormData) {
 
 const GuardReportInput = z.object({
   kind: z.enum(["maintenance", "noise", "suspicious", "incident"]),
-  unitId: z.string().optional(),
   body: z.string().trim().min(3).max(2000),
 });
 
-// Guard-side report from the conserjería floating button. Lives here to share
-// the redirect convention; allowed for guard or admin.
+// Guard-side report from the conserjería floating button. Building-level —
+// guards log operational events, never on behalf of a specific resident.
 export async function guardReportIssueAction(slug: string, formData: FormData) {
   const tenantId = await resolveTenant(slug);
   const session = await requireTenantRole(tenantId, ["guard", "admin"]);
   const parsed = GuardReportInput.safeParse({
     kind: formData.get("kind"),
-    unitId: formData.get("unitId") || undefined,
     body: formData.get("body"),
   });
   if (!parsed.success) {
@@ -82,7 +80,6 @@ export async function guardReportIssueAction(slug: string, formData: FormData) {
       tenantId,
       reporterUserId: session.userId,
       kind: parsed.data.kind,
-      unitId: parsed.data.unitId,
       body: parsed.data.body,
     });
   } catch (err) {

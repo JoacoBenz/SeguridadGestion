@@ -10,7 +10,7 @@ const Input = z.object({
 
 export async function acknowledgeIssue(raw: z.infer<typeof Input>) {
   const input = Input.parse(raw);
-  const session = await requireTenantRole(input.tenantId, ["admin"]);
+  const session = await requireTenantRole(input.tenantId, ["admin", "guard"]);
   const issue = await prisma.issue.findFirst({
     where: { id: input.issueId, tenantId: input.tenantId },
   });

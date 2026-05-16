@@ -10,7 +10,7 @@ const Input = z.object({
 
 export async function pauseRecurringAuthorization(raw: z.infer<typeof Input>) {
   const input = Input.parse(raw);
-  const session = await requireTenantRole(input.tenantId, ["admin"]);
+  const session = await requireTenantRole(input.tenantId, ["admin", "guard"]);
   const auth = await prisma.recurringAuthorization.findFirst({
     where: { id: input.authorizationId, tenantId: input.tenantId },
   });
@@ -31,7 +31,7 @@ export async function pauseRecurringAuthorization(raw: z.infer<typeof Input>) {
 
 export async function revokeRecurringAuthorization(raw: z.infer<typeof Input>) {
   const input = Input.parse(raw);
-  const session = await requireTenantRole(input.tenantId, ["admin"]);
+  const session = await requireTenantRole(input.tenantId, ["admin", "guard"]);
   const auth = await prisma.recurringAuthorization.findFirst({
     where: { id: input.authorizationId, tenantId: input.tenantId },
   });

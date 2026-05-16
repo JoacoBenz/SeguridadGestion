@@ -276,6 +276,7 @@ export function dispatch(input: DispatchInput): DispatchResult {
         return same(state, context, "Elegí un número de la lista.");
       }
       const entry = entries[n - 1];
+      if (!entry) return same(state, context, "Elegí un número de la lista.");
       return {
         nextState: "MENU",
         nextContext: {},
@@ -290,6 +291,7 @@ export function dispatch(input: DispatchInput): DispatchResult {
         return same(state, context, "Elegí un número de la lista.");
       }
       const item = items[n - 1];
+      if (!item) return same(state, context, "Elegí un número de la lista.");
       const loc = item.foundLocation ? ` (${item.foundLocation})` : "";
       return {
         nextState: "MENU",

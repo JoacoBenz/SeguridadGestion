@@ -44,8 +44,6 @@ export default async function IncidentesPage({
   }
   if (statusFilter && STATUS_LABEL[statusFilter as IssueStatus]) {
     (where.where as Record<string, unknown>).status = statusFilter;
-  } else if (!statusFilter) {
-    (where.where as Record<string, unknown>).status = { in: ["open", "acknowledged"] };
   }
 
   const issues = await prisma.issue.findMany({
@@ -173,7 +171,7 @@ function FilterBar({
     { value: "incident", label: "Incidente" },
   ];
   const statusOptions: Array<{ value: string; label: string }> = [
-    { value: "", label: "Abiertos + vistos" },
+    { value: "", label: "Todos" },
     { value: "open", label: "Abiertos" },
     { value: "acknowledged", label: "Vistos" },
     { value: "resolved", label: "Resueltos" },

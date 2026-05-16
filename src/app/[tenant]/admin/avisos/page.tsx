@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { requireTenantRoleOrRedirect } from "@/lib/auth";
 
 export default async function AvisosPage({
   params,
@@ -14,6 +15,7 @@ export default async function AvisosPage({
 
   const tenant = await prisma.tenant.findUnique({ where: { slug }, select: { id: true } });
   if (!tenant) notFound();
+  await requireTenantRoleOrRedirect(tenant.id, ["admin"], `/${slug}/admin/avisos`);
 
   const broadcasts = await prisma.broadcast.findMany({
     where: { tenantId: tenant.id },

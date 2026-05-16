@@ -2,6 +2,7 @@ import { z } from "zod";
 import { signIn } from "@/lib/auth/config";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { postLoginRoute } from "@/lib/post-login-route";
 
 const EmailSchema = z.string().trim().toLowerCase().email();
 
@@ -14,9 +15,7 @@ export default async function LoginPage({
 
   const session = await getSession();
   if (session) {
-    if (session.role === "superadmin") redirect("/superadmin");
-    if (!session.tenantId) redirect("/sin-edificio");
-    redirect(`/${await tenantSlugFor(session.tenantId)}/conserjeria`);
+    redirect(await postLoginRoute(session));
   }
 
   async function action(formData: FormData) {
@@ -48,7 +47,8 @@ export default async function LoginPage({
       </div>
       <h1 className="text-3xl font-bold tracking-tight">Entrar</h1>
       <p className="mt-2 text-ink-400">
-        Te mandamos un link al email para iniciar sesión.
+        Sitio para guardias y administración. Si sos residente, todo se hace por el bot de WhatsApp
+        del edificio. Te mandamos un link al email para iniciar sesión.
       </p>
 
       {sent && (
@@ -85,10 +85,4 @@ export default async function LoginPage({
       </form>
     </main>
   );
-}
-
-async function tenantSlugFor(tenantId: string): Promise<string> {
-  const { prisma } = await import("@/lib/db");
-  const t = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true } });
-  return t?.slug ?? "";
 }

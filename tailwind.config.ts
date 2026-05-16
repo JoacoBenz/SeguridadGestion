@@ -38,6 +38,11 @@ const config: Config = {
         "slide-out-right": "slide-out-right 250ms ease-in forwards",
         "pulse-once": "pulse-once 700ms ease-out 1",
         "scan-line": "scan-line 2.4s ease-in-out infinite",
+        "backdrop-in": "backdrop-in 180ms ease-out forwards",
+        "success-pop": "success-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
+        "check-stroke": "check-stroke 360ms ease-out 160ms forwards",
+        "halo-ring": "halo-ring 900ms ease-out forwards",
+        "fade-rise": "fade-rise 360ms ease-out forwards",
       },
       keyframes: {
         "slide-in-down": {
@@ -55,6 +60,27 @@ const config: Config = {
         "scan-line": {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(100%)" },
+        },
+        "backdrop-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "success-pop": {
+          "0%": { opacity: "0", transform: "scale(0.55)" },
+          "60%": { opacity: "1", transform: "scale(1.08)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        "check-stroke": {
+          from: { strokeDashoffset: "30" },
+          to: { strokeDashoffset: "0" },
+        },
+        "halo-ring": {
+          "0%": { opacity: "0.7", transform: "scale(0.6)" },
+          "100%": { opacity: "0", transform: "scale(1.6)" },
+        },
+        "fade-rise": {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
         },
       },
     },

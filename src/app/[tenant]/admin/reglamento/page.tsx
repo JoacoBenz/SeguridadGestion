@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { createFaqAction, deleteFaqAction } from "@/server/admin/faq";
 
 export default async function ReglamentoPage({
@@ -13,6 +14,7 @@ export default async function ReglamentoPage({
   const { ok, error } = await searchParams;
   const tenant = await prisma.tenant.findUnique({ where: { slug }, select: { id: true } });
   if (!tenant) notFound();
+  await requireTenantRoleOrRedirect(tenant.id, ["admin"], `/${slug}/admin/reglamento`);
 
   const entries = await prisma.faqEntry.findMany({
     where: { tenantId: tenant.id },

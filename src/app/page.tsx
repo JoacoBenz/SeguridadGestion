@@ -1,6 +1,14 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth";
+import { postLoginRoute } from "@/lib/post-login-route";
 
-export default function Home() {
+export default async function Home() {
+  const session = await getSession();
+  if (session) {
+    redirect(await postLoginRoute(session));
+  }
+
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-8 px-6 py-12">
       <div>
