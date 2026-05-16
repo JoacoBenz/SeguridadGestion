@@ -3,6 +3,11 @@ import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { createFaqAction, deleteFaqAction } from "@/server/admin/faq";
 
+const OK_MESSAGES: Record<string, string> = {
+  creada: "Pregunta agregada",
+  borrada: "Pregunta borrada",
+};
+
 export default async function ReglamentoPage({
   params,
   searchParams,
@@ -33,7 +38,7 @@ export default async function ReglamentoPage({
 
       {ok && (
         <div className="rounded-xl border border-positive/40 bg-positive/10 px-4 py-3 text-sm text-positive">
-          OK: {ok}
+          {OK_MESSAGES[ok] ?? "Listo"}
         </div>
       )}
       {error && (

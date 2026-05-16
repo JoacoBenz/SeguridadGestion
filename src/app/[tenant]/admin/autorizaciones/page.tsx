@@ -11,6 +11,14 @@ import { clearExpiredVacationsForTenant } from "@/server/access/clear-expired-va
 
 const DAY_LABEL = ["D", "L", "M", "M", "J", "V", "S"];
 
+const OK_MESSAGES: Record<string, string> = {
+  creada: "Autorización creada",
+  pausada: "Autorización pausada",
+  revocada: "Autorización revocada",
+  vacaciones: "Modo vacaciones activado",
+  "sin-vacaciones": "Vacaciones quitadas",
+};
+
 export default async function AutorizacionesPage({
   params,
   searchParams,
@@ -60,7 +68,7 @@ export default async function AutorizacionesPage({
         </p>
       </header>
 
-      {ok && <Banner tone="positive" text={`OK: ${ok}`} />}
+      {ok && <Banner tone="positive" text={OK_MESSAGES[ok] ?? "Listo"} />}
       {error && <Banner tone="critical" text={error} />}
 
       <section>

@@ -3,6 +3,11 @@ import { prisma } from "@/lib/db";
 import { acknowledgeIssueAction, resolveIssueAction } from "@/server/admin/issues";
 import type { IssueKind, IssueStatus } from "@prisma/client";
 
+const OK_MESSAGES: Record<string, string> = {
+  visto: "Incidente marcado como visto",
+  resuelto: "Incidente resuelto",
+};
+
 const KIND_LABEL: Record<IssueKind, string> = {
   maintenance: "Mantenimiento",
   noise: "Ruido",
@@ -66,7 +71,7 @@ export default async function IncidentesPage({
         <p className="text-xs text-ink-400">{issues.length} mostrados</p>
       </header>
 
-      {ok && <Banner tone="positive" text={`OK: ${ok}`} />}
+      {ok && <Banner tone="positive" text={OK_MESSAGES[ok] ?? "Listo"} />}
       {error && <Banner tone="critical" text={error} />}
 
       <FilterBar slug={slug} activeKind={kindFilter} activeStatus={statusFilter} />
@@ -184,37 +189,46 @@ function FilterBar({
     return q.toString() ? `?${q.toString()}` : "";
   };
   return (
-    <div className="flex flex-wrap items-center gap-2 text-xs">
-      <span className="text-ink-500">Tipo:</span>
-      {kindOptions.map((k) => (
-        <a
-          key={k.value}
-          href={`${base}${params(k.value, activeStatus ?? "")}`}
-          className={
-            (activeKind ?? "") === k.value
-              ? "rounded-full border border-accent bg-accent/10 px-3 py-1 text-accent"
-              : "rounded-full border border-ink-700 px-3 py-1 text-ink-300 hover:border-ink-500"
-          }
-        >
-          {k.label}
-        </a>
-      ))}
-      <span className="ml-3 text-ink-500">Estado:</span>
-      {statusOptions.map((s) => (
-        <a
-          key={s.value}
-          href={`${base}${params(activeKind ?? "", s.value)}`}
-          className={
-            (activeStatus ?? "") === s.value
-              ? "rounded-full border border-accent bg-accent/10 px-3 py-1 text-accent"
-              : "rounded-full border border-ink-700 px-3 py-1 text-ink-300 hover:border-ink-500"
-          }
-        >
-          {s.label}
-        </a>
-      ))}
+    <div className="flex flex-col gap-2">
+      <FilterRow label="Tipo">
+        {kindOptions.map((k) => (
+          <a
+            key={k.value}
+            href={`${base}${params(k.value, activeStatus ?? "")}`}
+            className={chipClass((activeKind ?? "") === k.value)}
+          >
+            {k.label}
+          </a>
+        ))}
+      </FilterRow>
+      <FilterRow label="Estado">
+        {statusOptions.map((s) => (
+          <a
+            key={s.value}
+            href={`${base}${params(activeKind ?? "", s.value)}`}
+            className={chipClass((activeStatus ?? "") === s.value)}
+          >
+            {s.label}
+          </a>
+        ))}
+      </FilterRow>
     </div>
   );
+}
+
+function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 text-xs [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <span className="shrink-0 text-ink-500">{label}:</span>
+      <div className="flex w-max gap-2">{children}</div>
+    </div>
+  );
+}
+
+function chipClass(active: boolean): string {
+  return active
+    ? "shrink-0 whitespace-nowrap rounded-full border border-accent bg-accent/10 px-3 py-1 text-accent"
+    : "shrink-0 whitespace-nowrap rounded-full border border-ink-700 px-3 py-1 text-ink-300 hover:border-ink-500";
 }
 
 function Banner({ tone, text }: { tone: "positive" | "critical"; text: string }) {

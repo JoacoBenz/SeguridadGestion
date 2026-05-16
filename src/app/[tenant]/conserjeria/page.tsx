@@ -126,7 +126,7 @@ export default async function ConserjeriaHome({
 
       {ok && (
         <div className="mb-4 rounded-xl border border-positive/40 bg-positive/10 px-4 py-3 text-sm text-positive">
-          {ok}
+          {ok === "incidente-registrado" ? "Incidente registrado" : "Listo"}
         </div>
       )}
       {error && (

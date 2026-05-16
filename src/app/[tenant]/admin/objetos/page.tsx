@@ -6,6 +6,11 @@ import {
 } from "@/server/admin/lost-found";
 import type { LostFoundStatus } from "@prisma/client";
 
+const OK_MESSAGES: Record<string, string> = {
+  cargado: "Objeto cargado",
+  actualizado: "Estado actualizado",
+};
+
 const STATUS_LABEL: Record<LostFoundStatus, string> = {
   lost: "Sin reclamar",
   claimed: "Retirado",
@@ -54,7 +59,7 @@ export default async function ObjetosPage({
 
       {ok && (
         <div className="rounded-xl border border-positive/40 bg-positive/10 px-4 py-3 text-sm text-positive">
-          OK: {ok}
+          {OK_MESSAGES[ok] ?? "Listo"}
         </div>
       )}
       {error && (
@@ -94,26 +99,28 @@ export default async function ObjetosPage({
         </button>
       </form>
 
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span className="text-ink-500">Filtro:</span>
-        {[
-          { value: "", label: "Todos" },
-          { value: "lost", label: "Sin reclamar" },
-          { value: "claimed", label: "Retirados" },
-          { value: "disposed", label: "Descartados" },
-        ].map((f) => (
-          <a
-            key={f.value}
-            href={f.value ? `/${slug}/admin/objetos?status=${f.value}` : `/${slug}/admin/objetos`}
-            className={
-              (status ?? "") === f.value
-                ? "rounded-full border border-accent bg-accent/10 px-3 py-1 text-accent"
-                : "rounded-full border border-ink-700 px-3 py-1 text-ink-300 hover:border-ink-500"
-            }
-          >
-            {f.label}
-          </a>
-        ))}
+      <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 text-xs [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <span className="shrink-0 text-ink-500">Filtro:</span>
+        <div className="flex w-max gap-2">
+          {[
+            { value: "", label: "Todos" },
+            { value: "lost", label: "Sin reclamar" },
+            { value: "claimed", label: "Retirados" },
+            { value: "disposed", label: "Descartados" },
+          ].map((f) => (
+            <a
+              key={f.value}
+              href={f.value ? `/${slug}/admin/objetos?status=${f.value}` : `/${slug}/admin/objetos`}
+              className={
+                (status ?? "") === f.value
+                  ? "shrink-0 whitespace-nowrap rounded-full border border-accent bg-accent/10 px-3 py-1 text-accent"
+                  : "shrink-0 whitespace-nowrap rounded-full border border-ink-700 px-3 py-1 text-ink-300 hover:border-ink-500"
+              }
+            >
+              {f.label}
+            </a>
+          ))}
+        </div>
       </div>
 
       {items.length === 0 ? (

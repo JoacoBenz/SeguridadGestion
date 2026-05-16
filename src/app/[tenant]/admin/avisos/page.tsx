@@ -3,6 +3,17 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 
+function formatSendResult(code: string): string {
+  const m = code.match(/^(\d+)-enviados(?:-(\d+)-fallidos)?$/);
+  if (!m) return "Aviso enviado";
+  const sent = Number(m[1]);
+  const failed = m[2] ? Number(m[2]) : 0;
+  const base = `Aviso enviado a ${sent} ${sent === 1 ? "residente" : "residentes"}`;
+  return failed > 0
+    ? `${base} (${failed} ${failed === 1 ? "envío falló" : "envíos fallaron"})`
+    : base;
+}
+
 export default async function AvisosPage({
   params,
   searchParams,
@@ -36,7 +47,7 @@ export default async function AvisosPage({
         </Link>
       </header>
 
-      {ok && <Banner tone="positive" text={`Enviado · ${ok}`} />}
+      {ok && <Banner tone="positive" text={formatSendResult(ok)} />}
       {error && <Banner tone="critical" text={error} />}
 
       {broadcasts.length === 0 ? (
