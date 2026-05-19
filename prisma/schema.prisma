@@ -31,6 +31,12 @@ enum NotificationStatus {
   failed
 }
 
+enum RecurringAuthStatus {
+  active
+  paused
+  revoked
+}
+
 model Tenant {
   id        String   @id @default(cuid())
   slug      String   @unique
@@ -41,10 +47,11 @@ model Tenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users     User[]
-  units     Unit[]
-  packages  Package[]
-  auditLogs AuditLog[]
+  users                   User[]
+  units                   Unit[]
+  packages                Package[]
+  auditLogs               AuditLog[]
+  recurringAuthorizations RecurringAuthorization[]
 }
 
 model User {
@@ -57,16 +64,21 @@ model User {
   image         String?
   phone         String?   @unique
   pinHash       String?
+  // Vacation window. Both null = no vacation. Informational in v1 (guard sees a
+  // badge); no auto-behavior changes yet.
+  vacationStart DateTime?
+  vacationEnd   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  tenant            Tenant?         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  unitMemberships   UnitResident[]
-  packagesReceived  Package[]       @relation("PackageReceivedBy")
-  packagesDelivered Package[]       @relation("PackagePickedUpBy")
-  auditLogs         AuditLog[]
-  accounts          Account[]
-  sessions          Session[]
+  tenant                  Tenant?                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  unitMemberships         UnitResident[]
+  packagesReceived        Package[]                @relation("PackageReceivedBy")
+  packagesDelivered       Package[]                @relation("PackagePickedUpBy")
+  auditLogs               AuditLog[]
+  accounts                Account[]
+  sessions                Session[]
+  recurringAuthsCreated   RecurringAuthorization[] @relation("RecurringAuthCreator")
 
   @@index([tenantId, role])
 }
@@ -116,9 +128,10 @@ model Unit {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  residents UnitResident[]
-  packages  Package[]
+  tenant                  Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  residents               UnitResident[]
+  packages                Package[]
+  recurringAuthorizations RecurringAuthorization[]
 
   @@unique([tenantId, label])
   @@index([tenantId])
@@ -202,4 +215,30 @@ model AuditLog {
 
   @@index([tenantId, at])
   @@index([entityType, entityId])
+}
+
+// Autorización fija para personal recurrente (mucama, paseador, profe).
+// Distinto a VisitorEvent (que es para visitas one-shot anunciadas vía bot,
+// del plan base del chatbot). Acá vive con su propio lifecycle: active →
+// paused/revoked.
+model RecurringAuthorization {
+  id              String              @id @default(cuid())
+  tenantId        String
+  unitId          String
+  createdByUserId String
+  name            String              // "Marcela (mucama)"
+  daysOfWeek      Int[]               // 0=Sun..6=Sat
+  startTime       String              // "HH:MM" local
+  endTime         String              // "HH:MM" local
+  validUntil      DateTime?
+  status          RecurringAuthStatus @default(active)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  unit      Unit   @relation(fields: [unitId], references: [id])
+  createdBy User   @relation("RecurringAuthCreator", fields: [createdByUserId], references: [id])
+
+  @@index([tenantId, status])
+  @@index([unitId])
 }
