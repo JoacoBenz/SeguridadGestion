@@ -19,9 +19,9 @@ Gracias por el interés en modernizar la gestión de paquetes de los edificios q
 
 ## En pocas palabras
 
-> Su conserjería deja de anotar en un cuaderno y de hacer llamados que no entran. El residente se entera al instante por WhatsApp. Y ustedes tienen registro completo de cada entrega, en todos sus edificios, desde una sola plataforma.
+> Su conserjería deja de anotar en un cuaderno y de hacer llamados que no entran. El residente se entera al instante por WhatsApp. Y ustedes tienen registro completo de cada entrega, en todos sus edificios, desde una sola plataforma. Sin invertir en desarrollo ni en infraestructura propia.
 
-Ofrecemos dos planes —**Esencial** y **Completo**— para que elijan el alcance según su cartera, con pago por etapas atado a entregas que ustedes validan. En las páginas siguientes detallamos la propuesta, cómo funciona, qué hace el sistema, el plan de trabajo y la inversión.
+PaqueteOK es un **producto ya desarrollado y probado**: no pagan un desarrollo desde cero, sino una **puesta en marcha** sobre sus edificios y un **abono mensual** que mantiene el servicio. Ofrecemos dos planes —**Esencial** (puesta en marcha USD 2.900 + USD 240/mes) y **Completo** (USD 4.900 + USD 390/mes hasta 20 edificios)— y la implementación lleva apenas 3 a 5 semanas. En las páginas siguientes detallamos la propuesta, cómo funciona, qué hace el sistema, el plan de trabajo y la inversión.
 
 Quedamos a disposición para una demostración en vivo.
 

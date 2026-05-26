@@ -33,10 +33,12 @@ Cierre de demo: "Esto que viste, multiplicado por todos los edificios de tu cart
 
 ## Anclaje de planes
 
-Presentamos **dos planes** para que la decisión sea "cuál" y no "sí o no":
+Vendemos PaqueteOK como **producto ya hecho**: puesta en marcha baja + abono mensual. Eso elimina el sticker shock del proyecto a medida. Presentamos **dos planes** para que la decisión sea "cuál" y no "sí o no":
 
-- **Esencial** (USD 21.100): el ancla baja. Núcleo de paquetes + WhatsApp + conserjería + admin básico.
-- **Completo** (USD 28.200): el plan recomendado. Suma KPIs/reportes, superadmin multi-consorcio y Fase A (autorizaciones recurrentes + modo vacaciones). **Es el que empujamos**: solo ~34 % más caro por el doble de capacidades estratégicas (multi-edificio + diferenciación).
+- **Esencial** (puesta en marcha USD 2.900 + USD 240/mes, hasta 10 edificios): el ancla baja. Núcleo de paquetes + WhatsApp + conserjería + admin básico.
+- **Completo** (puesta en marcha USD 4.900 + USD 390/mes, hasta 20 edificios): el plan recomendado. Suma KPIs/reportes, superadmin multi-consorcio, autorizaciones recurrentes + modo vacaciones y personalización a medida. **Es el que empujamos**.
+
+Anclaje clave: el comprador compara contra "mandar a hacer un sistema" (decenas de miles de USD) o contra licencias por unidad. Una puesta en marcha de USD 4.900 + abono fijo es chica al lado de eso, y aplica a toda la cartera.
 
 Técnica: presentar siempre Completo primero y bajar a Esencial como "si querés arrancar más acotado", nunca al revés.
 
@@ -44,10 +46,11 @@ Técnica: presentar siempre Completo primero y bajar a Esencial como "si querés
 
 Bajamos el miedo del comprador:
 
-- **Pago por hitos** (20/25/30/25): el cliente paga contra entregas verificables, no por adelantado.
-- **Hito 1 chico** (20 %): el compromiso inicial es bajo.
-- **UAT antes de producción**: valida en staging antes del último pago.
-- **Núcleo ya probado**: PaqueteOK no es un experimento; el núcleo está construido y la Fase A en producción. Reduce el riesgo de "¿y si no funciona?".
+- **Inversión inicial baja**: la puesta en marcha (USD 2.900 / 4.900) es una fracción de un desarrollo a medida. Sin un cheque grande de entrada.
+- **Producto ya probado**: PaqueteOK no es un experimento; está construido y funcionando (incluida la Fase A). No financian un riesgo de desarrollo, acceden a algo que ya anda.
+- **Pago 50/50** atado a entregas: 50 % al firmar, 50 % recién en producción. El cliente paga el grueso cuando ya lo está usando.
+- **UAT antes de producción**: valida con datos reales antes del segundo pago.
+- **Abono cancelable**: el compromiso recurrente es mes a mes, no un contrato atado a años.
 
 ## ROI (referencias del sector — estimaciones, no promesas)
 
@@ -64,22 +67,23 @@ Valor para el administrador (ilustrativo):
 
 | Variable | Hipótesis | Resultado estimado |
 | --- | --- | --- |
-| Inversión Completo | USD 28.200 una vez | — |
-| Abono | USD 280/mes | USD 3.360/año |
+| Puesta en marcha Completo | USD 4.900 una vez | — |
+| Abono | USD 390/mes | USD 4.680/año |
+| Costo todo incluido año 1 | 4.900 + 4.680 | ~USD 40/edificio/mes (20 edificios) |
 | Consorcios retenidos por diferenciación | 1 consorcio/año que no se va | Honorarios de ese consorcio (>> abono) |
 | Horas de oficina liberadas | ~3 h/sem en gestión de reclamos | Reasignables a captación |
 
-Mensaje: "El sistema se paga si te ayuda a no perder un solo consorcio al año."
+Mensaje: "Por menos de lo que sale mandar a hacer un sistema, tenés la plataforma andando en toda tu cartera en un mes. Se paga si te ayuda a no perder un solo consorcio al año."
 
 ## Objeciones y respuestas
 
 | Objeción | Respuesta |
 | --- | --- |
-| "Es caro." | "Es una inversión única que aplica a toda tu cartera. El costo por edificio baja con cada uno que sumás; la infraestructura no crece." |
+| "Es caro." | "No estás pagando un desarrollo: el sistema ya está hecho. Pagás la puesta en marcha (USD 4.900) y un abono fijo. Aplicado a toda tu cartera, son ~USD 40 por edificio al mes el primer año, y la mitad después." |
 | "Mis consorcios no lo van a usar." | "El residente no instala nada: recibe un WhatsApp. El conserje opera desde su celular. La barrera de adopción es casi cero." |
 | "Ya tengo un sistema / un Excel." | "¿Tu Excel manda el aviso por WhatsApp con QR y te deja auditoría de quién retiró y cuándo? Eso es lo que elimina los reclamos." |
 | "¿Y si WhatsApp deja de andar?" | "Usamos la API oficial de Meta con plantillas aprobadas, no un WhatsApp Web colgado. Y el código de retiro funciona aunque el residente borre el mensaje." |
-| "Prefiero pagar todo al final." | "El esquema por hitos te protege a vos: pagás contra entregas que validás. El anticipo inicial es solo el 20 %." |
+| "Prefiero pagar todo al final." | "El esquema 50/50 te protege a vos: la mitad al firmar y la otra mitad recién cuando ya está en producción y la estás usando." |
 | "Necesito pensarlo." | "Perfecto. Te dejo el acceso a la demo sembrada por una semana para que lo pruebes con tu equipo operativo." |
 
 ## Métricas de respaldo (para la conversación)
@@ -95,4 +99,4 @@ Mensaje: "El sistema se paga si te ayuda a no perder un solo consorcio al año."
 1. Demo en vivo sobre el tenant sembrado.
 2. Envío del paquete cliente (resumen ejecutivo + propuesta + inversión).
 3. Acceso de prueba por una semana.
-4. Firma + Hito 1 → arranque.
+4. Firma + anticipo (50 %) → arranque de la implementación.

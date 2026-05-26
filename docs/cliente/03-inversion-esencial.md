@@ -2,46 +2,50 @@ Inversión del plan Esencial de PaqueteOK, preparado por Bexovar.
 
 # Inversión — plan Esencial
 
-El plan **Esencial** pone en marcha el núcleo de PaqueteOK: registro de paquetes, aviso por WhatsApp, retiro por QR o código y un panel de administración para operar el día a día. Ideal para arrancar con uno o pocos edificios y validar el servicio.
+PaqueteOK es un **producto ya desarrollado y probado**. No pagan un desarrollo desde cero: pagan la **puesta en marcha** sobre sus edificios y un **abono mensual** que mantiene el servicio funcionando. El plan **Esencial** habilita el núcleo —registro de paquetes, aviso por WhatsApp, retiro por QR o código y panel de administración— ideal para arrancar con una cartera chica.
 
-## Presupuesto por módulo
+## Qué se paga
 
-| Módulo | Incluye | Inversión (USD) |
-| --- | --- | ---: |
-| Descubrimiento, UX y arquitectura | Relevamiento, modelo de datos, diseño de pantallas | 2.800 |
-| Fundaciones | Multi-edificio, accesos y roles, infraestructura | 4.200 |
-| Núcleo de paquetes | Alta, código de retiro, QR, retiro y auditoría | 4.800 |
-| Notificaciones WhatsApp | Aviso automático al residente con código y QR | 2.600 |
-| Conserjería (PWA mobile) | Registro, escaneo de QR, lista de pendientes | 2.900 |
-| Panel de administración (básico) | Unidades, residentes, historial y cancelaciones | 2.400 |
-| QA y puesta en producción | Pruebas, ajustes y salida a producción | 1.400 |
-| **Total** | | **21.100** |
+| Concepto | Importe (USD) |
+| --- | ---: |
+| Puesta en marcha (pago único) | **2.900** |
+| Abono mensual de cartera (hasta 10 edificios) | **240 / mes** |
+| Edificio adicional por encima del tope | 25 / edificio / mes |
 
-## Pago por etapas
+## La puesta en marcha incluye
 
-Inversión única de **USD 21.100**, facturada en pesos al tipo de cambio del día de cada hito.
+- Configuración de la plataforma para su estudio administrador.
+- Alta de hasta **5 edificios** con carga inicial asistida (unidades y residentes).
+- Alta de las plantillas de WhatsApp y del número emisor ante Meta.
+- Branding básico (logo y colores del estudio).
+- Capacitación a conserjería y administración.
+- Validación con datos reales y salida a producción.
 
-| Hito | % | Monto (USD) | Cuándo |
-| --- | ---: | ---: | --- |
-| 1 — Firma + anticipo | 20 % | 4.220 | Al firmar el contrato |
-| 2 — Núcleo en pruebas | 25 % | 5.275 | Paquetes + WhatsApp funcionando |
-| 3 — Validación (UAT) | 30 % | 6.330 | Conserjería + admin listos para validar |
-| 4 — Producción + entrega | 25 % | 5.275 | Puesta en producción y capacitación |
-
-## Mantenimiento mensual
-
-**USD 180 / mes** (arranca al pasar a producción). Incluye:
+## El abono mensual incluye
 
 - Hosting de la aplicación y base de datos.
 - Mensajería de WhatsApp (consumo base).
+- **Actualizaciones del producto** sin cargo.
 - Soporte correctivo y parches de seguridad.
+
+## Forma de pago
+
+La puesta en marcha se abona en **dos partes**, facturadas en pesos al tipo de cambio del día:
+
+| Hito | % | Monto (USD) | Cuándo |
+| --- | ---: | ---: | --- |
+| 1 — Firma + anticipo | 50 % | 1.450 | Al firmar; arranca la implementación |
+| 2 — Producción | 50 % | 1.450 | Al pasar a producción y capacitar |
+
+El **abono mensual arranca al pasar a producción**.
 
 ## Condiciones
 
-- Precios en **USD**, facturados en pesos al **tipo de cambio del día** de cada hito.
-- El alcance es el de la tabla de módulos. Cambios o agregados se cotizan por separado antes de ejecutarse.
-- **30 días de garantía** sobre lo entregado (corrección de defectos sin cargo).
+- Precios en **USD**, facturados en pesos al **tipo de cambio del día**.
+- Tope de 10 edificios incluido en el abono; edificios adicionales a USD 25/edificio/mes.
+- Implementación estimada: **~3 semanas**.
 - La salida a producción depende de la aprobación de plantillas de WhatsApp por Meta.
+- **30 días de garantía** sobre la implementación.
 - Validez de esta cotización: **30 días**.
 
-> ¿Necesitan gestión multi-consorcio centralizada, reportes y autorizaciones recurrentes? Ese alcance está en el **plan Completo**.
+> ¿Manejan más edificios y quieren gestión multi-consorcio centralizada, reportes, autorizaciones recurrentes y personalización a medida? Eso está en el **plan Completo**.

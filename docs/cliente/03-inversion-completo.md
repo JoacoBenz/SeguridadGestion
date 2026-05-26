@@ -2,43 +2,41 @@ Inversión del plan Completo de PaqueteOK, preparado por Bexovar.
 
 # Inversión — plan Completo
 
-El plan **Completo** es el recomendado para un administrador con varios edificios. Suma a todo el núcleo del Esencial la **gestión multi-consorcio centralizada**, los **KPIs y reportes**, y las **autorizaciones recurrentes con modo vacaciones**. Es la plataforma pensada para operar toda la cartera y diferenciarse como administrador.
+PaqueteOK es un **producto ya desarrollado y probado**: no pagan un desarrollo desde cero, pagan la **puesta en marcha** sobre su cartera más un **abono mensual** que mantiene el servicio. El plan **Completo** es el recomendado para un administrador con varios edificios: suma gestión multi-consorcio centralizada, KPIs y reportes, autorizaciones recurrentes con modo vacaciones y **personalización a medida**.
 
-## Presupuesto por módulo
+## Qué se paga
 
-| Módulo | Incluye | Inversión (USD) |
-| --- | --- | ---: |
-| Descubrimiento, UX y arquitectura | Relevamiento, modelo de datos, diseño de pantallas | 2.800 |
-| Fundaciones | Multi-edificio, accesos y roles, infraestructura | 4.200 |
-| Núcleo de paquetes | Alta, código de retiro, QR, retiro y auditoría | 4.800 |
-| Notificaciones WhatsApp + estados | Aviso al residente + seguimiento de entregado/leído | 3.400 |
-| Conserjería (PWA mobile) | Registro, escaneo de QR, lista de pendientes | 2.900 |
-| Panel de administración + KPIs | Unidades, residentes, historial, reportes y métricas | 3.600 |
-| Superadmin (multi-consorcio) | Alta de edificios y gestión centralizada de la cartera | 1.400 |
-| Autorizaciones + modo vacaciones | Personal recurrente, días/horarios, ausencias | 2.500 |
-| QA integral, accesibilidad y capacitación | Pruebas, PWA, accesibilidad y capacitación | 2.600 |
-| **Total** | | **28.200** |
+| Concepto | Importe (USD) |
+| --- | ---: |
+| Puesta en marcha (pago único) | **4.900** |
+| Abono mensual de cartera (hasta 20 edificios) | **390 / mes** |
+| Edificio adicional por encima del tope | 25 / edificio / mes |
 
-## Pago por etapas
+## La puesta en marcha incluye
 
-Inversión única de **USD 28.200**, facturada en pesos al tipo de cambio del día de cada hito.
+- Todo lo del plan Esencial, con alta de hasta **20 edificios** y carga inicial asistida.
+- **Personalización a medida**: branding completo y bolsa de horas para ajustes de campos y flujos propios del estudio.
+- Activación de **KPIs y reportes** mensuales.
+- **Superadmin multi-consorcio**: gestión centralizada de toda la cartera.
+- **Autorizaciones recurrentes + modo vacaciones**.
+- Capacitación, validación con datos reales y salida a producción.
+
+## El abono mensual incluye
+
+- Todo lo del abono Esencial (hosting, mensajería, actualizaciones, soporte correctivo).
+- **Monitoreo proactivo** y **prioridad de soporte**.
+- Bolsa de **3 h/mes** para mejoras menores.
+
+## Forma de pago
+
+La puesta en marcha se abona en **dos partes**, facturadas en pesos al tipo de cambio del día:
 
 | Hito | % | Monto (USD) | Cuándo |
 | --- | ---: | ---: | --- |
-| 1 — Firma + anticipo | 20 % | 5.640 | Al firmar el contrato |
-| 2 — Núcleo en pruebas | 25 % | 7.050 | Paquetes + WhatsApp funcionando |
-| 3 — Validación (UAT) | 30 % | 8.460 | Conserjería + admin + superadmin/autorizaciones listos |
-| 4 — Producción + entrega | 25 % | 7.050 | Puesta en producción y capacitación |
+| 1 — Firma + anticipo | 50 % | 2.450 | Al firmar; arranca la implementación |
+| 2 — Producción | 50 % | 2.450 | Al pasar a producción y capacitar |
 
-## Mantenimiento mensual
-
-**USD 280 / mes** (arranca al pasar a producción). Incluye:
-
-- Hosting de la aplicación y base de datos.
-- Mensajería de WhatsApp (consumo base).
-- Soporte correctivo y parches de seguridad.
-- Monitoreo proactivo y prioridad de soporte.
-- Bolsa de **3 h/mes** para mejoras menores.
+El **abono mensual arranca al pasar a producción**.
 
 ## Comparación de planes
 
@@ -47,18 +45,33 @@ Inversión única de **USD 28.200**, facturada en pesos al tipo de cambio del d�
 | Núcleo de paquetes + WhatsApp | Sí | Sí |
 | Conserjería mobile + retiro por QR/código | Sí | Sí |
 | Panel de administración | Básico | + KPIs y reportes |
-| Seguimiento de estados (entregado/leído) | — | Sí |
+| Edificios incluidos | hasta 5 (alta) / 10 (abono) | hasta 20 |
 | Gestión multi-consorcio centralizada | — | Sí |
 | Autorizaciones recurrentes + modo vacaciones | — | Sí |
-| Inversión | USD 21.100 | **USD 28.200** |
-| Abono mensual | USD 180 | USD 280 |
+| Personalización a medida | — | Sí |
+| **Puesta en marcha** | USD 2.900 | **USD 4.900** |
+| **Abono mensual** | USD 240 | **USD 390** |
+
+## Costo total de propiedad (ilustrativo)
+
+> Ejemplo para dimensionar, no es un compromiso. Cartera de **20 edificios**, primer año:
+
+| Concepto | Monto (USD) |
+| --- | ---: |
+| Puesta en marcha (única) | 4.900 |
+| Abono (12 meses × 390) | 4.680 |
+| **Total primer año** | **9.580** |
+| **Equivale a** | ~USD 40 / edificio / mes |
+
+A partir del segundo año, solo el abono (~USD 19,5 por edificio/mes para 20 edificios), sin licencias por unidad ni infraestructura propia.
 
 ## Condiciones
 
-- Precios en **USD**, facturados en pesos al **tipo de cambio del día** de cada hito.
-- El alcance es el de la tabla de módulos. Cambios o agregados se cotizan por separado antes de ejecutarse.
-- **30 días de garantía** sobre lo entregado (corrección de defectos sin cargo).
+- Precios en **USD**, facturados en pesos al **tipo de cambio del día**.
+- Tope de 20 edificios incluido en el abono; edificios adicionales a USD 25/edificio/mes.
+- Implementación estimada: **~4 a 5 semanas**.
 - La salida a producción depende de la aprobación de plantillas de WhatsApp por Meta.
+- **30 días de garantía** sobre la implementación.
 - Validez de esta cotización: **30 días**.
 
-> Por aproximadamente un tercio más que el Esencial, el Completo habilita operar toda la cartera desde una sola plataforma y ofrecer un servicio diferencial a cada consorcio.
+> Por una puesta en marcha baja y un abono predecible, operan toda la cartera desde una sola plataforma y ofrecen un servicio diferencial a cada consorcio, sin invertir en desarrollo ni infraestructura.

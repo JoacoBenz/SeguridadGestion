@@ -60,41 +60,42 @@ El mensaje de fondo: la inversión se justifica si ayuda a **no perder un solo c
 
 ## Plan de entrega
 
-Cinco etapas en **8 a 10 semanas**, cada una con una entrega que ustedes validan.
+PaqueteOK ya está desarrollado: lo que sigue es una **implementación** de **3 a 5 semanas**, no un desarrollo desde cero. Cuatro etapas, cada una con una entrega que ustedes validan.
 
-<div class="flow-v"><div class="step"><span class="num">1</span><span class="body"><span class="ttl">Arranque y diseño</span><span class="sub">Modelo, pantallas y alta de plantillas WhatsApp · Semana 1</span></span><span class="pay">Firma · 20%</span></div><div class="gate">Avanzamos con su OK</div><div class="step"><span class="num">2</span><span class="body"><span class="ttl">Núcleo de paquetes</span><span class="sub">Registro, código/QR, retiro y auditoría · Semanas 2–4</span></span><span class="pay">—</span></div><div class="gate">Avanzamos con su OK</div><div class="step"><span class="num">3</span><span class="body"><span class="ttl">WhatsApp y conserjería</span><span class="sub">Avisos automáticos + conserjería mobile · Semanas 4–6</span></span><span class="pay">25%</span></div><div class="gate">Avanzamos con su OK</div><div class="step"><span class="num">4</span><span class="body"><span class="ttl">Administración y validación</span><span class="sub">Panel admin + UAT con datos reales · Semanas 6–8</span></span><span class="pay">30%</span></div><div class="gate">Avanzamos con su OK</div><div class="step"><span class="num">5</span><span class="body"><span class="ttl">Producción y entrega</span><span class="sub">Puesta en marcha + capacitación · Semanas 9–10</span></span><span class="pay">25%</span></div></div>
+<div class="flow-v"><div class="step"><span class="num">1</span><span class="body"><span class="ttl">Arranque y configuración</span><span class="sub">Configuración de la plataforma + alta de plantillas WhatsApp · Semana 1</span></span><span class="pay">Firma · 50%</span></div><div class="gate">Avanzamos con su OK</div><div class="step"><span class="num">2</span><span class="body"><span class="ttl">Carga y branding</span><span class="sub">Alta de edificios, unidades y residentes; branding y personalización · Semana 2</span></span><span class="pay">—</span></div><div class="gate">Avanzamos con su OK</div><div class="step"><span class="num">3</span><span class="body"><span class="ttl">Validación (UAT)</span><span class="sub">Prueban con datos reales y aprueban · Semana 3</span></span><span class="pay">—</span></div><div class="gate">Avanzamos con su OK</div><div class="step"><span class="num">4</span><span class="body"><span class="ttl">Producción y capacitación</span><span class="sub">Salida a producción + capacitación + entrega · Semana 4–5</span></span><span class="pay">Producción · 50%</span></div></div>
 
 ## Inversión
 
-Dos planes, con pago por etapas atado a entregas. Precios en **USD**, facturados en pesos al tipo de cambio del día de cada hito.
+PaqueteOK es un **producto ya desarrollado**: no pagan un desarrollo desde cero, sino una **puesta en marcha** sobre sus edificios más un **abono mensual** que mantiene el servicio. Precios en **USD**, facturados en pesos al tipo de cambio del día.
 
 | | Esencial | Completo |
 | --- | :---: | :---: |
 | Núcleo de paquetes + WhatsApp | Sí | Sí |
 | Conserjería mobile + retiro QR/código | Sí | Sí |
 | Panel de administración | Básico | + KPIs y reportes |
-| Seguimiento de estados (entregado/leído) | — | Sí |
+| Edificios incluidos | hasta 10 | hasta 20 |
 | Gestión multi-consorcio centralizada | — | Sí |
 | Autorizaciones recurrentes + vacaciones | — | Sí |
-| **Inversión** | **USD 21.100** | **USD 28.200** |
-| **Abono mensual** | USD 180 | USD 280 |
+| Personalización a medida | — | Sí |
+| **Puesta en marcha (única)** | **USD 2.900** | **USD 4.900** |
+| **Abono mensual** | USD 240 | USD 390 |
 
-Esquema de pago **20 / 25 / 30 / 25** sobre el total del plan. El detalle por módulo está en los documentos de inversión Esencial y Completo.
+La puesta en marcha se abona **50 % al firmar y 50 % al pasar a producción**; el abono mensual arranca en producción. Para 20 edificios, el Completo equivale a **~USD 40 por edificio/mes el primer año** y a **~USD 20 a partir del segundo**, sin licencias por unidad ni infraestructura propia. El detalle está en los documentos de inversión Esencial y Completo.
 
 ## Por qué Bexovar
 
-- **No partimos de cero**: el núcleo de PaqueteOK está construido y probado, lo que reduce el riesgo y acorta los plazos.
-- **Pensado multi-edificio desde el origen**: la plataforma escala a toda su cartera sin sumar infraestructura.
-- **Proceso transparente**: entregas verificables en cada etapa y pago contra resultados, no por adelantado.
+- **Producto ya probado**: PaqueteOK está construido y funcionando. No financian un desarrollo: acceden a una plataforma lista, con puesta en marcha rápida y bajo riesgo.
+- **Pensado multi-edificio desde el origen**: escala a toda su cartera sin sumar infraestructura ni licencias por unidad.
+- **Inversión baja y previsible**: puesta en marcha acotada + abono mensual fijo, en lugar de un proyecto de desarrollo costoso.
 - **Tecnología sólida**: WhatsApp oficial de Meta, accesos sin contraseñas, auditoría completa y aislamiento por edificio.
-- **Acompañamiento**: capacitación a su equipo y soporte continuo con el abono.
+- **Acompañamiento**: capacitación a su equipo, soporte continuo y actualizaciones del producto incluidas en el abono.
 
 ## Próximos pasos
 
 1. **Demostración en vivo** sobre un edificio de ejemplo.
 2. **Elección del plan** (Esencial o Completo) y acuerdo de condiciones.
-3. **Firma y anticipo (20 %)** para arrancar.
-4. **Arranque del proyecto**: en 8 a 10 semanas, en producción.
+3. **Firma y anticipo (50 %)** para arrancar.
+4. **Puesta en marcha**: en 3 a 5 semanas, en producción.
 
 Quedamos a disposición.
 **Equipo Bexovar** · [email] · [teléfono]
