@@ -40,3 +40,6 @@ pnpm-debug.log*
 # prisma
 prisma/*.db
 prisma/*.db-journal
+
+# pdf build venv
+.pdfvenv/
