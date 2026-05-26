@@ -43,3 +43,7 @@ prisma/*.db-journal
 
 # pdf build venv
 .pdfvenv/
+
+# python cache
+__pycache__/
+*.pyc
