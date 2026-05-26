@@ -23,7 +23,8 @@ PaqueteOK es un **producto ya desarrollado y probado**: no pagan un desarrollo d
 
 ## El abono mensual incluye
 
-- Todo lo del abono Esencial (hosting, mensajería, actualizaciones, soporte correctivo).
+- Hosting, actualizaciones del producto y soporte correctivo.
+- Mensajería de WhatsApp: **hasta 7.000 notificaciones por mes** para toda la cartera (excedente a USD 0,05 por notificación).
 - **Monitoreo proactivo** y **prioridad de soporte**.
 - Bolsa de **3 h/mes** para mejoras menores.
 

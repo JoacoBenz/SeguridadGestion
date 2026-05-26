@@ -27,6 +27,10 @@ META = {
         "Proceso comercial y de entrega",
         "Embudo con compuertas y cobros atados a entregas",
     ),
+    "10-gastos-granular.md": (
+        "Gastos — desglose granular",
+        "Implementación, operación, impuestos y márgenes netos",
+    ),
 }
 
 
