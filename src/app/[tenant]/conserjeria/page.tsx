@@ -2,17 +2,23 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
+import { isValidPickupCode } from "@/lib/codes";
+import { subscriptionBlockReason, trialDaysLeft } from "@/lib/subscription";
+import { SubscriptionWarningBanner } from "@/components/subscription-banner";
 import { PackageCard } from "@/components/conserjeria/package-card";
 
 export default async function ConserjeriaHome({
   params,
+  searchParams,
 }: {
   params: Promise<{ tenant: string }>;
+  searchParams: Promise<{ codigo?: string }>;
 }) {
   const { tenant: slug } = await params;
+  const { codigo } = await searchParams;
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
-    select: { id: true, name: true },
+    select: { id: true, name: true, subscriptionStatus: true, trialEndsAt: true },
   });
   if (!tenant) notFound();
 
@@ -34,6 +40,13 @@ export default async function ConserjeriaHome({
         </div>
         <PendingBadge count={pendientes.length} />
       </header>
+
+      <SubscriptionWarningBanner
+        reason={subscriptionBlockReason(tenant)}
+        daysLeft={trialDaysLeft(tenant)}
+      />
+
+      {codigo && isValidPickupCode(codigo) && <RegisteredBanner code={codigo} />}
 
       <section className="flex-1">
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-400">
@@ -63,6 +76,26 @@ export default async function ConserjeriaHome({
 
       <FloatingActions slug={slug} />
     </main>
+  );
+}
+
+function RegisteredBanner({ code }: { code: string }) {
+  return (
+    <div
+      role="status"
+      className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-positive/40 bg-positive/10 px-5 py-4 animate-slide-in-down"
+    >
+      <div>
+        <p className="font-semibold text-positive">Paquete registrado</p>
+        <p className="text-sm text-ink-300">El residente ya recibió el WhatsApp con el QR.</p>
+      </div>
+      <code
+        className="rounded-lg border border-positive/40 bg-ink-900 px-3 py-2 font-mono text-base font-semibold tracking-widest text-positive"
+        aria-label="Código de retiro"
+      >
+        {code}
+      </code>
+    </div>
   );
 }
 

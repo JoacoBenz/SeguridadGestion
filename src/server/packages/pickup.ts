@@ -52,8 +52,10 @@ export async function pickupPackage(raw: PickupInput): Promise<PickupResult> {
   if (!pkg) throw new Error("PACKAGE_NOT_FOUND");
 
   const now = new Date();
-  await prisma.package.update({
-    where: { id: pkg.id },
+  // Conditional update: two guards scanning the same package at once must not
+  // both succeed. Only the request that flips awaiting_pickup → picked_up wins.
+  const updated = await prisma.package.updateMany({
+    where: { id: pkg.id, status: "awaiting_pickup" },
     data: {
       status: "picked_up",
       pickedUpAt: now,
@@ -61,6 +63,7 @@ export async function pickupPackage(raw: PickupInput): Promise<PickupResult> {
       pickupPhotoUrl: input.pickupPhotoUrl,
     },
   });
+  if (updated.count === 0) throw new Error("PACKAGE_NOT_FOUND");
 
   await recordAudit({
     tenantId: input.tenantId,

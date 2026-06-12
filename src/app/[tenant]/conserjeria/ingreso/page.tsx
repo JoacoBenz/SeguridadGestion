@@ -3,17 +3,22 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { registerPackage } from "@/server/packages/register";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
+import { isTenantOperational } from "@/lib/subscription";
+import { SubscriptionBlockedScreen } from "@/components/subscription-banner";
 import { UnitTilePicker } from "@/components/conserjeria/unit-tile-picker";
 
 export default async function IngresoPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ tenant: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const { tenant: slug } = await params;
+  const { error } = await searchParams;
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
-    select: { id: true, name: true },
+    select: { id: true, name: true, subscriptionStatus: true, trialEndsAt: true },
   });
   if (!tenant) notFound();
 
@@ -22,6 +27,15 @@ export default async function IngresoPage({
     ["guard", "admin"],
     `/${slug}/conserjeria/ingreso`,
   );
+
+  if (!isTenantOperational(tenant)) {
+    return (
+      <main className="mx-auto max-w-md px-4 pb-12 pt-6">
+        <PageHeader slug={slug} tenantName={tenant.name} />
+        <SubscriptionBlockedScreen tenantName={tenant.name} />
+      </main>
+    );
+  }
 
   const units = await prisma.unit.findMany({
     where: { tenantId: tenant.id },
@@ -38,18 +52,39 @@ export default async function IngresoPage({
     const carrier = formData.get("carrier");
     const notes = formData.get("notes");
 
-    const result = await registerPackage({
-      tenantId: tenant!.id,
-      unitId,
-      carrier: typeof carrier === "string" && carrier ? carrier : undefined,
-      notes: typeof notes === "string" && notes ? notes : undefined,
-    });
-    redirect(`/${slug}/conserjeria?codigo=${result.pickupCode}`);
+    // El redirect de éxito va FUERA del try: redirect() tira NEXT_REDIRECT
+    // y un catch-all lo convertiría en ?error=.
+    let pickupCode: string;
+    try {
+      const result = await registerPackage({
+        tenantId: tenant!.id,
+        unitId,
+        carrier: typeof carrier === "string" && carrier ? carrier : undefined,
+        notes: typeof notes === "string" && notes ? notes : undefined,
+      });
+      pickupCode = result.pickupCode;
+    } catch (err) {
+      const msg =
+        err instanceof Error && err.message === "SUBSCRIPTION_INACTIVE"
+          ? "La suscripción del edificio está inactiva: no se pueden registrar paquetes nuevos."
+          : "No se pudo registrar el paquete. Probá de nuevo.";
+      redirect(`/${slug}/conserjeria/ingreso?error=${encodeURIComponent(msg)}`);
+    }
+    redirect(`/${slug}/conserjeria?codigo=${pickupCode}`);
   }
 
   return (
     <main className="mx-auto max-w-md px-4 pb-12 pt-6">
       <PageHeader slug={slug} tenantName={tenant.name} />
+
+      {error && (
+        <p
+          role="alert"
+          className="mb-6 rounded-xl border border-critical/40 bg-critical/10 px-4 py-3 text-sm text-critical"
+        >
+          {error}
+        </p>
+      )}
 
       <form action={action} className="flex flex-col gap-8">
         <section>

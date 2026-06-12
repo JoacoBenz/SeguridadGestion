@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireSuperadminOrRedirect } from "@/lib/auth";
 import { createTenantAction } from "@/server/superadmin/tenants";
 
 export default async function NewTenantPage({
@@ -6,6 +7,8 @@ export default async function NewTenantPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
+  await requireSuperadminOrRedirect("/superadmin/tenants/new");
+
   const { error } = await searchParams;
 
   return (

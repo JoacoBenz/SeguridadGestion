@@ -1,6 +1,9 @@
 import { z } from "zod";
+import { headers } from "next/headers";
 import { signIn } from "@/lib/auth/config";
-import { getSession } from "@/lib/auth";
+import { getSession, type Session } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { rateLimit } from "@/lib/rate-limit";
 import { redirect } from "next/navigation";
 
 const EmailSchema = z.string().trim().toLowerCase().email();
@@ -13,11 +16,7 @@ export default async function LoginPage({
   const { callbackUrl, error, sent } = await searchParams;
 
   const session = await getSession();
-  if (session) {
-    if (session.role === "superadmin") redirect("/superadmin");
-    if (!session.tenantId) redirect("/sin-edificio");
-    redirect(`/${await tenantSlugFor(session.tenantId)}/conserjeria`);
-  }
+  if (session) redirect(await landingPathFor(session));
 
   async function action(formData: FormData) {
     "use server";
@@ -26,6 +25,30 @@ export default async function LoginPage({
       redirect(`/login?error=${encodeURIComponent("Email inválido")}`);
     }
     const email = parsed.data;
+
+    // Best-effort por IP (en memoria, por instancia) contra loops y spam burdo.
+    const hdrs = await headers();
+    const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    if (!rateLimit(`login:${ip}`, { limit: 10, windowMs: 60_000 }).ok) {
+      redirect(
+        `/login?error=${encodeURIComponent("Demasiados intentos. Esperá un minuto y probá de nuevo.")}`,
+      );
+    }
+
+    // Throttle durable por email: Auth.js guarda un VerificationToken por
+    // magic link (vence a los 10 min). Con 3 vigentes no mandamos otro —
+    // evita bombardear una casilla ajena y quemar cuota de Resend.
+    const pendingLinks = await prisma.verificationToken.count({
+      where: { identifier: email, expires: { gt: new Date() } },
+    });
+    if (pendingLinks >= 3) {
+      redirect(
+        `/login?error=${encodeURIComponent(
+          "Ya te mandamos varios links. Revisá tu casilla (y spam) o esperá unos minutos.",
+        )}`,
+      );
+    }
+
     try {
       await signIn("resend", {
         email,
@@ -87,8 +110,15 @@ export default async function LoginPage({
   );
 }
 
-async function tenantSlugFor(tenantId: string): Promise<string> {
-  const { prisma } = await import("@/lib/db");
-  const t = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true } });
-  return t?.slug ?? "";
+async function landingPathFor(session: Session): Promise<string> {
+  if (session.role === "superadmin") return "/superadmin";
+  if (!session.tenantId) return "/sin-edificio";
+  const t = await prisma.tenant.findUnique({
+    where: { id: session.tenantId },
+    select: { slug: true },
+  });
+  // Sin slug no se puede armar una ruta de tenant; un "" generaría
+  // "//conserjeria", que el browser trata como URL externa.
+  if (!t) return "/sin-edificio";
+  return session.role === "admin" ? `/${t.slug}/admin` : `/${t.slug}/conserjeria`;
 }

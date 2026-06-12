@@ -1,8 +1,10 @@
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { generateUniquePickupCode } from "@/lib/codes";
 import { recordAudit } from "@/lib/audit";
 import { requireTenantRole } from "@/lib/auth";
+import { isTenantOperational } from "@/lib/subscription";
 import { getWhatsAppClient } from "@/lib/whatsapp/client";
 import { qrImageUrl } from "@/lib/urls";
 
@@ -31,8 +33,14 @@ export async function registerPackage(
 
   const tenant = await prisma.tenant.findUniqueOrThrow({
     where: { id: input.tenantId },
-    select: { name: true },
+    select: { name: true, subscriptionStatus: true, trialEndsAt: true },
   });
+
+  // El gate de suscripción aplica solo al alta de paquetes: los retiros y
+  // cancelaciones de pendientes siguen permitidos aunque el tenant esté caído.
+  if (!isTenantOperational(tenant)) {
+    throw new Error("SUBSCRIPTION_INACTIVE");
+  }
 
   const unit = await prisma.unit.findFirstOrThrow({
     where: { id: input.unitId, tenantId: input.tenantId },
@@ -43,19 +51,33 @@ export async function registerPackage(
     },
   });
 
-  const pickupCode = await generateUniquePickupCode(input.tenantId);
-
-  const pkg = await prisma.package.create({
-    data: {
-      tenantId: input.tenantId,
-      unitId: input.unitId,
-      receivedByUserId: session.userId,
-      carrier: input.carrier,
-      photoUrl: input.photoUrl,
-      notes: input.notes,
-      pickupCode,
-    },
-  });
+  // generateUniquePickupCode chequea colisiones antes de insertar, pero dos
+  // registros simultáneos pueden elegir el mismo código en esa ventana. El
+  // índice único parcial (tenantId, pickupCode) WHERE awaiting_pickup tira
+  // P2002 en ese caso; reintentamos con un código nuevo.
+  let pkg: Awaited<ReturnType<typeof prisma.package.create>> | null = null;
+  let pickupCode = "";
+  for (let attempt = 0; attempt < 3 && !pkg; attempt++) {
+    pickupCode = await generateUniquePickupCode(input.tenantId);
+    try {
+      pkg = await prisma.package.create({
+        data: {
+          tenantId: input.tenantId,
+          unitId: input.unitId,
+          receivedByUserId: session.userId,
+          carrier: input.carrier,
+          photoUrl: input.photoUrl,
+          notes: input.notes,
+          pickupCode,
+        },
+      });
+    } catch (err) {
+      const isCodeCollision =
+        err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002";
+      if (!isCodeCollision || attempt === 2) throw err;
+    }
+  }
+  if (!pkg) throw new Error("PICKUP_CODE_EXHAUSTED");
 
   await recordAudit({
     tenantId: input.tenantId,

@@ -65,6 +65,13 @@ export async function requireTenantRole(
   return session;
 }
 
+// Page-level guard for /superadmin/... routes. Cross-tenant, so no tenantId.
+export async function requireSuperadminOrRedirect(callbackPath?: string): Promise<Session> {
+  const session = await requireSessionOrRedirect(callbackPath);
+  if (session.role !== "superadmin") redirect("/403");
+  return session;
+}
+
 // Page-level guard: redirects to /login if no session, /403 if wrong tenant/role.
 export async function requireTenantRoleOrRedirect(
   tenantId: string,

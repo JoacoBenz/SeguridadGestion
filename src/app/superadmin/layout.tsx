@@ -1,15 +1,12 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { requireSuperadminOrRedirect } from "@/lib/auth";
 
 export default async function SuperadminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getSession();
-  if (!session) redirect("/login?callbackUrl=%2Fsuperadmin");
-  if (session.role !== "superadmin") redirect("/403");
+  await requireSuperadminOrRedirect("/superadmin");
 
   return (
     <div className="min-h-screen">
