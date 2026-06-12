@@ -551,7 +551,7 @@ export const Cierre: React.FC = () => {
           >
             Sumá tu edificio
           </div>
-          <div style={{ fontFamily: MONO, fontSize: 30, color: C.textDim }}>paqueteok.app</div>
+          <div style={{ fontFamily: MONO, fontSize: 30, color: C.textDim }}>bexovar.com</div>
         </div>
       </AbsoluteFill>
     </Bg>
