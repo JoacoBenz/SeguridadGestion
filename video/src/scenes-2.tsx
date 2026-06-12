@@ -1,8 +1,10 @@
 import React from "react";
 import {
   AbsoluteFill,
+  Img,
   interpolate,
   spring,
+  staticFile,
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
@@ -103,19 +105,16 @@ export const WhatsAppScene: React.FC<SceneProps> = ({ vertical }) => {
             gap: 16,
           }}
         >
-          <div
+          {/* Avatar del chat: logo BEXOVAR (marca de la empresa) */}
+          <Img
+            src={staticFile("bexovar-icon.png")}
             style={{
               width: 52,
               height: 52,
               borderRadius: 999,
-              backgroundColor: C.accent,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              display: "block",
             }}
-          >
-            <LogoIcon size={34} />
-          </div>
+          />
           <div style={{ fontFamily: FONT, lineHeight: 1.2 }}>
             <div style={{ color: "#e9edef", fontSize: 24, fontWeight: 600 }}>
               PaqueteOK · Edificio Libertad
