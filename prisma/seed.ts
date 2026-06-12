@@ -16,11 +16,13 @@ async function main() {
 
   const tenant = await prisma.tenant.upsert({
     where: { slug: "edificio-libertad" },
-    update: {},
+    update: { subscriptionStatus: "active" },
     create: {
       slug: "edificio-libertad",
       name: "Edificio Libertad",
       address: "Av. Libertador 1234, CABA",
+      // El edificio de prueba siempre operativo para desarrollo.
+      subscriptionStatus: "active",
     },
   });
 

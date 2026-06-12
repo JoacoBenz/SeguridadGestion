@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { isValidPickupCode } from "@/lib/codes";
+import { subscriptionBlockReason, trialDaysLeft } from "@/lib/subscription";
+import { SubscriptionWarningBanner } from "@/components/subscription-banner";
 import { PackageCard } from "@/components/conserjeria/package-card";
 
 export default async function ConserjeriaHome({
@@ -16,7 +18,7 @@ export default async function ConserjeriaHome({
   const { codigo } = await searchParams;
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
-    select: { id: true, name: true },
+    select: { id: true, name: true, subscriptionStatus: true, trialEndsAt: true },
   });
   if (!tenant) notFound();
 
@@ -38,6 +40,11 @@ export default async function ConserjeriaHome({
         </div>
         <PendingBadge count={pendientes.length} />
       </header>
+
+      <SubscriptionWarningBanner
+        reason={subscriptionBlockReason(tenant)}
+        daysLeft={trialDaysLeft(tenant)}
+      />
 
       {codigo && isValidPickupCode(codigo) && <RegisteredBanner code={codigo} />}
 

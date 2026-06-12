@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
+import { newTrialEnd } from "@/lib/subscription";
 
 const SLUG = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?$/;
 
@@ -49,7 +50,13 @@ export async function createTenantAction(formData: FormData) {
   try {
     const result = await prisma.$transaction(async (tx) => {
       const tenant = await tx.tenant.create({
-        data: { slug: parsed.data.slug, name: parsed.data.name },
+        data: {
+          slug: parsed.data.slug,
+          name: parsed.data.name,
+          // Todo edificio nuevo arranca en prueba de 14 días.
+          subscriptionStatus: "trial",
+          trialEndsAt: newTrialEnd(),
+        },
       });
 
       // Si el email ya existe en otro tenant, lo vinculamos a este como admin.
@@ -91,4 +98,49 @@ export async function createTenantAction(formData: FormData) {
   });
 
   redirect(`/superadmin?ok=${encodeURIComponent(parsed.data.slug)}`);
+}
+
+const SubscriptionActionSchema = z.enum(["activate", "suspend", "extend_trial"]);
+
+export async function setTenantSubscriptionAction(formData: FormData) {
+  const { userId } = await requireSuperadmin();
+
+  const tenantId = formData.get("tenantId");
+  const parsedAction = SubscriptionActionSchema.safeParse(formData.get("subAction"));
+  if (typeof tenantId !== "string" || !tenantId || !parsedAction.success) {
+    redirect(`/superadmin?error=${encodeURIComponent("Acción inválida")}`);
+  }
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { id: true, slug: true, subscriptionStatus: true, trialEndsAt: true },
+  });
+  if (!tenant) {
+    redirect(`/superadmin?error=${encodeURIComponent("Edificio no encontrado")}`);
+  }
+
+  const action = parsedAction.data;
+  const data =
+    action === "activate"
+      ? { subscriptionStatus: "active" as const, trialEndsAt: null }
+      : action === "suspend"
+        ? { subscriptionStatus: "suspended" as const }
+        : { subscriptionStatus: "trial" as const, trialEndsAt: newTrialEnd() };
+
+  await prisma.tenant.update({ where: { id: tenant!.id }, data });
+
+  await recordAudit({
+    tenantId: tenant!.id,
+    actorUserId: userId,
+    action: "tenant.subscription_updated",
+    entityType: "Tenant",
+    entityId: tenant!.id,
+    metadata: {
+      subAction: action,
+      from: tenant!.subscriptionStatus,
+      to: data.subscriptionStatus,
+    },
+  });
+
+  redirect(`/superadmin?subok=${encodeURIComponent(tenant!.slug)}`);
 }

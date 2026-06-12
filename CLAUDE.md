@@ -93,6 +93,13 @@ All three call `recordAudit()` and use `requireTenantRole()`. Adding any new sta
 - **Server actions validate input with Zod** at the boundary, then trust the parsed object. Don't re-validate downstream.
 - **Timezone is `America/Argentina/Buenos_Aires` by default per tenant.** Format dates with `toLocaleString("es-AR")` for user display; store as UTC.
 
+### Subscription / billing (manual for now)
+- `Tenant.subscriptionStatus` (`trial | active | past_due | suspended`) + `trialEndsAt`. No payment gateway yet: the **superadmin flips states** from `/superadmin` (Activar / Suspender / +14 días). New tenants start as 14-day `trial`; `past_due` still operates (grace).
+- **Policy: a blocked tenant (suspended or expired trial) cannot REGISTER new packages, but pickups and cancellations of pending packages always work** — residents never lose access to packages already at the desk. The gate lives in `registerPackage` (throws `SUBSCRIPTION_INACTIVE`) + a blocked screen on the ingreso page; conserjería/admin show warning banners. Pure rules in `src/lib/subscription.ts` (unit-tested).
+
+### Reminders cron
+- `/api/cron/reminders` (Vercel Cron daily, see `vercel.json`; auth `Bearer ${CRON_SECRET}`) sends `paquete_pendiente_v1` for packages awaiting pickup ≥3 days. Cooldown of 3 days between reminders per package, deduced from the latest `Notification` with that template — idempotent across runs. Policy is pure in `src/server/packages/reminder-policy.ts`; sender in `reminders.ts`. Non-operational tenants are skipped.
+
 ## Operational pieces
 
 - **Migrations are committed** (`prisma/migrations/`). `pnpm db:migrate` for dev, `pnpm db:deploy` for prod/CI. The partial unique index on active pickup codes lives in the custom migration `partial_unique_active_pickup_code` — Prisma can't model it, so a `prisma migrate dev` after schema edits will NOT try to drop it, but double-check generated SQL anyway.
@@ -108,8 +115,7 @@ These are deferred to later phases — don't add them speculatively:
 - Offline mode for the conserjería form (PWA + IndexedDB queue).
 - Push notifications.
 - Delegation links (separate from sharing the WhatsApp link).
-- Reminder cron for >3-day-old pending packages.
 - Resident view: `/[tenant]/residente/mis-paquetes`.
-- Billing / subscription gating per tenant.
+- Payment gateway (Stripe/MercadoPago) — subscription state exists but is flipped manually by superadmin.
 - Postgres row-level security as a second tenant-isolation layer.
 - Device-PIN session for shared conserjería devices (see Auth section).

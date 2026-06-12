@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { generateUniquePickupCode } from "@/lib/codes";
 import { recordAudit } from "@/lib/audit";
 import { requireTenantRole } from "@/lib/auth";
+import { isTenantOperational } from "@/lib/subscription";
 import { getWhatsAppClient } from "@/lib/whatsapp/client";
 import { qrImageUrl } from "@/lib/urls";
 
@@ -32,8 +33,14 @@ export async function registerPackage(
 
   const tenant = await prisma.tenant.findUniqueOrThrow({
     where: { id: input.tenantId },
-    select: { name: true },
+    select: { name: true, subscriptionStatus: true, trialEndsAt: true },
   });
+
+  // El gate de suscripción aplica solo al alta de paquetes: los retiros y
+  // cancelaciones de pendientes siguen permitidos aunque el tenant esté caído.
+  if (!isTenantOperational(tenant)) {
+    throw new Error("SUBSCRIPTION_INACTIVE");
+  }
 
   const unit = await prisma.unit.findFirstOrThrow({
     where: { id: input.unitId, tenantId: input.tenantId },

@@ -31,15 +31,28 @@ enum NotificationStatus {
   failed
 }
 
+// Facturación manual (sin pasarela todavía): el superadmin gestiona el estado.
+// trial → active cuando el consorcio paga; past_due da gracia; suspended corta
+// el registro de paquetes nuevos (los retiros pendientes siguen permitidos).
+enum SubscriptionStatus {
+  trial
+  active
+  past_due
+  suspended
+}
+
 model Tenant {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  name      String
-  address   String?
-  timezone  String   @default("America/Argentina/Buenos_Aires")
-  settings  Json     @default("{}")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String             @id @default(cuid())
+  slug               String             @unique
+  name               String
+  address            String?
+  timezone           String             @default("America/Argentina/Buenos_Aires")
+  settings           Json               @default("{}")
+  subscriptionStatus SubscriptionStatus @default(trial)
+  // Solo aplica en trial; null = prueba sin vencimiento (decisión explícita).
+  trialEndsAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 
   users     User[]
   units     Unit[]
