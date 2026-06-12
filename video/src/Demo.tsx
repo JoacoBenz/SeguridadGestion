@@ -2,7 +2,7 @@ import React from "react";
 import { AbsoluteFill } from "remotion";
 import { TransitionSeries, springTiming } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
-import { Intro, Problema, Registro } from "./scenes-1";
+import { Intro, Problema, Registro, type SceneProps } from "./scenes-1";
 import { Cierre, Dashboard, Retiro, WhatsAppScene } from "./scenes-2";
 import { C } from "./theme";
 
@@ -11,7 +11,8 @@ import { C } from "./theme";
 const T = () =>
   springTiming({ config: { damping: 200 }, durationInFrames: 20 });
 
-export const PaqueteOKDemo: React.FC = () => {
+// `vertical` arma los layouts en columna para el formato Instagram (1080×1920).
+export const PaqueteOKDemo: React.FC<SceneProps> = ({ vertical }) => {
   return (
     <AbsoluteFill style={{ backgroundColor: C.bg }}>
       {/*
@@ -23,37 +24,37 @@ export const PaqueteOKDemo: React.FC = () => {
       */}
       <TransitionSeries>
         <TransitionSeries.Sequence durationInFrames={200}>
-          <Intro />
+          <Intro vertical={vertical} />
         </TransitionSeries.Sequence>
         <TransitionSeries.Transition presentation={fade()} timing={T()} />
 
         <TransitionSeries.Sequence durationInFrames={200}>
-          <Problema />
+          <Problema vertical={vertical} />
         </TransitionSeries.Sequence>
         <TransitionSeries.Transition presentation={fade()} timing={T()} />
 
         <TransitionSeries.Sequence durationInFrames={440}>
-          <Registro />
+          <Registro vertical={vertical} />
         </TransitionSeries.Sequence>
         <TransitionSeries.Transition presentation={fade()} timing={T()} />
 
         <TransitionSeries.Sequence durationInFrames={380}>
-          <WhatsAppScene />
+          <WhatsAppScene vertical={vertical} />
         </TransitionSeries.Sequence>
         <TransitionSeries.Transition presentation={fade()} timing={T()} />
 
         <TransitionSeries.Sequence durationInFrames={380}>
-          <Retiro />
+          <Retiro vertical={vertical} />
         </TransitionSeries.Sequence>
         <TransitionSeries.Transition presentation={fade()} timing={T()} />
 
         <TransitionSeries.Sequence durationInFrames={200}>
-          <Dashboard />
+          <Dashboard vertical={vertical} />
         </TransitionSeries.Sequence>
         <TransitionSeries.Transition presentation={fade()} timing={T()} />
 
         <TransitionSeries.Sequence durationInFrames={120}>
-          <Cierre />
+          <Cierre vertical={vertical} />
         </TransitionSeries.Sequence>
       </TransitionSeries>
     </AbsoluteFill>
