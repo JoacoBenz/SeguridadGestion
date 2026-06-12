@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { signIn } from "@/lib/auth/config";
-import { getSession } from "@/lib/auth";
+import { getSession, type Session } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 
 const EmailSchema = z.string().trim().toLowerCase().email();
@@ -13,11 +14,7 @@ export default async function LoginPage({
   const { callbackUrl, error, sent } = await searchParams;
 
   const session = await getSession();
-  if (session) {
-    if (session.role === "superadmin") redirect("/superadmin");
-    if (!session.tenantId) redirect("/sin-edificio");
-    redirect(`/${await tenantSlugFor(session.tenantId)}/conserjeria`);
-  }
+  if (session) redirect(await landingPathFor(session));
 
   async function action(formData: FormData) {
     "use server";
@@ -87,8 +84,15 @@ export default async function LoginPage({
   );
 }
 
-async function tenantSlugFor(tenantId: string): Promise<string> {
-  const { prisma } = await import("@/lib/db");
-  const t = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true } });
-  return t?.slug ?? "";
+async function landingPathFor(session: Session): Promise<string> {
+  if (session.role === "superadmin") return "/superadmin";
+  if (!session.tenantId) return "/sin-edificio";
+  const t = await prisma.tenant.findUnique({
+    where: { id: session.tenantId },
+    select: { slug: true },
+  });
+  // Sin slug no se puede armar una ruta de tenant; un "" generaría
+  // "//conserjeria", que el browser trata como URL externa.
+  if (!t) return "/sin-edificio";
+  return session.role === "admin" ? `/${t.slug}/admin` : `/${t.slug}/conserjeria`;
 }

@@ -22,14 +22,17 @@ export async function cancelPackage(raw: CancelInput): Promise<void> {
   if (!pkg) throw new Error("PACKAGE_NOT_FOUND");
   if (pkg.status !== "awaiting_pickup") throw new Error("PACKAGE_NOT_CANCELLABLE");
 
-  await prisma.package.update({
-    where: { id: pkg.id },
+  // Conditional update: if the package was picked up between the check above
+  // and this write, the cancel must lose instead of clobbering the pickup.
+  const updated = await prisma.package.updateMany({
+    where: { id: pkg.id, status: "awaiting_pickup" },
     data: {
       status: "cancelled",
       cancelledAt: new Date(),
       cancelledReason: input.reason,
     },
   });
+  if (updated.count === 0) throw new Error("PACKAGE_NOT_CANCELLABLE");
 
   await recordAudit({
     tenantId: input.tenantId,

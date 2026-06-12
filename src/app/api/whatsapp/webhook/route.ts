@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { mapWebhookStatus, overwritableStatuses } from "@/lib/whatsapp/webhook-status";
 
 // Meta sends GET for verification handshake and POST for status callbacks.
 // https://developers.facebook.com/docs/graph-api/webhooks/getting-started
@@ -52,10 +53,17 @@ export async function POST(req: Request) {
   for (const entry of body.entry ?? []) {
     for (const change of entry.changes ?? []) {
       for (const status of change.value?.statuses ?? []) {
+        const mapped = mapWebhookStatus(status.status);
+        if (!mapped) continue;
+        // El filtro por estado actual evita que callbacks fuera de orden
+        // retrocedan el estado (p.ej. un "delivered" tardío pisando "read").
         await prisma.notification
           .updateMany({
-            where: { providerMessageId: status.id },
-            data: { status: mapStatus(status.status) },
+            where: {
+              providerMessageId: status.id,
+              status: { in: overwritableStatuses(mapped) },
+            },
+            data: { status: mapped },
           })
           .catch(() => undefined);
       }
@@ -63,19 +71,6 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ ok: true });
-}
-
-function mapStatus(s: string): "sent" | "delivered" | "read" | "failed" {
-  switch (s) {
-    case "delivered":
-      return "delivered";
-    case "read":
-      return "read";
-    case "failed":
-      return "failed";
-    default:
-      return "sent";
-  }
 }
 
 interface WebhookPayload {

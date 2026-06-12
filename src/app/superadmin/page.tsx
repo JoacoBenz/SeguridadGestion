@@ -1,11 +1,16 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { requireSuperadminOrRedirect } from "@/lib/auth";
 
 export default async function SuperadminHome({
   searchParams,
 }: {
   searchParams: Promise<{ ok?: string }>;
 }) {
+  // El layout también chequea, pero layouts y pages renderizan en paralelo:
+  // cada page protegida tiene que validar la sesión por su cuenta.
+  await requireSuperadminOrRedirect("/superadmin");
+
   const { ok } = await searchParams;
 
   const tenants = await prisma.tenant.findMany({

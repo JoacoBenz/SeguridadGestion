@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { PackageStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { cancelPackageAction } from "@/server/admin/packages";
 
 const PAGE_SIZE = 50;
@@ -37,6 +38,9 @@ export default async function PaquetesPage({
     select: { id: true },
   });
   if (!tenant) notFound();
+
+  // Las pages no pueden delegar el auth al layout (renderizan en paralelo).
+  await requireTenantRoleOrRedirect(tenant.id, ["admin"], `/${slug}/admin/paquetes`);
 
   const status = isValidStatus(sp.status) ? sp.status : undefined;
   const unitId = sp.unit && sp.unit.length > 0 ? sp.unit : undefined;

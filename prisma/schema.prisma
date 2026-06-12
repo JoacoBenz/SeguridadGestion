@@ -161,8 +161,10 @@ model Package {
   pickedUpBy     User?          @relation("PackagePickedUpBy", fields: [pickedUpByUserId], references: [id])
   notifications  Notification[]
 
-  // Pickup code uniqueness is enforced only across active packages — see migration that
-  // adds a partial unique index on (tenantId, pickupCode) WHERE status = 'awaiting_pickup'.
+  // Pickup code uniqueness is enforced only across active packages, at the app
+  // layer (generateUniquePickupCode in src/lib/codes.ts). The DB-level partial
+  // unique index on (tenantId, pickupCode) WHERE status = 'awaiting_pickup' is
+  // still pending — Prisma can't express it, so it needs a custom migration.
   @@unique([tenantId, pickupToken])
   @@index([tenantId, status, receivedAt])
   @@index([unitId, status])
