@@ -71,8 +71,8 @@ export const Intro: React.FC = () => {
             transform: `translateY(${tagY}px)`,
           }}
         >
-          El cuaderno de la conserjería,{" "}
-          <span style={{ color: C.text, fontWeight: 600 }}>en serio digitalizado.</span>
+          La gestión de paquetes de tu edificio,{" "}
+          <span style={{ color: C.text, fontWeight: 600 }}>ordenada y trazable.</span>
         </div>
       </AbsoluteFill>
     </Bg>
@@ -322,8 +322,8 @@ export const Registro: React.FC = () => {
             </div>
           </Card>
 
-          <ClickPulse clickFrame={SELECT_FRAME} x={770} y={453} />
-          <ClickPulse clickFrame={SUBMIT_FRAME} x={505} y={963} />
+          <ClickPulse clickFrame={SELECT_FRAME} x={720} y={365} />
+          <ClickPulse clickFrame={SUBMIT_FRAME} x={505} y={760} />
         </div>
 
         {/* Narrativa lateral */}

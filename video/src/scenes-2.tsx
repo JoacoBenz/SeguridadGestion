@@ -122,10 +122,11 @@ export const WhatsAppScene: React.FC = () => {
                   borderRadius: 16,
                   borderTopLeftRadius: 4,
                   padding: 16,
-                  width: 420,
+                  width: 440,
+                  margin: "0 auto",
                   opacity: bubbleIn,
                   transform: `scale(${0.7 + bubbleIn * 0.3})`,
-                  transformOrigin: "top left",
+                  transformOrigin: "top center",
                 }}
               >
                 <div
@@ -202,8 +203,8 @@ export const WhatsAppScene: React.FC = () => {
 
 // ─── ESCENA 5 · Retiro con QR ────────────────────────────────────────────────
 
-const SCAN_HIT = 120; // frame en que el QR se detecta
-const FLIP = 150; // frame del flip Pendiente → Retirado
+const SCAN_HIT = 132; // frame en que el QR se detecta (deja barrer la línea un par de pasadas)
+const FLIP = 168; // frame del flip Pendiente → Retirado
 
 export const Retiro: React.FC = () => {
   const frame = useCurrentFrame();
@@ -220,8 +221,26 @@ export const Retiro: React.FC = () => {
     [0, 0.5],
     [0, 460],
   );
-  const detected = frame >= SCAN_HIT;
-  const flash = interpolate(frame, [SCAN_HIT, SCAN_HIT + 12], [0.9, 0], {
+  // El verde de detección entra con fade y SOLO sobre el QR: tinte que sube,
+  // se sostiene un instante y baja, dejando el borde verde alrededor del QR.
+  const greenTint =
+    interpolate(frame, [SCAN_HIT, SCAN_HIT + 14], [0, 0.38], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    }) *
+    interpolate(frame, [SCAN_HIT + 34, SCAN_HIT + 56], [1, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
+  const greenRing = interpolate(frame, [SCAN_HIT, SCAN_HIT + 14], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const scanLineOpacity = interpolate(frame, [SCAN_HIT - 2, SCAN_HIT + 8], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const chipIn = interpolate(frame, [SCAN_HIT + 12, SCAN_HIT + 26], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -271,7 +290,7 @@ export const Retiro: React.FC = () => {
                 position: "relative",
                 height: 470,
                 borderRadius: 20,
-                border: `2px solid ${detected ? C.positive : C.border}`,
+                border: `2px solid ${C.border}`,
                 backgroundColor: "#000",
                 overflow: "hidden",
                 display: "flex",
@@ -279,50 +298,65 @@ export const Retiro: React.FC = () => {
                 justifyContent: "center",
               }}
             >
-              <div style={{ opacity: qrIn, transform: `scale(${0.8 + qrIn * 0.2})` }}>
+              <div
+                style={{
+                  position: "relative",
+                  opacity: qrIn,
+                  transform: `scale(${0.8 + qrIn * 0.2})`,
+                }}
+              >
                 <FakeQR size={330} seed="H7K2MD" />
-              </div>
-              {!detected && (
+                {/* tinte + anillo de detección, solo sobre el QR */}
                 <div
                   style={{
                     position: "absolute",
-                    left: 30,
-                    right: 30,
-                    top: scanY,
-                    height: 3,
-                    backgroundColor: `${C.accent}cc`,
-                    boxShadow: `0 0 18px 5px ${C.accent}55`,
+                    inset: -10,
+                    borderRadius: 18,
+                    backgroundColor: C.positive,
+                    opacity: greenTint,
                   }}
                 />
-              )}
-              {/* flash de detección */}
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: -10,
+                    borderRadius: 18,
+                    border: `3px solid ${C.positive}`,
+                    boxShadow: `0 0 24px ${C.positive}55`,
+                    opacity: greenRing,
+                  }}
+                />
+              </div>
               <div
                 style={{
                   position: "absolute",
-                  inset: 0,
-                  backgroundColor: C.positive,
-                  opacity: flash,
+                  left: 30,
+                  right: 30,
+                  top: scanY,
+                  height: 3,
+                  backgroundColor: `${C.accent}cc`,
+                  boxShadow: `0 0 18px 5px ${C.accent}55`,
+                  opacity: scanLineOpacity,
                 }}
               />
-              {detected && (
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: 20,
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    fontFamily: MONO,
-                    fontSize: 22,
-                    color: C.positive,
-                    backgroundColor: "#0c1a14ee",
-                    border: `1.5px solid ${C.positive}66`,
-                    borderRadius: 10,
-                    padding: "10px 22px",
-                  }}
-                >
-                  QR válido · Depto 3B · H7K2MD
-                </div>
-              )}
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 20,
+                  left: "50%",
+                  transform: `translate(-50%, ${(1 - chipIn) * 12}px)`,
+                  opacity: chipIn,
+                  fontFamily: MONO,
+                  fontSize: 22,
+                  color: C.positive,
+                  backgroundColor: "#0c1a14ee",
+                  border: `1.5px solid ${C.positive}66`,
+                  borderRadius: 10,
+                  padding: "10px 22px",
+                }}
+              >
+                QR válido · Depto 3B · H7K2MD
+              </div>
             </div>
           </Card>
 
