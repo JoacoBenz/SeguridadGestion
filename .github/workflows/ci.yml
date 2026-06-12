@@ -31,9 +31,8 @@ jobs:
       PUBLIC_BASE_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
+      # Sin `version`: la toma del campo packageManager de package.json.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 20
