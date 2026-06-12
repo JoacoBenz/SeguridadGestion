@@ -33,7 +33,8 @@ There is no production deploy script yet. Target deploy: Vercel + Neon.
 - **Shared database, `tenantId` column on every domain table** (`User`, `Unit`, `UnitResident`, `Package`, `Notification`, `AuditLog`). `Tenant` = a building.
 - The URL shape is `/{tenant-slug}/...`. Pages resolve the slug to a `tenantId` via `prisma.tenant.findUnique({ where: { slug } })` and use that ID for all queries.
 - Server actions take `tenantId` explicitly and pass it to `requireTenantRole(tenantId, [...])` in `src/lib/auth.ts` before doing anything. **Never trust client-supplied `tenantId` without that check** — it's the only thing keeping tenants isolated until row-level security is added.
-- Pickup-code uniqueness is per-tenant **and only across active packages** (`status = 'awaiting_pickup'`). The Prisma schema can't express a partial unique index, so it is enforced at the application layer in `generateUniquePickupCode()` (`src/lib/codes.ts`) by retrying on collision. If you migrate this to a DB-level constraint, add a partial unique index in a custom migration.
+- Pickup-code uniqueness is per-tenant **and only across active packages** (`status = 'awaiting_pickup'`). The Prisma schema can't express a partial unique index, so it lives in a hand-written migration (`Package_tenantId_pickupCode_active_key`). `generateUniquePickupCode()` (`src/lib/codes.ts`) pre-checks to avoid collisions, and `registerPackage` retries on `P2002` for the race window between check and insert. Keep all three layers if you touch any of them.
+- **Auth must be enforced per page, not per layout.** Next.js renders layouts and pages in parallel, so a guard in `layout.tsx` does not protect the page's own data fetching. Every page under `/[tenant]/admin`, `/[tenant]/conserjeria` and `/superadmin` calls `requireTenantRoleOrRedirect()` / `requireSuperadminOrRedirect()` itself; the layout checks are defense in depth only. `src/middleware.ts` adds an *optimistic* cookie-presence redirect to `/login` — it never authorizes anything.
 
 ### Package lifecycle
 A `Package` moves: `awaiting_pickup → picked_up | cancelled`. Three server actions in `src/server/packages/` own all transitions:
@@ -92,6 +93,14 @@ All three call `recordAudit()` and use `requireTenantRole()`. Adding any new sta
 - **Server actions validate input with Zod** at the boundary, then trust the parsed object. Don't re-validate downstream.
 - **Timezone is `America/Argentina/Buenos_Aires` by default per tenant.** Format dates with `toLocaleString("es-AR")` for user display; store as UTC.
 
+## Operational pieces
+
+- **Migrations are committed** (`prisma/migrations/`). `pnpm db:migrate` for dev, `pnpm db:deploy` for prod/CI. The partial unique index on active pickup codes lives in the custom migration `partial_unique_active_pickup_code` — Prisma can't model it, so a `prisma migrate dev` after schema edits will NOT try to drop it, but double-check generated SQL anyway.
+- **CI** (`.github/workflows/ci.yml`) runs typecheck, lint, unit tests, then applies migrations + seed against a real Postgres service container and finishes with `next build`. If you add a migration, CI is what proves it applies cleanly on an empty DB.
+- **Rate limiting**: magic-link sends are throttled durably by counting unexpired `VerificationToken` rows per email (max 3 in flight; tokens last 10 min via `maxAge` in the Resend provider). `/api/qr/[token]` and the login action also use `src/lib/rate-limit.ts`, an in-memory per-instance sliding window — best-effort only on serverless; if you need hard guarantees, swap in a shared store (Upstash) behind the same function signature.
+- **`/api/health`** — DB-touching health check for uptime monitors; returns 200/503, no data.
+- **PWA**: `public/manifest.webmanifest` + `icon.svg`/`icon-192.png`/`icon-512.png` (dark background `#0A0A0B`, amber accent — regenerate the PNGs from the SVG if the brand changes). `start_url` is `/login` so an installed app lands wherever the session dictates.
+
 ## What's intentionally not built yet
 
 These are deferred to later phases — don't add them speculatively:
@@ -100,8 +109,7 @@ These are deferred to later phases — don't add them speculatively:
 - Push notifications.
 - Delegation links (separate from sharing the WhatsApp link).
 - Reminder cron for >3-day-old pending packages.
-- Admin pages: `/[tenant]/admin/{unidades,residentes,paquetes,reportes}` — only the route shells exist.
 - Resident view: `/[tenant]/residente/mis-paquetes`.
-- Superadmin tenant management.
+- Billing / subscription gating per tenant.
+- Postgres row-level security as a second tenant-isolation layer.
 - Device-PIN session for shared conserjería devices (see Auth section).
-- DB-level partial unique index on `(tenantId, pickupCode) WHERE status='awaiting_pickup'` — enforced in app code via `generateUniquePickupCode()` until then.

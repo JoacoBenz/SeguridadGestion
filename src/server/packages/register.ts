@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { generateUniquePickupCode } from "@/lib/codes";
 import { recordAudit } from "@/lib/audit";
@@ -43,19 +44,33 @@ export async function registerPackage(
     },
   });
 
-  const pickupCode = await generateUniquePickupCode(input.tenantId);
-
-  const pkg = await prisma.package.create({
-    data: {
-      tenantId: input.tenantId,
-      unitId: input.unitId,
-      receivedByUserId: session.userId,
-      carrier: input.carrier,
-      photoUrl: input.photoUrl,
-      notes: input.notes,
-      pickupCode,
-    },
-  });
+  // generateUniquePickupCode chequea colisiones antes de insertar, pero dos
+  // registros simultáneos pueden elegir el mismo código en esa ventana. El
+  // índice único parcial (tenantId, pickupCode) WHERE awaiting_pickup tira
+  // P2002 en ese caso; reintentamos con un código nuevo.
+  let pkg: Awaited<ReturnType<typeof prisma.package.create>> | null = null;
+  let pickupCode = "";
+  for (let attempt = 0; attempt < 3 && !pkg; attempt++) {
+    pickupCode = await generateUniquePickupCode(input.tenantId);
+    try {
+      pkg = await prisma.package.create({
+        data: {
+          tenantId: input.tenantId,
+          unitId: input.unitId,
+          receivedByUserId: session.userId,
+          carrier: input.carrier,
+          photoUrl: input.photoUrl,
+          notes: input.notes,
+          pickupCode,
+        },
+      });
+    } catch (err) {
+      const isCodeCollision =
+        err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002";
+      if (!isCodeCollision || attempt === 2) throw err;
+    }
+  }
+  if (!pkg) throw new Error("PICKUP_CODE_EXHAUSTED");
 
   await recordAudit({
     tenantId: input.tenantId,

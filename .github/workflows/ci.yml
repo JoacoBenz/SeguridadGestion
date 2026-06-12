@@ -8,10 +8,24 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
-      # Dummy values so prisma generate and Next.js config validation
-      # don't fail. Tests stub the session resolver and the WhatsApp client,
-      # so no real services are contacted.
+      # Postgres real (service container) para validar migraciones y seed.
+      # AUTH_SECRET y demás son dummies: los tests stubean el session resolver
+      # y el cliente de WhatsApp, así que no se contacta ningún servicio real.
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
       AUTH_SECRET: ci-only-not-secret
       PUBLIC_BASE_URL: http://localhost:3000
@@ -29,3 +43,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
+      # Las migraciones tienen que aplicar limpias sobre una DB vacía y el
+      # seed correr encima — es lo mismo que pasa en cada deploy nuevo.
+      - run: pnpm db:deploy
+      - run: pnpm db:seed
+      - run: pnpm build
