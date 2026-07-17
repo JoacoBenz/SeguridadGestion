@@ -4,10 +4,12 @@ import {
   createResidentAction,
   deleteResidentAction,
   removeFromUnitAction,
+  updateResidentAction,
 } from "@/server/admin/residents";
 
 const OK_MESSAGES: Record<string, string> = {
   creado: "Residente creado",
+  actualizado: "Residente actualizado",
   borrado: "Residente borrado",
   desvinculado: "Residente desvinculado del depto",
 };
@@ -46,6 +48,7 @@ export default async function ResidentesPage({
   ]);
 
   const create = createResidentAction.bind(null, slug);
+  const update = updateResidentAction.bind(null, slug);
   const removeFromUnit = removeFromUnitAction.bind(null, slug);
   const remove = deleteResidentAction.bind(null, slug);
 
@@ -58,7 +61,7 @@ export default async function ResidentesPage({
 
       {ok && (
         <div className="rounded-xl border border-positive/40 bg-positive/10 px-4 py-3 text-sm text-positive">
-          {OK_MESSAGES[ok] ?? "Listo"}
+          {OK_MESSAGES[ok] ?? ok}
         </div>
       )}
       {error && (
@@ -162,15 +165,23 @@ export default async function ResidentesPage({
                   )}
                 </div>
               </div>
-              <form action={remove}>
-                <input type="hidden" name="userId" value={r.id} />
-                <button
-                  type="submit"
-                  className="rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-400 transition-colors hover:border-critical/60 hover:text-critical"
-                >
-                  Borrar
-                </button>
-              </form>
+              <div className="flex items-center gap-2">
+                <EditButton
+                  resident={{ id: r.id, name: r.name, phone: r.phone, email: r.email }}
+                  linkedUnitIds={r.unitMemberships.map((m) => m.unit.id)}
+                  units={units}
+                  updateAction={update}
+                />
+                <form action={remove}>
+                  <input type="hidden" name="userId" value={r.id} />
+                  <button
+                    type="submit"
+                    className="rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-400 transition-colors hover:border-critical/60 hover:text-critical"
+                  >
+                    Borrar
+                  </button>
+                </form>
+              </div>
             </li>
           ))}
         </ul>
@@ -187,6 +198,85 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       </span>
       {children}
     </label>
+  );
+}
+
+function EditButton({
+  resident,
+  linkedUnitIds,
+  units,
+  updateAction,
+}: {
+  resident: { id: string; name: string; phone: string | null; email: string | null };
+  linkedUnitIds: string[];
+  units: Array<{ id: string; label: string }>;
+  updateAction: (fd: FormData) => Promise<void>;
+}) {
+  const linkable = units.filter((u) => !linkedUnitIds.includes(u.id));
+  return (
+    <details className="relative">
+      <summary className="cursor-pointer list-none rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-400 transition-colors hover:border-accent/60 hover:text-accent">
+        Editar
+      </summary>
+      <form
+        action={updateAction}
+        className="absolute right-0 z-10 mt-2 flex w-72 flex-col gap-2 rounded-xl border border-ink-700 bg-ink-850 p-3 shadow-xl"
+      >
+        <input type="hidden" name="userId" value={resident.id} />
+        <label className="text-xs text-ink-400">
+          Nombre
+          <input
+            name="name"
+            required
+            maxLength={80}
+            defaultValue={resident.name}
+            className="mt-1 w-full rounded-lg border border-ink-700 bg-ink-900 px-2 py-1.5 text-sm text-ink-100 focus:border-accent focus:outline-none"
+          />
+        </label>
+        <label className="text-xs text-ink-400">
+          Teléfono (E.164)
+          <input
+            name="phone"
+            required
+            type="tel"
+            defaultValue={resident.phone ?? ""}
+            className="mt-1 w-full rounded-lg border border-ink-700 bg-ink-900 px-2 py-1.5 font-mono text-sm text-ink-100 focus:border-accent focus:outline-none"
+          />
+        </label>
+        <label className="text-xs text-ink-400">
+          Email (vacío lo borra)
+          <input
+            name="email"
+            type="email"
+            defaultValue={resident.email ?? ""}
+            className="mt-1 w-full rounded-lg border border-ink-700 bg-ink-900 px-2 py-1.5 text-sm text-ink-100 focus:border-accent focus:outline-none"
+          />
+        </label>
+        {linkable.length > 0 && (
+          <label className="text-xs text-ink-400">
+            Vincular a depto (opcional)
+            <select
+              name="unitId"
+              defaultValue=""
+              className="mt-1 w-full rounded-lg border border-ink-700 bg-ink-900 px-2 py-1.5 text-sm text-ink-100 focus:border-accent focus:outline-none"
+            >
+              <option value="">No cambiar</option>
+              {linkable.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <button
+          type="submit"
+          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-fg"
+        >
+          Guardar cambios
+        </button>
+      </form>
+    </details>
   );
 }
 

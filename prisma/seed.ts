@@ -47,7 +47,7 @@ async function main() {
   });
 
   const unitLabels = ["1A", "1B", "2A", "2B", "3A", "3B"];
-  for (const label of unitLabels) {
+  for (const [i, label] of unitLabels.entries()) {
     const unit = await prisma.unit.upsert({
       where: { tenantId_label: { tenantId: tenant.id, label } },
       update: {},
@@ -57,13 +57,20 @@ async function main() {
     const residentEmail = `${label.toLowerCase()}@edificio-libertad.test`;
     const resident = await prisma.user.upsert({
       where: { email: residentEmail },
-      update: { tenantId: tenant.id, role: Role.resident, name: `Residente ${label}` },
+      update: {
+        tenantId: tenant.id,
+        role: Role.resident,
+        name: `Residente ${label}`,
+        phone: `+549119900${String(i + 1).padStart(4, "0")}`,
+      },
       create: {
         tenantId: tenant.id,
         role: Role.resident,
         name: `Residente ${label}`,
         email: residentEmail,
-        phone: `+5491100000${label.padStart(3, "0")}`,
+        // E.164 válido — nada de letras del label acá. Prefijo 99 para no chocar
+        // con datos cargados a mano en la DB de dev.
+        phone: `+549119900${String(i + 1).padStart(4, "0")}`,
       },
     });
 
