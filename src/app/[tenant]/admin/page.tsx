@@ -2,18 +2,26 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { KpiCard } from "@/components/admin/kpi-card";
+import { setGuardPinAction, clearGuardPinAction } from "@/server/conserjeria/device";
 
 export default async function AdminDashboard({
   params,
+  searchParams,
 }: {
   params: Promise<{ tenant: string }>;
+  searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
   const { tenant: slug } = await params;
+  const { ok, error } = await searchParams;
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
-    select: { id: true },
+    select: { id: true, settings: true },
   });
   if (!tenant) notFound();
+
+  const hasPin = Boolean((tenant.settings as Record<string, unknown>)?.guardPinHash);
+  const setPin = setGuardPinAction.bind(null, slug);
+  const clearPin = clearGuardPinAction.bind(null, slug);
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -49,6 +57,17 @@ export default async function AdminDashboard({
 
   return (
     <div className="flex flex-col gap-8">
+      {ok && (
+        <div className="rounded-xl border border-positive/40 bg-positive/10 px-4 py-3 text-sm text-positive">
+          {ok}
+        </div>
+      )}
+      {error && (
+        <div className="rounded-xl border border-critical/40 bg-critical/10 px-4 py-3 text-sm text-critical">
+          {error}
+        </div>
+      )}
+
       <section>
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-400">
           Esta semana
@@ -114,6 +133,65 @@ export default async function AdminDashboard({
             title="Reportes"
             hint="actividad mensual"
           />
+        </div>
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-400">
+          PIN de conserjería
+        </h2>
+        <div className="rounded-2xl border border-ink-700 bg-ink-850 p-5">
+          <p className="mb-4 text-sm text-ink-400">
+            Un PIN por edificio para la tablet del mostrador: el guardia lo tipea una vez y el
+            dispositivo queda habilitado sin necesidad de mail por turno.{" "}
+            {hasPin ? (
+              <span className="text-positive">Hay un PIN configurado.</span>
+            ) : (
+              <span className="text-warn">Todavía no hay PIN — los guardias entran con email.</span>
+            )}
+          </p>
+          <div className="flex flex-wrap items-end gap-3">
+            <form action={setPin} className="flex items-end gap-2">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-semibold uppercase tracking-widest text-ink-400">
+                  {hasPin ? "Cambiar PIN" : "Nuevo PIN"} (4–8 dígitos)
+                </span>
+                <input
+                  name="pin"
+                  type="password"
+                  inputMode="numeric"
+                  pattern="\d{4,8}"
+                  required
+                  placeholder="••••"
+                  className="w-40 rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 font-mono text-ink-100 focus:border-accent focus:outline-none"
+                />
+              </label>
+              <button
+                type="submit"
+                className="rounded-xl bg-accent px-4 py-2 font-semibold text-accent-fg"
+              >
+                Guardar
+              </button>
+            </form>
+            {hasPin && (
+              <form action={clearPin}>
+                <button
+                  type="submit"
+                  className="rounded-xl border border-ink-700 px-4 py-2 text-sm text-ink-400 hover:border-critical/60 hover:text-critical"
+                >
+                  Borrar PIN
+                </button>
+              </form>
+            )}
+          </div>
+          {hasPin && (
+            <p className="mt-3 text-xs text-ink-500">
+              Los dispositivos se desbloquean en{" "}
+              <Link href={`/${slug}/conserjeria/desbloquear`} className="text-accent">
+                /{slug}/conserjeria/desbloquear
+              </Link>
+            </p>
+          )}
         </div>
       </section>
     </div>

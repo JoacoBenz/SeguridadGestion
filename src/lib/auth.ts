@@ -15,14 +15,31 @@ export interface Session {
 const defaultResolver = async (): Promise<Session | null> => {
   const { auth: nextAuth } = await import("@/lib/auth/config");
   const nextSession = await nextAuth();
-  if (!nextSession?.user?.id) return null;
-  return {
-    userId: nextSession.user.id,
-    tenantId: nextSession.user.tenantId,
-    role: nextSession.user.role,
-    name: nextSession.user.name,
-  };
+  if (nextSession?.user?.id) {
+    return {
+      userId: nextSession.user.id,
+      tenantId: nextSession.user.tenantId,
+      role: nextSession.user.role,
+      name: nextSession.user.name,
+    };
+  }
+  // Fallback: sesión de dispositivo (PIN de conserjería). Cookie firmada -> guard.
+  return resolveDeviceSession();
 };
+
+async function resolveDeviceSession(): Promise<Session | null> {
+  const { cookies } = await import("next/headers");
+  const { DEVICE_COOKIE, decodeDeviceCookie } = await import("@/lib/auth/device");
+  const cookieStore = await cookies();
+  const payload = decodeDeviceCookie(cookieStore.get(DEVICE_COOKIE)?.value);
+  if (!payload) return null;
+  return {
+    userId: payload.userId,
+    tenantId: payload.tenantId,
+    role: "guard",
+    name: "Conserjería (dispositivo)",
+  };
+}
 
 let sessionResolver: () => Promise<Session | null> = defaultResolver;
 
