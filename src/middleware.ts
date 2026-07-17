@@ -6,9 +6,21 @@ import { NextResponse, type NextRequest } from "next/server";
 // (requireTenantRoleOrRedirect / requireTenantRole). Esto ahorra un render +
 // query por hit anónimo y mejora el redirect, nada más.
 
-const SESSION_COOKIES = ["authjs.session-token", "__Secure-authjs.session-token"];
+// Auth.js session, o la cookie de dispositivo de conserjería (PIN). Cualquiera
+// de las dos alcanza para dejar pasar acá; la autorización real la hace la page.
+const SESSION_COOKIES = [
+  "authjs.session-token",
+  "__Secure-authjs.session-token",
+  "pok_device",
+];
 
 export function middleware(req: NextRequest) {
+  // La página de desbloqueo por PIN tiene que ser accesible SIN sesión — es donde
+  // el dispositivo obtiene la cookie. No la redirijas al login.
+  if (req.nextUrl.pathname.endsWith("/conserjeria/desbloquear")) {
+    return NextResponse.next();
+  }
+
   const hasSessionCookie = SESSION_COOKIES.some((name) => req.cookies.has(name));
   if (hasSessionCookie) return NextResponse.next();
 
