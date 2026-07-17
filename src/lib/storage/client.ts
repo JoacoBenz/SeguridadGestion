@@ -1,0 +1,127 @@
+import { randomUUID } from "node:crypto";
+import {
+  S3Client,
+  PutObjectCommand,
+  type PutObjectCommandInput,
+} from "@aws-sdk/client-s3";
+
+// Almacenamiento de fotos (paquete al ingreso, paquete al retiro).
+// Igual patrón que el WhatsApp client: si hay credenciales S3/R2 usa el bucket
+// real, si no un cliente dev que loguea y no persiste nada.
+//
+// Compatible con Cloudflare R2 (setear STORAGE_ENDPOINT al endpoint de R2) y con
+// cualquier S3. El bucket tiene que ser de lectura pública o servido detrás de un
+// dominio público (STORAGE_PUBLIC_BASE_URL), porque las fotos se ven en el panel.
+
+export interface StorageClient {
+  // Sube bytes y devuelve la URL pública para guardar en photoUrl / pickupPhotoUrl.
+  put(input: {
+    body: Buffer | Uint8Array;
+    contentType: string;
+    keyPrefix: string;
+  }): Promise<{ url: string }>;
+  // Indica si el storage está configurado (para esconder la UI de foto en dev).
+  readonly isConfigured: boolean;
+}
+
+const ALLOWED_CONTENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const EXT_BY_TYPE: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+export function assertAllowedImageType(contentType: string): void {
+  if (!ALLOWED_CONTENT_TYPES.has(contentType)) {
+    throw new Error(`Tipo de imagen no permitido: ${contentType}`);
+  }
+}
+
+class S3StorageClient implements StorageClient {
+  readonly isConfigured = true;
+  private readonly client: S3Client;
+
+  constructor(
+    private readonly bucket: string,
+    private readonly publicBaseUrl: string,
+    region: string,
+    endpoint: string | undefined,
+    accessKeyId: string,
+    secretAccessKey: string,
+  ) {
+    this.client = new S3Client({
+      region,
+      endpoint,
+      // R2 y varios S3-compat requieren path-style.
+      forcePathStyle: Boolean(endpoint),
+      credentials: { accessKeyId, secretAccessKey },
+    });
+  }
+
+  async put({
+    body,
+    contentType,
+    keyPrefix,
+  }: {
+    body: Buffer | Uint8Array;
+    contentType: string;
+    keyPrefix: string;
+  }): Promise<{ url: string }> {
+    assertAllowedImageType(contentType);
+    const ext = EXT_BY_TYPE[contentType];
+    const key = `${keyPrefix}/${randomUUID()}.${ext}`;
+    const params: PutObjectCommandInput = {
+      Bucket: this.bucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+      CacheControl: "public, max-age=31536000, immutable",
+    };
+    await this.client.send(new PutObjectCommand(params));
+    return { url: `${this.publicBaseUrl}/${key}` };
+  }
+}
+
+class DevStorageClient implements StorageClient {
+  readonly isConfigured = false;
+
+  async put({ contentType, keyPrefix }: { contentType: string; keyPrefix: string }) {
+    assertAllowedImageType(contentType);
+    // ponytail: dev no-op — sin bucket configurado no persistimos. Devolvemos una
+    // URL placeholder para no romper el flujo; en prod S3StorageClient sube de verdad.
+    const url = `dev-storage://${keyPrefix}/${randomUUID()}`;
+    console.log(`[storage:dev] would upload ${contentType} to ${url}`);
+    return { url };
+  }
+}
+
+let cached: StorageClient | null = null;
+
+export function getStorageClient(): StorageClient {
+  if (cached) return cached;
+  const bucket = process.env.STORAGE_BUCKET;
+  const publicBaseUrl = process.env.STORAGE_PUBLIC_BASE_URL?.replace(/\/$/, "");
+  const accessKeyId = process.env.STORAGE_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.STORAGE_SECRET_ACCESS_KEY;
+  const region = process.env.STORAGE_REGION ?? "auto";
+  const endpoint = process.env.STORAGE_ENDPOINT || undefined;
+
+  if (bucket && publicBaseUrl && accessKeyId && secretAccessKey) {
+    cached = new S3StorageClient(
+      bucket,
+      publicBaseUrl,
+      region,
+      endpoint,
+      accessKeyId,
+      secretAccessKey,
+    );
+  } else {
+    cached = new DevStorageClient();
+  }
+  return cached;
+}
+
+// Para tests.
+export function setStorageClient(client: StorageClient | null): void {
+  cached = client;
+}

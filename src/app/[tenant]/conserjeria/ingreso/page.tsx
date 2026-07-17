@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { registerPackage } from "@/server/packages/register";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { UnitTilePicker } from "@/components/conserjeria/unit-tile-picker";
+import { PhotoCapture } from "@/components/conserjeria/photo-capture";
+import { getStorageClient } from "@/lib/storage/client";
 
 export default async function IngresoPage({
   params,
@@ -29,6 +31,8 @@ export default async function IngresoPage({
     select: { id: true, label: true },
   });
 
+  const photoEnabled = getStorageClient().isConfigured;
+
   async function action(formData: FormData) {
     "use server";
     const unitId = formData.get("unitId");
@@ -37,12 +41,14 @@ export default async function IngresoPage({
     }
     const carrier = formData.get("carrier");
     const notes = formData.get("notes");
+    const photoUrl = formData.get("photoUrl");
 
     const result = await registerPackage({
       tenantId: tenant!.id,
       unitId,
       carrier: typeof carrier === "string" && carrier ? carrier : undefined,
       notes: typeof notes === "string" && notes ? notes : undefined,
+      photoUrl: typeof photoUrl === "string" && photoUrl ? photoUrl : undefined,
     });
     redirect(`/${slug}/conserjeria?codigo=${result.pickupCode}`);
   }
@@ -71,6 +77,12 @@ export default async function IngresoPage({
             />
           </label>
         </section>
+
+        {photoEnabled && (
+          <section>
+            <PhotoCapture slug={slug} name="photoUrl" label="Foto del paquete" />
+          </section>
+        )}
 
         <details className="group">
           <summary className="flex cursor-pointer items-center gap-2 text-sm text-ink-400 transition-colors hover:text-ink-200 [&::-webkit-details-marker]:hidden">
