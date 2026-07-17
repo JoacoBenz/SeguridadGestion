@@ -4,7 +4,8 @@
 export type TemplateName =
   | "paquete_recibido_v2"
   | "paquete_retirado_v1"
-  | "paquete_pendiente_v1";
+  | "paquete_pendiente_v1"
+  | "paquete_escalado_v1";
 
 export interface TemplateSpec {
   name: TemplateName;
@@ -32,6 +33,13 @@ export const TEMPLATES: Record<TemplateName, TemplateSpec> = {
     name: "paquete_pendiente_v1",
     language: "es_AR",
     bodyParamCount: 1, // fecha de ingreso
+  },
+  // Aviso al admin cuando un paquete lleva demasiados recordatorios sin retirar.
+  // Body: unidad, fecha de ingreso, cantidad de recordatorios ya enviados.
+  paquete_escalado_v1: {
+    name: "paquete_escalado_v1",
+    language: "es_AR",
+    bodyParamCount: 3,
   },
 };
 

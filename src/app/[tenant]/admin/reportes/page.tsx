@@ -18,7 +18,9 @@ export default async function ReportesPage({
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const last30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-  const [received, pickedUp, cancelled, topCarriers, topUnits, pickupSamples] = await Promise.all(
+  const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+
+  const [received, pickedUp, cancelled, stalePending, topCarriers, topUnits, pickupSamples] = await Promise.all(
     [
       prisma.package.count({
         where: { tenantId: tenant.id, receivedAt: { gte: startOfMonth } },
@@ -35,6 +37,13 @@ export default async function ReportesPage({
           tenantId: tenant.id,
           status: "cancelled",
           cancelledAt: { gte: startOfMonth },
+        },
+      }),
+      prisma.package.count({
+        where: {
+          tenantId: tenant.id,
+          status: "awaiting_pickup",
+          receivedAt: { lte: threeDaysAgo },
         },
       }),
       prisma.package.groupBy({
@@ -125,9 +134,10 @@ export default async function ReportesPage({
             hint="últimos 30 días (hasta 200 muestras)"
           />
           <KpiCard
-            label="Muestras"
-            value={pickupSamples.length}
-            hint="retiros con timestamp"
+            label="Pendientes >3 días"
+            value={stalePending}
+            hint="candidatos a recordatorio"
+            tone={stalePending > 0 ? "neutral" : "positive"}
           />
         </div>
       </section>
