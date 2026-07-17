@@ -92,16 +92,27 @@ All three call `recordAudit()` and use `requireTenantRole()`. Adding any new sta
 - **Server actions validate input with Zod** at the boundary, then trust the parsed object. Don't re-validate downstream.
 - **Timezone is `America/Argentina/Buenos_Aires` by default per tenant.** Format dates with `toLocaleString("es-AR")` for user display; store as UTC.
 
+## Migrations
+
+- Prisma migrations now have a **baseline** (`prisma/migrations/20260717000000_init`) + a partial-unique-index migration. Use `pnpm prisma migrate deploy` in prod; `pnpm db:migrate` (migrate dev) locally. Don't `db push` against a DB that has the `_prisma_migrations` table.
+- The pickup-code partial unique index `(tenantId, pickupCode) WHERE status='awaiting_pickup'` is **now a real DB constraint** (that second migration). `generateUniquePickupCode()` still retries on collision, but the DB is the backstop.
+
+## Newer features (built, wired for prod via env)
+
+- **Photo upload**: `src/lib/storage/client.ts` mirrors the WhatsApp-client pattern — real S3/R2 client when `STORAGE_*` env is set, else a dev no-op returning `dev-storage://` URLs. Upload via `POST /api/upload?slug=` (guard/admin auth, 8MB cap, jpeg/png/webp). The conserjería ingreso form shows `PhotoCapture` **only when storage is configured**; `Package.photoUrl`/`pickupPhotoUrl` already existed. Admin paquetes list renders the photo. Pickup-photo capture is deferred (column + action support exist).
+- **CSV import**: `/[tenant]/admin/importar` — paste `unidad,nombre,telefono,email`, dry-run preview, then confirm. Pure parser in `src/server/admin/import-parse.ts` (unit-tested, like `pickup-token.ts`); `importResidentsAction` upserts units by label, creates residents, **skips duplicate phones/emails**, aborts writing nothing if any row has a format error.
+- **Reminder escalation**: the cron (`/api/cron/reminders`) now escalates — once a package has ≥ `Tenant.settings.reminderEscalateAfter` (default 2) resident reminders and is still pending, it sends `paquete_escalado_v1` to the tenant's admins (once, guarded by an existing escalation notification) instead of another resident reminder.
+- **Device-PIN**: shared-desk auth. Admin sets a per-building PIN in `/[tenant]/admin` (hashed via scrypt in `Tenant.settings.guardPinHash`); the device unlocks at `/[tenant]/conserjeria/desbloquear` and gets a **signed cookie** (`src/lib/auth/device.ts`, HMAC over `AUTH_SECRET`). `getSession()`'s default resolver falls back to that cookie → a `guard` session for a synthetic per-tenant device user. **This is the single insertion point** — no page/action changed. Guards can still sign in by email.
+- **Health**: `GET /api/health` → `{status:"ok",db:"up"}` (503 if DB down), for uptime monitors.
+- **e2e**: `playwright.config.ts` + `tests/e2e/smoke.spec.ts` make `pnpm test:e2e` real (it reuses the running dev server; run `npx playwright install chromium` once). Unit tests stay in `tests/unit` (vitest); the Playwright config scopes `testDir` to `tests/e2e` so the two never collide.
+
+See `DEPLOY.md` for the full prod checklist (Neon, Resend, Meta templates incl. the new `paquete_escalado_v1`, R2, cron secret).
+
 ## What's intentionally not built yet
 
 These are deferred to later phases — don't add them speculatively:
-- Photo upload for the package or pickup (needs S3-compatible storage).
 - Offline mode for the conserjería form (PWA + IndexedDB queue).
 - Push notifications.
 - Delegation links (separate from sharing the WhatsApp link).
-- Reminder cron for >3-day-old pending packages.
-- Admin pages: `/[tenant]/admin/{unidades,residentes,paquetes,reportes}` — only the route shells exist.
-- Resident view: `/[tenant]/residente/mis-paquetes`.
-- Superadmin tenant management.
-- Device-PIN session for shared conserjería devices (see Auth section).
-- DB-level partial unique index on `(tenantId, pickupCode) WHERE status='awaiting_pickup'` — enforced in app code via `generateUniquePickupCode()` until then.
+- Pickup-photo capture UI (the storage backend and `pickupPhotoUrl` column support it; only the retiro-flow UI is missing).
+- Sentry / error tracking (not wired — add `@sentry/nextjs` when ready).
