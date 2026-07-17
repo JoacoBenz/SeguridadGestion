@@ -26,14 +26,20 @@ export function PickupFlow({ tenantSlug, codeAction }: Props) {
     setLastHandled(first);
     setError(null);
     startTransition(async () => {
+      let result: Awaited<ReturnType<typeof pickupByTokenAction>>;
       try {
-        const result = await pickupByTokenAction(tenantSlug, first);
+        result = await pickupByTokenAction(tenantSlug, first);
+      } catch {
+        // Falla de red o del runtime de la action; el motivo real no llega al cliente.
+        result = { ok: false, error: "No se pudo procesar el retiro. Probá de nuevo." };
+      }
+      if (result.ok) {
         router.replace(
           `/${tenantSlug}/conserjeria/retiro?ok=${encodeURIComponent(`Depto ${result.unitLabel}`)}`,
         );
         router.refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "ERROR");
+      } else {
+        setError(result.error);
         setTimeout(() => setLastHandled(null), 1500);
       }
     });

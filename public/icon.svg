@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0A0A0B"/>
+  <!-- caja -->
+  <path d="M256 96 416 176v160l-160 80-160-80V176z" fill="none" stroke="#FBBF24" stroke-width="28" stroke-linejoin="round"/>
+  <path d="M96 176l160 80 160-80M256 256v160" fill="none" stroke="#FBBF24" stroke-width="28" stroke-linejoin="round"/>
+  <!-- tilde de retiro -->
+  <circle cx="400" cy="400" r="84" fill="#FBBF24"/>
+  <path d="M364 400l26 26 48-52" fill="none" stroke="#0A0A0B" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

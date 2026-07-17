@@ -1,0 +1,5 @@
+# Solo la landing y el login son indexables; el resto es app autenticada
+# o endpoints de API (el QR es público pero no tiene sentido indexarlo).
+User-agent: *
+Disallow: /api/
+Disallow: /superadmin

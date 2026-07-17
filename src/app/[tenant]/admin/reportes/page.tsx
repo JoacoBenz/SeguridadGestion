@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { KpiCard } from "@/components/admin/kpi-card";
 
 export default async function ReportesPage({
@@ -13,6 +14,9 @@ export default async function ReportesPage({
     select: { id: true },
   });
   if (!tenant) notFound();
+
+  // Las pages no pueden delegar el auth al layout (renderizan en paralelo).
+  await requireTenantRoleOrRedirect(tenant.id, ["admin"], `/${slug}/admin/reportes`);
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);

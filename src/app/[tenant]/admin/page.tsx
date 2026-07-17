@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { KpiCard } from "@/components/admin/kpi-card";
 import { setGuardPinAction, clearGuardPinAction } from "@/server/conserjeria/device";
 
@@ -18,6 +19,10 @@ export default async function AdminDashboard({
     select: { id: true, settings: true },
   });
   if (!tenant) notFound();
+
+  // El layout también chequea, pero layouts y pages renderizan en paralelo:
+  // cada page protegida tiene que validar la sesión por su cuenta.
+  await requireTenantRoleOrRedirect(tenant.id, ["admin"], `/${slug}/admin`);
 
   const hasPin = Boolean((tenant.settings as Record<string, unknown>)?.guardPinHash);
   const setPin = setGuardPinAction.bind(null, slug);

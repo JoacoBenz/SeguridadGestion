@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import QRCode from "qrcode";
 import { prisma } from "@/lib/db";
+import { rateLimit } from "@/lib/rate-limit";
 
 // Servimos el QR como PNG bajo demanda. El contenido del QR es el token plano —
 // no una URL — porque ya no existe la página /p/[token]; el guardia lo escanea
@@ -16,13 +17,21 @@ export const runtime = "nodejs";
 const TOKEN_RE = /^[A-Za-z0-9_-]{8,64}$/;
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ token: string }> },
 ) {
   const { token } = await params;
 
   if (!TOKEN_RE.test(token)) {
     return new NextResponse("Not found", { status: 404 });
+  }
+
+  // Best-effort por IP: corta enumeración de tokens y loops accidentales.
+  // Los hits legítimos (Meta bajando la imagen una vez por mensaje) están
+  // órdenes de magnitud por debajo de este límite.
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  if (!rateLimit(`qr:${ip}`, { limit: 30, windowMs: 60_000 }).ok) {
+    return new NextResponse("Too many requests", { status: 429 });
   }
 
   const pkg = await prisma.package.findFirst({

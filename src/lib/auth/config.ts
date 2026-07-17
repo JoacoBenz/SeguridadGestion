@@ -23,6 +23,10 @@ const authConfig: NextAuthConfig = {
   providers: [
     Resend({
       from: process.env.EMAIL_FROM ?? "PaqueteOK <no-reply@paqueteok.app>",
+      // El copy del email promete "vence en 10 minutos"; el default de Auth.js
+      // es 24h. Esto alinea la realidad con la promesa y acota la ventana de
+      // un magic link interceptado.
+      maxAge: 10 * 60,
       // Required by Auth.js typing. The actual send happens in sendVerificationRequest,
       // which short-circuits to console in dev when this is empty.
       apiKey: process.env.RESEND_API_KEY ?? "",

@@ -15,7 +15,7 @@ test("login page renders", async ({ page }) => {
 test("health endpoint reports db up", async ({ request }) => {
   const res = await request.get("/api/health");
   expect(res.status()).toBe(200);
-  expect(await res.json()).toMatchObject({ status: "ok", db: "up" });
+  expect(await res.json()).toMatchObject({ ok: true, db: "up" });
 });
 
 test("protected routes redirect to login when unauthenticated", async ({ page }) => {
