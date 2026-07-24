@@ -47,3 +47,15 @@ jobs:
       - run: pnpm db:deploy
       - run: pnpm db:seed
       - run: pnpm build
+      # E2E contra el build real: login por magic link, registrar → retirar,
+      # gating de suscripción. Playwright levanta `next start` solo.
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+        env:
+          AUTH_TRUST_HOST: "true"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7
