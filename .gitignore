@@ -40,3 +40,6 @@ pnpm-debug.log*
 # prisma
 prisma/*.db
 prisma/*.db-journal
+
+# playwright e2e session state (contiene tokens de sesión)
+tests/e2e/.auth
