@@ -6,6 +6,7 @@ import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { isTenantOperational } from "@/lib/subscription";
 import { SubscriptionBlockedScreen } from "@/components/subscription-banner";
 import { UnitTilePicker } from "@/components/conserjeria/unit-tile-picker";
+import { SubmitButton } from "@/components/submit-button";
 import { PhotoCapture } from "@/components/conserjeria/photo-capture";
 import { getStorageClient } from "@/lib/storage/client";
 
@@ -137,12 +138,12 @@ export default async function IngresoPage({
           </label>
         </details>
 
-        <button
-          type="submit"
+        <SubmitButton
+          pendingText="Registrando…"
           className="rounded-2xl bg-accent px-4 py-4 text-lg font-bold text-accent-fg transition-transform active:scale-[0.98]"
         >
           Registrar y notificar
-        </button>
+        </SubmitButton>
       </form>
     </main>
   );

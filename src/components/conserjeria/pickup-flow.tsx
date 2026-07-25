@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Scanner, type IDetectedBarcode } from "@yudiel/react-qr-scanner";
 import { pickupByTokenAction } from "@/server/packages/pickup-actions";
 import { OtpCodeInput } from "./otp-code-input";
+import { SubmitButton } from "@/components/submit-button";
 
 type Mode = "qr" | "code";
 
@@ -73,12 +74,12 @@ export function PickupFlow({ tenantSlug, codeAction }: Props) {
       ) : (
         <form action={codeAction} className="flex flex-col items-center gap-6">
           <OtpCodeInput name="pickupCode" />
-          <button
-            type="submit"
+          <SubmitButton
+            pendingText="Procesando…"
             className="w-full max-w-sm rounded-2xl bg-accent px-4 py-4 text-lg font-bold text-accent-fg transition-transform active:scale-[0.98]"
           >
             Confirmar retiro
-          </button>
+          </SubmitButton>
         </form>
       )}
 

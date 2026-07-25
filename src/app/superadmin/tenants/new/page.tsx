@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireSuperadminOrRedirect } from "@/lib/auth";
 import { createTenantAction } from "@/server/superadmin/tenants";
+import { SubmitButton } from "@/components/submit-button";
 
 export default async function NewTenantPage({
   searchParams,
@@ -76,12 +77,12 @@ export default async function NewTenantPage({
           </Field>
         </Section>
 
-        <button
-          type="submit"
+        <SubmitButton
+          pendingText="Creando edificio…"
           className="mt-2 rounded-2xl bg-accent px-4 py-3 font-semibold text-accent-fg transition-transform active:scale-[0.98]"
         >
           Crear edificio
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );
