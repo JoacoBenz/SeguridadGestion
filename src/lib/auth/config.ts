@@ -3,6 +3,7 @@ import Resend from "next-auth/providers/resend";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { Role } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { renderMagicLinkEmail } from "@/lib/auth/magic-link-email";
 
 declare module "next-auth" {
   interface Session {
@@ -40,6 +41,7 @@ const authConfig: NextAuthConfig = {
           console.log("");
           return;
         }
+        const email = renderMagicLinkEmail(url);
         const res = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
@@ -49,8 +51,10 @@ const authConfig: NextAuthConfig = {
           body: JSON.stringify({
             from: process.env.EMAIL_FROM,
             to: identifier,
-            subject: "Tu acceso a PaqueteOK",
-            html: `<p>Hola,</p><p>Hacé clic para entrar a PaqueteOK:</p><p><a href="${url}">${url}</a></p><p>El link vence en 10 minutos.</p>`,
+            subject: email.subject,
+            html: email.html,
+            // La versión de texto plano mejora deliverability y accesibilidad.
+            text: email.text,
           }),
         });
         if (!res.ok) {
