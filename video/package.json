@@ -1,12 +1,12 @@
 {
-  "name": "paqueteok-demo-video",
+  "name": "packito-demo-video",
   "version": "0.1.0",
   "private": true,
   "description": "Video demo de producto (60s) renderizado con Remotion. Independiente de la app: tiene su propio node_modules.",
   "scripts": {
     "studio": "remotion studio src/index.ts",
-    "render": "remotion render src/index.ts PaqueteOKDemo out/paqueteok-demo.mp4",
-    "still": "remotion still src/index.ts PaqueteOKDemo out/frame.png"
+    "render": "remotion render src/index.ts PackItODemo out/packito-demo.mp4",
+    "still": "remotion still src/index.ts PackItODemo out/frame.png"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.0",

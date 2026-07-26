@@ -34,7 +34,7 @@ export const LogoIcon: React.FC<{ size?: number }> = ({ size = 96 }) => (
   </svg>
 );
 
-// Wordmark "PaqueteOK": el "OK" desliza desde atrás de "Paquete".
+// Wordmark "PackItO": el "ItO" desliza desde atrás de "Pack".
 export const Wordmark: React.FC<{
   size?: number;
   okProgress?: number; // 0 = escondido atrás, 1 = en posición
@@ -54,7 +54,7 @@ export const Wordmark: React.FC<{
       }}
     >
       <span style={{ color: C.text, position: "relative", zIndex: 2, backgroundColor: "transparent" }}>
-        Paquete
+        Pack
       </span>
       <span
         style={{
@@ -65,7 +65,7 @@ export const Wordmark: React.FC<{
           display: "inline-block",
         }}
       >
-        OK
+        ItO
       </span>
     </div>
   );

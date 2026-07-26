@@ -8,7 +8,7 @@ hecho con [Remotion](https://remotion.dev). Proyecto independiente de la app
 cd video
 pnpm install
 pnpm studio    # editar con preview en vivo
-pnpm render    # genera out/paqueteok-demo.mp4
+pnpm render    # genera out/packito-demo.mp4
 ```
 
 ## Estructura

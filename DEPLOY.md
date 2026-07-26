@@ -13,7 +13,7 @@ Everything below marked **[you]** needs an account/credential only you can creat
 ## 2. Auth (Resend magic links)
 
 - [ ] **[you]** Create a Resend account, verify your sending domain, get an API key.
-- [ ] Set `RESEND_API_KEY`, `EMAIL_FROM` (e.g. `PaqueteOK <no-reply@tudominio.com>`).
+- [ ] Set `RESEND_API_KEY`, `EMAIL_FROM` (e.g. `PackItO <no-reply@tudominio.com>`).
 - [ ] Set `AUTH_SECRET` (generate: `openssl rand -base64 32`) and `AUTH_URL` = your prod URL.
 - Without `RESEND_API_KEY`, magic links print to the server log instead of emailing — fine for staging, not for real users.
 

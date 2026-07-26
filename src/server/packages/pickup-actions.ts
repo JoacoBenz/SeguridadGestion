@@ -15,7 +15,7 @@ function friendlyPickupError(err: unknown): string {
     case "INVALID_CODE":
       return "El código no tiene un formato válido";
     case "INVALID_QR":
-      return "Ese QR no parece un código de retiro de PaqueteOK";
+      return "Ese QR no parece un código de retiro de PackItO";
     case "UNAUTHENTICATED":
       return "Tu sesión expiró. Volvé a iniciar sesión.";
     case "FORBIDDEN_TENANT":

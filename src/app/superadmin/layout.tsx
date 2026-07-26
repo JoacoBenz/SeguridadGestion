@@ -15,7 +15,7 @@ export default async function SuperadminLayout({
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
           <Link href="/superadmin" className="block">
             <p className="font-mono text-xs uppercase tracking-[0.3em] text-accent">
-              PaqueteOK
+              PackItO
             </p>
             <h1 className="text-lg font-bold tracking-tight">Superadmin</h1>
           </Link>

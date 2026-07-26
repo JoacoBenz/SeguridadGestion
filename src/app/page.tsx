@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 const CONTACT_MAILTO =
-  "mailto:hola@bexovar.com?subject=Quiero%20PaqueteOK%20en%20mi%20edificio";
+  "mailto:hola@bexovar.com?subject=Quiero%20PackItO%20en%20mi%20edificio";
 
 export default function Home() {
   return (
@@ -23,7 +23,7 @@ function Nav() {
       <div className="flex items-center gap-3">
         <LogoMark />
         <span className="text-lg font-bold tracking-tight">
-          Paquete<span className="text-accent">OK</span>
+          Pack<span className="text-accent">ItO</span>
         </span>
       </div>
       <Link
@@ -231,7 +231,7 @@ function Footer() {
       <div className="flex items-center gap-2">
         <LogoMark size={20} />
         <span>
-          PaqueteOK · un producto de{" "}
+          PackItO · un producto de{" "}
           <a
             href="https://bexovar.com"
             className="text-ink-300 underline-offset-4 hover:underline"

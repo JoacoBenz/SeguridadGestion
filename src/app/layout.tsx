@@ -4,9 +4,9 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PaqueteOK",
+  title: "PackItO",
   description: "Gestión digital de paquetes para edificios",
-  applicationName: "PaqueteOK",
+  applicationName: "PackItO",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [

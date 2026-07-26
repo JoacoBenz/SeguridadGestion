@@ -1,6 +1,6 @@
 {
-  "name": "PaqueteOK",
-  "short_name": "PaqueteOK",
+  "name": "PackItO",
+  "short_name": "PackItO",
   "description": "Gestión digital de paquetes para edificios",
   "start_url": "/login",
   "display": "standalone",

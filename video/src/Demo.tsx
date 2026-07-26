@@ -12,7 +12,7 @@ const T = () =>
   springTiming({ config: { damping: 200 }, durationInFrames: 20 });
 
 // `vertical` arma los layouts en columna para el formato Instagram (1080×1920).
-export const PaqueteOKDemo: React.FC<SceneProps> = ({ vertical }) => {
+export const PackItODemo: React.FC<SceneProps> = ({ vertical }) => {
   return (
     <AbsoluteFill style={{ backgroundColor: C.bg }}>
       {/*

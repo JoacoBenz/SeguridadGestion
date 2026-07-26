@@ -1,14 +1,14 @@
 import React from "react";
 import { Composition } from "remotion";
-import { PaqueteOKDemo } from "./Demo";
+import { PackItODemo } from "./Demo";
 
 export const RemotionRoot: React.FC = () => {
   return (
     <>
       {/* Horizontal: web, YouTube, presentaciones */}
       <Composition
-        id="PaqueteOKDemo"
-        component={PaqueteOKDemo}
+        id="PackItODemo"
+        component={PackItODemo}
         durationInFrames={1800}
         fps={30}
         width={1920}
@@ -17,8 +17,8 @@ export const RemotionRoot: React.FC = () => {
       />
       {/* Vertical: Instagram Reels / Stories, TikTok */}
       <Composition
-        id="PaqueteOKDemoVertical"
-        component={PaqueteOKDemo}
+        id="PackItODemoVertical"
+        component={PackItODemo}
         durationInFrames={1800}
         fps={30}
         width={1080}

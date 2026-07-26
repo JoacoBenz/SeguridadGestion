@@ -1,4 +1,4 @@
-# PaqueteOK
+# PackItO
 
 PWA multi-tenant para reemplazar el cuaderno de la conserjería de los edificios. La guardia 24/7 registra cada paquete que llega; el residente recibe un WhatsApp con un código + QR únicos; el retiro se confirma escaneando el QR o tipeando el código.
 

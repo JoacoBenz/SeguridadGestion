@@ -20,7 +20,7 @@ describe("renderMagicLinkEmail", () => {
 
   it("comunica el vencimiento y el remitente de marca", () => {
     const { html, subject } = renderMagicLinkEmail(URL_WITH_QUERY);
-    expect(subject).toBe("Tu acceso a PaqueteOK");
+    expect(subject).toBe("Tu acceso a PackItO");
     expect(html).toContain("10 minutos");
     expect(html).toContain("BEXOVAR");
   });

@@ -69,7 +69,7 @@ export default async function LoginPage({
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
       <div className="mb-2 inline-block">
         <span className="font-mono text-xs uppercase tracking-[0.3em] text-accent">
-          PaqueteOK
+          PackItO
         </span>
       </div>
       <h1 className="text-3xl font-bold tracking-tight">Entrar</h1>

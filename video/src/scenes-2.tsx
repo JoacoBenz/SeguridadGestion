@@ -117,7 +117,7 @@ export const WhatsAppScene: React.FC<SceneProps> = ({ vertical }) => {
           />
           <div style={{ fontFamily: FONT, lineHeight: 1.2 }}>
             <div style={{ color: "#e9edef", fontSize: 24, fontWeight: 600 }}>
-              PaqueteOK · Edificio Libertad
+              PackItO · Edificio Libertad
             </div>
             <div style={{ color: "#8696a0", fontSize: 17 }}>cuenta verificada</div>
           </div>

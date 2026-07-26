@@ -4,7 +4,7 @@ const SLUG = "edificio-libertad";
 
 test("home page renders the pitch", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByText("PaqueteOK").first()).toBeVisible();
+  await expect(page.getByText("PackItO").first()).toBeVisible();
 });
 
 test("login page renders", async ({ page }) => {

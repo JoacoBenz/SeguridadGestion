@@ -23,7 +23,7 @@ const authConfig: NextAuthConfig = {
   pages: { signIn: "/login", error: "/login" },
   providers: [
     Resend({
-      from: process.env.EMAIL_FROM ?? "PaqueteOK <no-reply@paqueteok.app>",
+      from: process.env.EMAIL_FROM ?? "PackItO <no-reply@bexovar.com.ar>",
       // El copy del email promete "vence en 10 minutos"; el default de Auth.js
       // es 24h. Esto alinea la realidad con la promesa y acota la ventana de
       // un magic link interceptado.
