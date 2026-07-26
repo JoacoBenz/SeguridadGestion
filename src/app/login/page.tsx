@@ -53,7 +53,10 @@ export default async function LoginPage({
       await signIn("resend", {
         email,
         redirect: false,
-        redirectTo: callbackUrl ?? "/",
+        // Sin callback explícito, el magic link aterriza en /login: como ahí
+        // ya hay sesión, landingPathFor() rutea por rol (superadmin, admin,
+        // guardia, residente) en vez de dejar al usuario en la landing pública.
+        redirectTo: callbackUrl ?? "/login",
       });
     } catch (err) {
       console.error("[login] signIn failed", err);
@@ -120,5 +123,7 @@ async function landingPathFor(session: Session): Promise<string> {
   // Sin slug no se puede armar una ruta de tenant; un "" generaría
   // "//conserjeria", que el browser trata como URL externa.
   if (!t) return "/sin-edificio";
-  return session.role === "admin" ? `/${t.slug}/admin` : `/${t.slug}/conserjeria`;
+  if (session.role === "admin") return `/${t.slug}/admin`;
+  if (session.role === "resident") return `/${t.slug}/residente/mis-paquetes`;
+  return `/${t.slug}/conserjeria`;
 }
