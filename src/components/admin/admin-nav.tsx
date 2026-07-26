@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogoutButton } from "@/components/logout-button";
 
 interface Props {
   slug: string;
@@ -40,12 +41,15 @@ export function AdminNav({ slug, tenantName }: Props) {
           <p className="text-xs text-ink-400">{tenantName}</p>
           <h1 className="text-lg font-bold tracking-tight">Administración</h1>
         </div>
-        <Link
-          href={`/${slug}/conserjeria`}
-          className="rounded-xl border border-ink-700 bg-ink-800 px-3 py-2 text-xs text-ink-300 transition-colors hover:text-ink-100"
-        >
-          Ir a conserjería →
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/${slug}/conserjeria`}
+            className="rounded-xl border border-ink-700 bg-ink-800 px-3 py-2 text-xs text-ink-300 transition-colors hover:text-ink-100"
+          >
+            Ir a conserjería →
+          </Link>
+          <LogoutButton />
+        </div>
       </div>
       <nav className="mx-auto max-w-6xl overflow-x-auto">
         <ul className="flex min-w-max gap-1 px-4 pb-1">

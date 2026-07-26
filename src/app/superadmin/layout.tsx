@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireSuperadminOrRedirect } from "@/lib/auth";
+import { LogoutButton } from "@/components/logout-button";
 
 export default async function SuperadminLayout({
   children,
@@ -18,12 +19,15 @@ export default async function SuperadminLayout({
             </p>
             <h1 className="text-lg font-bold tracking-tight">Superadmin</h1>
           </Link>
-          <Link
-            href="/superadmin/tenants/new"
-            className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-fg"
-          >
-            + Nuevo edificio
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/superadmin/tenants/new"
+              className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-fg"
+            >
+              + Nuevo edificio
+            </Link>
+            <LogoutButton />
+          </div>
         </div>
       </header>
       <div className="mx-auto max-w-5xl px-4 pb-16 pt-6">{children}</div>

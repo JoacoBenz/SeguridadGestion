@@ -6,6 +6,7 @@ import { isValidPickupCode } from "@/lib/codes";
 import { subscriptionBlockReason, trialDaysLeft } from "@/lib/subscription";
 import { SubscriptionWarningBanner } from "@/components/subscription-banner";
 import { PackageCard } from "@/components/conserjeria/package-card";
+import { LogoutButton } from "@/components/logout-button";
 
 export default async function ConserjeriaHome({
   params,
@@ -38,7 +39,10 @@ export default async function ConserjeriaHome({
           <p className="text-sm text-ink-400">{tenant.name}</p>
           <h1 className="text-2xl font-bold tracking-tight">Conserjería</h1>
         </div>
-        <PendingBadge count={pendientes.length} />
+        <div className="flex flex-col items-end gap-2">
+          <PendingBadge count={pendientes.length} />
+          <LogoutButton />
+        </div>
       </header>
 
       <SubscriptionWarningBanner
