@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { requireTenantRoleOrRedirect } from "@/lib/auth";
 
 const PAGE_SIZE = 100;
 
@@ -37,6 +38,9 @@ export default async function AuditoriaPage({
     select: { id: true },
   });
   if (!tenant) notFound();
+
+  // Las pages no pueden delegar el auth al layout (renderizan en paralelo).
+  await requireTenantRoleOrRedirect(tenant.id, ["admin"], `/${slug}/admin/auditoria`);
 
   const [logs, actions] = await Promise.all([
     prisma.auditLog.findMany({

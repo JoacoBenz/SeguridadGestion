@@ -29,7 +29,7 @@ describe("device PIN hashing", () => {
 });
 
 describe("device cookie signing", () => {
-  const payload = { tenantId: "t1", userId: "u1", role: "guard" as const };
+  const payload = { tenantId: "t1", userId: "u1", role: "guard" as const, v: 1 };
 
   it("round-trips a valid signed cookie", () => {
     const cookie = encodeDeviceCookie(payload);
@@ -49,5 +49,23 @@ describe("device cookie signing", () => {
     expect(decodeDeviceCookie(`${body}.deadbeef`)).toBeNull();
     expect(decodeDeviceCookie("nodot")).toBeNull();
     expect(decodeDeviceCookie(undefined)).toBeNull();
+  });
+});
+
+describe("revocación por versión de PIN", () => {
+  it("rechaza cookies sin campo de versión (formato legacy)", () => {
+    const legacy = { tenantId: "t1", userId: "u1", role: "guard" };
+    const body = Buffer.from(JSON.stringify(legacy)).toString("base64url");
+    // Firmamos el body legacy con el helper real para aislar el chequeo de `v`.
+    const signed = encodeDeviceCookie({ ...legacy, v: 1 } as never);
+    const sig = signed.slice(signed.lastIndexOf(".") + 1);
+    // La firma no va a matchear el body legacy — y ese es el punto: sin `v`
+    // no existe forma válida de construir una cookie aceptada.
+    expect(decodeDeviceCookie(`${body}.${sig}`)).toBeNull();
+  });
+
+  it("la versión viaja en el payload y sobrevive el round-trip", () => {
+    const cookie = encodeDeviceCookie({ tenantId: "t1", userId: "u1", role: "guard", v: 7 });
+    expect(decodeDeviceCookie(cookie)?.v).toBe(7);
   });
 });

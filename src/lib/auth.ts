@@ -33,6 +33,22 @@ async function resolveDeviceSession(): Promise<Session | null> {
   const cookieStore = await cookies();
   const payload = decodeDeviceCookie(cookieStore.get(DEVICE_COOKIE)?.value);
   if (!payload) return null;
+
+  // La cookie es válida solo si su versión coincide con la actual del tenant:
+  // cambiar o borrar el PIN bumpea devicePinVersion y revoca lo anterior.
+  // (Una query por request de dispositivo; los logins por email no pasan por acá.)
+  const { prisma } = await import("@/lib/db");
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: payload.tenantId },
+    select: { settings: true },
+  });
+  if (!tenant) return null;
+  const settings = (tenant.settings as Record<string, unknown>) ?? {};
+  if (!settings.guardPinHash) return null;
+  const currentVersion =
+    typeof settings.devicePinVersion === "number" ? settings.devicePinVersion : 1;
+  if (payload.v !== currentVersion) return null;
+
   return {
     userId: payload.userId,
     tenantId: payload.tenantId,

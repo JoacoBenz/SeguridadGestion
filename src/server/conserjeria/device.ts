@@ -1,11 +1,12 @@
 "use server";
 
 import { z } from "zod";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireTenantRole } from "@/lib/auth";
+import { rateLimit } from "@/lib/rate-limit";
 import { recordAudit } from "@/lib/audit";
 import {
   DEVICE_COOKIE,
@@ -57,6 +58,8 @@ export async function setGuardPinAction(slug: string, formData: FormData) {
         ...settings,
         guardPinHash: hashPin(parsed.data),
         deviceUserId: deviceUser.id,
+        // Bump de versión: revoca todas las cookies de dispositivo previas.
+        devicePinVersion: (typeof settings.devicePinVersion === "number" ? settings.devicePinVersion : 0) + 1,
       } as Prisma.InputJsonValue,
     },
   });
@@ -85,6 +88,9 @@ export async function clearGuardPinAction(slug: string, formData: FormData) {
   });
   const settings = { ...((current.settings as Record<string, unknown>) ?? {}) };
   delete settings.guardPinHash;
+  // Bump de versión también al borrar: bloquea los dispositivos ya desbloqueados.
+  settings.devicePinVersion =
+    (typeof settings.devicePinVersion === "number" ? settings.devicePinVersion : 0) + 1;
 
   await prisma.tenant.update({
     where: { id: tenant.id },
@@ -106,6 +112,19 @@ export async function clearGuardPinAction(slug: string, formData: FormData) {
 // --- Dispositivo: desbloquea con el PIN y deja la cookie de sesión ---
 
 export async function unlockDeviceAction(slug: string, formData: FormData) {
+  // Un PIN de 4-8 dígitos sin throttle sería brute-forceable. Best-effort en
+  // serverless (por instancia), pero sube el costo del ataque órdenes de
+  // magnitud; el bump de devicePinVersion cubre el resto del ciclo de vida.
+  const hdrs = await headers();
+  const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  if (!rateLimit(`pin:${ip}:${slug}`, { limit: 5, windowMs: 60_000 }).ok) {
+    redirect(
+      `/${slug}/conserjeria/desbloquear?error=${encodeURIComponent(
+        "Demasiados intentos. Esperá un minuto.",
+      )}`,
+    );
+  }
+
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
     select: { id: true, settings: true },
@@ -117,13 +136,20 @@ export async function unlockDeviceAction(slug: string, formData: FormData) {
   const settings = (tenant!.settings as Record<string, unknown>) ?? {};
   const pinHash = settings.guardPinHash as string | undefined;
   const deviceUserId = settings.deviceUserId as string | undefined;
+  const pinVersion =
+    typeof settings.devicePinVersion === "number" ? settings.devicePinVersion : 1;
 
   const pin = formData.get("pin");
   if (!pinHash || !deviceUserId || typeof pin !== "string" || !verifyPin(pin, pinHash)) {
     redirect(`/${slug}/conserjeria/desbloquear?error=${encodeURIComponent("PIN incorrecto")}`);
   }
 
-  const cookie = encodeDeviceCookie({ tenantId: tenant!.id, userId: deviceUserId!, role: "guard" });
+  const cookie = encodeDeviceCookie({
+    tenantId: tenant!.id,
+    userId: deviceUserId!,
+    role: "guard",
+    v: pinVersion,
+  });
   const store = await cookies();
   store.set(DEVICE_COOKIE, cookie, {
     httpOnly: true,

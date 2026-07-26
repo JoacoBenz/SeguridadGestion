@@ -37,10 +37,15 @@ export function verifyPin(pin: string, stored: string): boolean {
 
 // --- Cookie firmada ---
 
-interface DevicePayload {
+export interface DevicePayload {
   tenantId: string;
   userId: string;
   role: "guard";
+  // Versión del PIN al momento del desbloqueo. Cambiar o borrar el PIN
+  // bumpea la versión en Tenant.settings, revocando toda cookie anterior
+  // (getSession la compara contra la DB). Sin esto, una tablet robada
+  // seguiría desbloqueada 180 días aunque el admin cambie el PIN.
+  v: number;
 }
 
 function sign(data: string): string {
@@ -65,7 +70,14 @@ export function decodeDeviceCookie(cookie: string | undefined): DevicePayload | 
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
   try {
     const payload = JSON.parse(Buffer.from(body, "base64url").toString()) as DevicePayload;
-    if (!payload.tenantId || !payload.userId || payload.role !== "guard") return null;
+    if (
+      !payload.tenantId ||
+      !payload.userId ||
+      payload.role !== "guard" ||
+      typeof payload.v !== "number"
+    ) {
+      return null;
+    }
     return payload;
   } catch {
     return null;
