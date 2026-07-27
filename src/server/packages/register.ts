@@ -99,7 +99,7 @@ export async function registerPackage(
       const sent = await whatsapp.sendTemplate({
         to: resident.phone,
         template: "paquete_recibido_v2",
-        params: [resident.name, tenant.name, unit.label, pickupCode],
+        params: [resident.name, tenant.name, unit.label],
         headerImageUrl,
       });
       await prisma.notification.create({

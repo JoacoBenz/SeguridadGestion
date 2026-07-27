@@ -21,14 +21,13 @@ describe("WhatsApp templates", () => {
       "nombre",
       "edificio",
       "unidad",
-      "codigo",
     ]);
   });
 
   it("assertParamCount cuenta sólo los del body, no el header", () => {
     expect(() => assertParamCount("paquete_recibido_v2", ["solo uno"])).toThrow();
     expect(() =>
-      assertParamCount("paquete_recibido_v2", ["a", "b", "c", "d"]),
+      assertParamCount("paquete_recibido_v2", ["a", "b", "c"]),
     ).not.toThrow();
   });
 });
@@ -44,7 +43,7 @@ describe("paquete_foto_v1", () => {
 
 describe("buildComponents (payload para Meta)", () => {
   it("emite parameter_name apareado por posición con los nombres de la plantilla", () => {
-    const comps = buildComponents("paquete_recibido_v2", ["Juan", "Edificio Libertad", "3B", "H7K2MD"], "https://x/qr.png");
+    const comps = buildComponents("paquete_recibido_v2", ["Juan", "Edificio Libertad", "3B"], "https://x/qr.png");
     const header = comps.find((c) => c.type === "header");
     const body = comps.find((c) => c.type === "body");
     expect(header?.parameters[0]).toEqual({ type: "image", image: { link: "https://x/qr.png" } });
@@ -52,7 +51,6 @@ describe("buildComponents (payload para Meta)", () => {
       { type: "text", parameter_name: "nombre", text: "Juan" },
       { type: "text", parameter_name: "edificio", text: "Edificio Libertad" },
       { type: "text", parameter_name: "unidad", text: "3B" },
-      { type: "text", parameter_name: "codigo", text: "H7K2MD" },
     ]);
   });
 

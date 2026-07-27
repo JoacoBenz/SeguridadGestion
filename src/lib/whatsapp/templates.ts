@@ -22,11 +22,15 @@ export interface TemplateSpec {
 }
 
 export const TEMPLATES: Record<TemplateName, TemplateSpec> = {
-  // Header: image (QR). Body: nombre, edificio, unidad, código.
+  // Header: image (QR). Body: nombre, edificio, unidad. NO lleva el código de
+  // retiro: Meta clasifica cualquier "código corto enviado a una persona" como
+  // Authentication y rechaza la plantilla. El QR es el mecanismo de retiro del
+  // residente; el código de 6 caracteres es una herramienta del guardia (lo ve
+  // en su lista de pendientes) y sigue disponible en la vista mis-paquetes.
   paquete_recibido_v2: {
     name: "paquete_recibido_v2",
     language: "es_AR",
-    bodyParamNames: ["nombre", "edificio", "unidad", "codigo"],
+    bodyParamNames: ["nombre", "edificio", "unidad"],
     hasImageHeader: true,
   },
   paquete_retirado_v1: {
