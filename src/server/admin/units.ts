@@ -6,9 +6,15 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireTenantRole } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
+import { UNIT_LABEL_RE, UNIT_LABEL_HINT } from "@/lib/unit-label";
 
 const CreateUnitSchema = z.object({
-  label: z.string().trim().min(1, "Falta el label").max(20, "Demasiado largo"),
+  // "3b" se normaliza a "3B"; cualquier otra cosa se rechaza.
+  label: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(UNIT_LABEL_RE, `Formato inválido — ${UNIT_LABEL_HINT}`),
   notes: z.string().trim().max(200).optional(),
 });
 

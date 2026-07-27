@@ -46,14 +46,16 @@ export default async function UnidadesPage({
       <form action={create} className="flex flex-col gap-3 rounded-2xl border border-ink-700 bg-ink-850 p-5 sm:flex-row">
         <label className="flex flex-1 flex-col gap-1">
           <span className="text-xs font-semibold uppercase tracking-widest text-ink-400">
-            Label
+            Unidad <span className="font-normal normal-case text-ink-500">(números + una letra, ej. 3B)</span>
           </span>
           <input
             name="label"
             required
             placeholder="3B"
-            maxLength={20}
-            className="rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 font-mono text-ink-100 placeholder:text-ink-500 focus:border-accent focus:outline-none"
+            maxLength={5}
+            pattern="[0-9]{1,4}[A-Za-z]"
+            title="Números seguidos de una letra, ej. 3B"
+            className="rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 font-mono uppercase text-ink-100 placeholder:text-ink-500 focus:border-accent focus:outline-none"
           />
         </label>
         <label className="flex flex-[2] flex-col gap-1">

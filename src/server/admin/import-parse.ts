@@ -19,6 +19,8 @@ export interface ParseResult {
   errorCount: number;
 }
 
+import { normalizeUnitLabel, UNIT_LABEL_HINT } from "@/lib/unit-label";
+
 // E.164 con el + opcional (lo normalizamos agregándolo).
 const PHONE_RE = /^\+?[1-9]\d{6,14}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -58,7 +60,11 @@ export function parseResidentsCsv(text: string): ParseResult {
       phone: "",
     };
 
+    const normalizedUnit = unit ? normalizeUnitLabel(unit) : null;
+    if (normalizedUnit) row.unit = normalizedUnit;
+
     if (!unit) row.error = "Falta la unidad";
+    else if (!normalizedUnit) row.error = `Unidad inválida: ${unit} — ${UNIT_LABEL_HINT}`;
     else if (!name) row.error = "Falta el nombre";
     else if (!phoneRaw) row.error = "Falta el teléfono";
     else if (!PHONE_RE.test(phoneRaw)) row.error = `Teléfono inválido: ${phoneRaw}`;

@@ -50,3 +50,17 @@ describe("parseResidentsCsv", () => {
     expect(r.rows[0]!.unit).toBe("1A");
   });
 });
+
+describe("validación de unidad en el CSV", () => {
+  it("rechaza filas con unidad fuera de formato y normaliza las válidas", () => {
+    const r = parseResidentsCsv(
+      "unidad,nombre,telefono\n3b,Juan,+5491100000001\nPB,Ana,+5491100000002\nB3,Luis,+5491100000003",
+    );
+    expect(r.rows[0]?.unit).toBe("3B");
+    expect(r.rows[0]?.error).toBeUndefined();
+    expect(r.rows[1]?.error).toContain("Unidad inválida");
+    expect(r.rows[2]?.error).toContain("Unidad inválida");
+    expect(r.validCount).toBe(1);
+    expect(r.errorCount).toBe(2);
+  });
+});
