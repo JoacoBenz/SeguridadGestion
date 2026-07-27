@@ -24,6 +24,7 @@ export function AdminNav({ slug, tenantName, isSuperadmin = false }: Props) {
     { href: base, label: "Inicio", exact: true },
     { href: `${base}/unidades`, label: "Unidades" },
     { href: `${base}/residentes`, label: "Residentes" },
+    { href: `${base}/equipo`, label: "Equipo" },
     { href: `${base}/importar`, label: "Importar" },
     { href: `${base}/paquetes`, label: "Paquetes" },
     { href: `${base}/reportes`, label: "Reportes" },

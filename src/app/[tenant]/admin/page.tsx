@@ -138,6 +138,11 @@ export default async function AdminDashboard({
             title="Reportes"
             hint="actividad mensual"
           />
+          <QuickAction
+            href={`/${slug}/admin/equipo`}
+            title="Equipo"
+            hint="admins y guardias"
+          />
         </div>
       </section>
 

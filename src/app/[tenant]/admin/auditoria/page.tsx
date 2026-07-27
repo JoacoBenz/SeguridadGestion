@@ -20,6 +20,10 @@ const ACTION_LABEL: Record<string, string> = {
   "residents.imported": "Residentes importados",
   "device.pin_set": "PIN de conserjería fijado",
   "device.pin_cleared": "PIN de conserjería borrado",
+  "team.member_added": "Miembro del equipo agregado",
+  "team.role_changed": "Rol de miembro cambiado",
+  "team.member_removed": "Miembro del equipo eliminado",
+  "team.member_unlinked": "Miembro del equipo desvinculado",
   "tenant.created": "Edificio creado",
 };
 
