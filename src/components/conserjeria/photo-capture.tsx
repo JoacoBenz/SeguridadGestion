@@ -60,16 +60,20 @@ export function PhotoCapture({
           {required ? "(obligatoria)" : "(opcional)"}
         </span>
       </span>
+      {/* Invisible pero EN FLUJO, enfocable y SIN readonly: los inputs readonly
+          están excluidos de la validación HTML (required se ignora), y los
+          no-enfocables (sr-only) hacen que Chrome deje pasar el submit. Con
+          1px + opacity-0, controlado por React, el globo de validación aparece
+          y el form no se envía hasta que la subida deja la URL. */}
       <input
         ref={urlInputRef}
         type="text"
         name={name}
         value={url ?? ""}
         required={required}
-        readOnly
-        tabIndex={-1}
         aria-hidden
-        className="sr-only"
+        autoComplete="off"
+        className="h-px w-px self-start opacity-0"
         onInvalid={(e) =>
           (e.target as HTMLInputElement).setCustomValidity("Sacale una foto al paquete antes de registrar")
         }
