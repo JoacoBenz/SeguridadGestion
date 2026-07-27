@@ -1,66 +1,86 @@
 # Deploy checklist
 
-Target: **Vercel + Neon** (Postgres) + **Cloudflare R2** (photos) + **Meta WhatsApp Cloud API** + **Resend** (magic-link email).
+Producción actual: **Vercel** (app) + **Supabase** (Postgres + Storage) + **Meta WhatsApp Cloud API** + **Resend** (magic-link email).
 
-Everything below marked **[you]** needs an account/credential only you can create. The code is already wired for all of it — set the env var and it activates; leave it empty and the feature degrades gracefully (logs to stdout / hides the UI).
+Todo lo marcado **[vos]** necesita una cuenta/credencial que solo vos podés crear. El código ya está cableado para todo — seteás la env var y se activa; la dejás vacía y la función degrada con gracia (loguea a stdout / esconde la UI). El diagnóstico rápido de config está en `GET /api/health?debug=$CRON_SECRET` (reporta DB y qué `STORAGE_*` faltan, sin exponer valores).
 
-## 1. Database (Neon)
+## 1. Base de datos (Supabase)
 
-- [ ] **[you]** Create a Neon project, copy the pooled connection string into `DATABASE_URL`.
-- [ ] Run migrations against it: `pnpm prisma migrate deploy` (there are now 2 migrations — a baseline and the partial unique index). **Do NOT use `db push` in prod.**
-- [ ] Seed only if you want the demo tenant: `pnpm db:seed` (creates `edificio-libertad` + test users). Skip for a real first tenant; create it via `/superadmin`.
+- [x] Proyecto Supabase creado (`njorckajlftgzruahqfo`, región sa-east-1).
+- [ ] **[vos]** `DATABASE_URL` = el URI del **Transaction pooler** (Connect → Transaction pooler, puerto 6543) con **`?pgbouncer=true`** al final. El "Direct connection" NO funciona desde Vercel (es IPv6-only en el plan free). Si la contraseña tiene símbolos (`@ # %`), reseteala a una alfanumérica para evitar URL-encoding.
+- [x] Migraciones aplicadas (init + índice único parcial + suscripción). En un entorno nuevo: `pnpm prisma migrate deploy`. **Nunca `db push` en prod.**
+- [x] RLS deny-by-default activado en todas las tablas (migración `enable_rls_deny_by_default`). La app usa Prisma (bypassa RLS); esto cierra la Data API pública de Supabase.
+- Crear cada edificio real desde `/superadmin` — no correr el seed en prod (el seed es para dev).
 
 ## 2. Auth (Resend magic links)
 
-- [ ] **[you]** Create a Resend account, verify your sending domain, get an API key.
-- [ ] Set `RESEND_API_KEY`, `EMAIL_FROM` (e.g. `PackItO <no-reply@tudominio.com>`).
-- [ ] Set `AUTH_SECRET` (generate: `openssl rand -base64 32`) and `AUTH_URL` = your prod URL.
-- Without `RESEND_API_KEY`, magic links print to the server log instead of emailing — fine for staging, not for real users.
+- [x] Dominio `bexovar.com.ar` verificado en Resend.
+- [ ] **[vos]** `RESEND_API_KEY` + `EMAIL_FROM` = `PackItO <no-reply@bexovar.com.ar>` (el dominio del From tiene que ser el verificado).
+- [ ] `AUTH_SECRET` (`openssl rand -base64 32`). **No** setees `AUTH_URL` en Vercel salvo necesidad — Auth.js detecta el host solo; un `AUTH_URL` que apunte al `.vercel.app` rompe las cookies cuando entrás por el dominio propio.
+- Sin `RESEND_API_KEY`, los magic links se imprimen en el log del server en vez de mandarse por email.
 
-## 3. WhatsApp (Meta Cloud API) — **start early, approval takes days**
+## 3. WhatsApp (Meta Cloud API) — **el camino más largo; arrancá temprano**
 
-- [ ] **[you]** Meta Business account + WhatsApp Business Platform app. Get `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN` (permanent token), `WHATSAPP_BUSINESS_ACCOUNT_ID`, `WHATSAPP_APP_SECRET`.
-- [ ] **[you]** Submit the message templates for approval in Meta Business Manager. Names/params must match `src/lib/whatsapp/templates.ts` exactly:
-  - `paquete_recibido_v3` — **image header** (the QR) + 4 body params `{nombre, edificio, unidad, código}`. Media-header templates take **3–5 days**.
-  - `paquete_retirado_v1` — 2 body params `{fecha ingreso, hora retiro}`. Text-only, 1–3 days.
-  - `paquete_pendiente_v1` — 1 body param `{fecha ingreso}`.
-  - `paquete_escalado_v1` — **NEW**, 3 body params `{unidad, fecha ingreso, cantidad de recordatorios}`. Submit this one too or escalation sends will fail.
-  - `paquete_foto_v1` — **image header** (la foto real del paquete) + 1 body param `{unidad}`. Se envía como segundo mensaje tras `paquete_recibido_v3` cuando hay foto. Media-header: 3–5 días de aprobación.
-- [ ] Set `WHATSAPP_WEBHOOK_VERIFY_TOKEN` (any long random string), then register the webhook in Meta:
-  - Callback URL: `https://<prod>/api/whatsapp/webhook`
-  - Verify token: the value you set.
-  - Subscribe to `messages` (delivery/read receipts).
-- Without WhatsApp creds, sends log to stdout (`[whatsapp:dev]`) — the app still works, residents just don't get real messages.
+### 3a. Las 5 plantillas (aprobación 1–3 días texto, 3–5 con imagen)
+Crear en Business Manager → categoría **Utility**, idioma **Spanish (ARG) / es_AR**, con estos nombres y **variables NOMBRADAS** exactas (Meta ya no acepta `{{1}}` posicional; el código emite `parameter_name` por posición según `src/lib/whatsapp/templates.ts`):
 
-## 4. Photo storage (Cloudflare R2) — optional, hides itself if unset
+| Plantilla | Header | Variables (en orden) |
+|---|---|---|
+| `paquete_recibido_v3` | Image (QR) | `nombre`, `edificio`, `unidad` |
+| `paquete_retirado_v1` | — | `fecha`, `hora` |
+| `paquete_pendiente_v1` | — | `fecha` |
+| `paquete_escalado_v1` | — | `unidad`, `fecha`, `recordatorios` |
+| `paquete_foto_v1` | Image (foto real) | `unidad` |
 
-- [ ] **[you]** Create an R2 bucket + an API token (Access Key ID / Secret).
-- [ ] Make the bucket publicly readable (r2.dev subdomain or a custom domain) — photos are viewed in the admin panel and must be fetchable.
-- [ ] Set: `STORAGE_BUCKET`, `STORAGE_ENDPOINT` (`https://<accountid>.r2.cloudflarestorage.com`), `STORAGE_REGION=auto`, `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY`, `STORAGE_PUBLIC_BASE_URL` (the public bucket URL).
-- If any are empty, the photo-capture UI is hidden in the conserjería and nothing breaks. (Works with any S3-compatible provider, not just R2.)
+- **El código de retiro NO va en ninguna plantilla**: Meta clasifica "código corto enviado a una persona" como Authentication y rechaza la Utility. El QR es el mecanismo del residente; el código de 6 caracteres lo ve el guardia en su pantalla y el residente en `mis-paquetes`.
+- Si una plantilla se rechaza, Meta no deja reusar el nombre → subí el número de versión (por eso `recibido` es `v3`) y actualizá el nombre en `templates.ts`.
 
-## 5. Reminder cron
+### 3b. App, número y credenciales
+- [ ] **[vos]** App en developers.facebook.com (tipo Business) + WhatsApp product. **Business verification** iniciada (trámite lento) y app en **Live** (necesita Privacy Policy URL → ya existe en `/privacidad`).
+- [ ] **[vos]** Número dedicado registrado en la WABA (WhatsApp → Step 2 Production setup → Register phone number). **Tiene que ser un número que NO esté en la app de WhatsApp** — si lo está, borrá esa cuenta de WhatsApp y esperá ~3 min. Display name: `PackItO`.
+- [ ] **[vos]** Método de pago cargado (obligatorio: los mensajes business-initiated se cobran).
+- [ ] **[vos]** Token permanente vía System User (business.facebook.com/settings/system-users): Full control sobre la WABA, permisos `whatsapp_business_messaging` + `whatsapp_business_management`, expiración **Never**.
+- [ ] Env vars: `WHATSAPP_PHONE_NUMBER_ID` (del número real), `WHATSAPP_ACCESS_TOKEN` (el permanente), `WHATSAPP_BUSINESS_ACCOUNT_ID`, `WHATSAPP_APP_SECRET` (App settings → Basic → Show).
 
-- [ ] Set `CRON_SECRET` (any long random string). Vercel Cron sends it as `Authorization: Bearer <CRON_SECRET>`; the route rejects requests without it in production.
-- [ ] `vercel.json` already schedules `GET /api/cron/reminders` daily at 12:00 UTC. Adjust the time if you want it in AR business hours (e.g. `0 13 * * *` ≈ 10am ART).
-- Escalation threshold is per-tenant via `Tenant.settings.reminderEscalateAfter` (default 2). No env needed.
+### 3c. Webhook
+- [ ] `WHATSAPP_WEBHOOK_VERIFY_TOKEN` = string random. Cargala en Vercel + Redeploy **antes** de verificar en Meta (Meta hace un GET a la URL y compara el token).
+- [ ] En Meta (Configure Webhooks): Callback URL `https://packito.bexovar.com.ar/api/whatsapp/webhook`, el verify token, → Verify and save → suscribirse a `messages` (ticks entregado/leído → `Notification.status`).
+- Modelo A (un número global para todos los edificios): el mensaje identifica al edificio por el texto. `getWhatsAppClient()` usa `WHATSAPP_PHONE_NUMBER_ID` global; sin creds usa el `LoggingClient`.
 
-## 6. Ops (recommended before a real pilot) — **[you]**
+## 4. Fotos (Supabase Storage) — opcional, se esconde si falta
 
-- [ ] **Sentry** (or similar) for error tracking. Not yet wired — add `@sentry/nextjs` when you're ready.
-- [ ] **Uptime monitor** pointed at `GET /api/health` (returns `{status:"ok",db:"up"}`, 503 if DB down).
-- [ ] **Neon backup/PITR** policy — confirm retention is on for the plan you pick.
-- [ ] Set `PUBLIC_BASE_URL` to your prod URL (used to build the QR image URL Meta downloads).
+- [x] Bucket `paquetes` público en Supabase Storage.
+- [ ] **[vos]** S3 Access Keys (Project Settings → Storage → S3 Access Keys). Las 6 vars:
+  - `STORAGE_BUCKET` = `paquetes`
+  - `STORAGE_ENDPOINT` = `https://njorckajlftgzruahqfo.supabase.co/storage/v1/s3`
+  - `STORAGE_REGION` = `sa-east-1`
+  - `STORAGE_ACCESS_KEY_ID` / `STORAGE_SECRET_ACCESS_KEY` = las S3 keys
+  - `STORAGE_PUBLIC_BASE_URL` = `https://njorckajlftgzruahqfo.supabase.co/storage/v1/object/public/paquetes`
+- Con storage configurado, la foto del paquete es **obligatoria** al registrar. Sin las vars, el campo se esconde y el registro sigue funcionando. Cuidado con el nombre EXACTO de cada var (un typo tipo `STORAGE_BUKCET` la deja invisible — verificá con `/api/health?debug=`).
 
-## 7. Per-building onboarding (no deploy, but worth documenting for yourself)
+## 5. Cron de recordatorios
 
-1. Create the tenant in `/superadmin` (sets slug + first admin email).
-2. Admin logs in via magic link → `/[slug]/admin`.
-3. Bulk-load units + residents via **`/[slug]/admin/importar`** (paste CSV: `unidad,nombre,telefono,email`).
-4. Set the **conserjería PIN** in `/[slug]/admin` so the desk tablet can unlock at `/[slug]/conserjeria/desbloquear` without per-guard email.
+- [ ] `CRON_SECRET` = string random. Vercel Cron lo manda como `Authorization: Bearer`; la ruta rechaza sin él en prod. **También habilita `/api/health?debug=` y protege el cron** — sin esta var los recordatorios no salen.
+- [x] `vercel.json` agenda `GET /api/cron/reminders` diario 12:00 UTC (≈09:00 ART). Ajustá el horario si querés.
+- Umbral de escalamiento por tenant vía `Tenant.settings.reminderEscalateAfter` (default 2).
+
+## 6. Región y ops
+
+- [x] Funciones en `gru1` (São Paulo, junto a la DB) vía `vercel.json` — evita ~140ms por query cross-continente.
+- [ ] **[vos]** Monitor de uptime (UptimeRobot gratis) a `GET /api/health`.
+- [ ] `PUBLIC_BASE_URL` = `https://packito.bexovar.com.ar` (arma la URL del QR que Meta descarga).
+- [ ] Sentry: no cableado; agregá `@sentry/nextjs` cuando lo necesites.
+
+## 7. Onboarding de un edificio (sin deploy)
+
+1. Crear el tenant en `/superadmin` (slug + email del primer admin; arranca en trial de 14 días).
+2. El admin entra por magic link → `/[slug]/admin`.
+3. Cargar unidades (`/admin/unidades`, formato `<números><letra>` ej. 3B) y residentes (`/admin/importar` con CSV `unidad,nombre,telefono,email`, o uno por uno).
+4. Gestionar más admins/guardias por email en `/admin/equipo`.
+5. Configurar el **PIN de conserjería** en `/[slug]/admin` para la tablet del mostrador.
 
 ## Pre-flight
 
-- [ ] `pnpm typecheck && pnpm lint && pnpm test` green.
-- [ ] `pnpm test:e2e` green (needs `npx playwright install chromium` once).
-- [ ] `pnpm build` succeeds (not yet run in this session — do it before first deploy).
+- [ ] `pnpm typecheck && pnpm lint && pnpm test` en verde (81 unit tests).
+- [ ] `pnpm test:e2e` en verde (20 tests; en sandbox sin CDN, `PW_CHROMIUM_EXECUTABLE`).
+- [ ] `pnpm build` OK (CI ya lo corre sobre Postgres real + migraciones + seed).
