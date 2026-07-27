@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 const UPDATED = "Julio de 2026";
-const CONTACT = "hola@bexovar.com";
+const CONTACT = "bexovar@gmail.com";
 
 export default function PrivacidadPage() {
   return (
