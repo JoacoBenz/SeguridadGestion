@@ -240,9 +240,14 @@ function Footer() {
           </a>
         </span>
       </div>
-      <Link href="/login" className="text-ink-400 hover:text-ink-200">
-        Iniciar sesión
-      </Link>
+      <div className="flex items-center gap-4">
+        <Link href="/privacidad" className="text-ink-400 hover:text-ink-200">
+          Privacidad
+        </Link>
+        <Link href="/login" className="text-ink-400 hover:text-ink-200">
+          Iniciar sesión
+        </Link>
+      </div>
     </footer>
   );
 }
