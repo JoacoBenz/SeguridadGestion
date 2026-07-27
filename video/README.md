@@ -1,8 +1,17 @@
 # Video demo de producto
 
-Demo de 60 segundos (1920×1080 @ 30fps) del camino feliz de un paquete,
-hecho con [Remotion](https://remotion.dev). Proyecto independiente de la app
+Demos del camino feliz de un paquete, hechos con
+[Remotion](https://remotion.dev). Proyecto independiente de la app
 (su propio `package.json`) para no sumar dependencias al SaaS.
+
+Composiciones:
+
+- `PackItODemo` / `PackItODemoVertical` — demo completo de 60s (7 escenas).
+- `PackItOQuick` / `PackItOQuickVertical` — versión rápida de 14.5s: gancho →
+  los 3 pasos con indicador de progreso (registro, WhatsApp, retiro) → CTA.
+  El mensaje de WhatsApp refleja la plantilla real `paquete_recibido_v3`
+  (QR + nombre/edificio/unidad, sin código). Render:
+  `npx remotion render src/index.ts PackItOQuick out/packito-quick-15s.mp4`.
 
 ```bash
 cd video
