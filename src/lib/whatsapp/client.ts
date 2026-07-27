@@ -20,12 +20,13 @@ export interface WhatsAppClient {
 interface TemplateComponent {
   type: "header" | "body";
   parameters: Array<
-    | { type: "text"; text: string }
+    | { type: "text"; parameter_name: string; text: string }
     | { type: "image"; image: { link: string } }
   >;
 }
 
-function buildComponents(
+// Exportado para test: es la forma exacta del payload que Meta valida.
+export function buildComponents(
   template: TemplateName,
   params: string[],
   headerImageUrl?: string,
@@ -43,9 +44,15 @@ function buildComponents(
     });
   }
 
+  // Named parameters: Meta exige parameter_name por cada variable del body,
+  // apareado por posición con los nombres declarados en la plantilla.
   components.push({
     type: "body",
-    parameters: params.map((text) => ({ type: "text", text })),
+    parameters: params.map((text, i) => ({
+      type: "text",
+      parameter_name: spec.bodyParamNames[i]!,
+      text,
+    })),
   });
 
   return components;

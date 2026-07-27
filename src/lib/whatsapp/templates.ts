@@ -11,9 +11,13 @@ export type TemplateName =
 export interface TemplateSpec {
   name: TemplateName;
   language: string;
-  bodyParamCount: number;
+  // Nombres de las variables del body, EN ORDEN. Meta ya no acepta variables
+  // posicionales ({{1}}): las plantillas se crean con nombres ({{fecha}}) y al
+  // enviar cada parámetro tiene que llevar su parameter_name. El largo de este
+  // array es la cantidad de parámetros esperada; el orden es el de los params.
+  bodyParamNames: readonly string[];
   // Si la plantilla tiene un header image, hay que mandar headerImageUrl al
-  // enviarla. El header no aporta a bodyParamCount.
+  // enviarla. El header no aporta al body.
   hasImageHeader?: boolean;
 }
 
@@ -22,25 +26,24 @@ export const TEMPLATES: Record<TemplateName, TemplateSpec> = {
   paquete_recibido_v2: {
     name: "paquete_recibido_v2",
     language: "es_AR",
-    bodyParamCount: 4,
+    bodyParamNames: ["nombre", "edificio", "unidad", "codigo"],
     hasImageHeader: true,
   },
   paquete_retirado_v1: {
     name: "paquete_retirado_v1",
     language: "es_AR",
-    bodyParamCount: 2, // fecha de ingreso, hora de retiro
+    bodyParamNames: ["fecha", "hora"],
   },
   paquete_pendiente_v1: {
     name: "paquete_pendiente_v1",
     language: "es_AR",
-    bodyParamCount: 1, // fecha de ingreso
+    bodyParamNames: ["fecha"],
   },
   // Aviso al admin cuando un paquete lleva demasiados recordatorios sin retirar.
-  // Body: unidad, fecha de ingreso, cantidad de recordatorios ya enviados.
   paquete_escalado_v1: {
     name: "paquete_escalado_v1",
     language: "es_AR",
-    bodyParamCount: 3,
+    bodyParamNames: ["unidad", "fecha", "recordatorios"],
   },
   // Header: image (la foto real del paquete). Body: unidad. Se manda como
   // segundo mensaje después de paquete_recibido_v2 (una imagen por plantilla,
@@ -48,16 +51,16 @@ export const TEMPLATES: Record<TemplateName, TemplateSpec> = {
   paquete_foto_v1: {
     name: "paquete_foto_v1",
     language: "es_AR",
-    bodyParamCount: 1,
+    bodyParamNames: ["unidad"],
     hasImageHeader: true,
   },
 };
 
 export function assertParamCount(name: TemplateName, params: string[]): void {
-  const spec = TEMPLATES[name];
-  if (params.length !== spec.bodyParamCount) {
+  const expected = TEMPLATES[name].bodyParamNames.length;
+  if (params.length !== expected) {
     throw new Error(
-      `Template ${name} espera ${spec.bodyParamCount} parámetros, recibió ${params.length}`,
+      `Template ${name} espera ${expected} parámetros, recibió ${params.length}`,
     );
   }
 }
