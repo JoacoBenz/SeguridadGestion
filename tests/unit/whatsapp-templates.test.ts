@@ -22,3 +22,12 @@ describe("WhatsApp templates", () => {
     ).not.toThrow();
   });
 });
+
+describe("paquete_foto_v1", () => {
+  it("declara header de imagen y 1 parámetro (unidad)", () => {
+    expect(TEMPLATES.paquete_foto_v1.hasImageHeader).toBe(true);
+    expect(TEMPLATES.paquete_foto_v1.bodyParamCount).toBe(1);
+    expect(() => assertParamCount("paquete_foto_v1", ["3B"])).not.toThrow();
+    expect(() => assertParamCount("paquete_foto_v1", [])).toThrow();
+  });
+});

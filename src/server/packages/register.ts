@@ -126,6 +126,41 @@ export async function registerPackage(
         },
       });
     }
+
+    // Segundo mensaje con la foto real del paquete (si el guardia la sacó).
+    // Independiente del anterior: si el QR falló, la foto puede llegar igual.
+    if (input.photoUrl) {
+      try {
+        const sentPhoto = await whatsapp.sendTemplate({
+          to: resident.phone,
+          template: "paquete_foto_v1",
+          params: [unit.label],
+          headerImageUrl: input.photoUrl,
+        });
+        await prisma.notification.create({
+          data: {
+            packageId: pkg.id,
+            channel: "whatsapp",
+            templateName: "paquete_foto_v1",
+            recipientPhone: resident.phone,
+            providerMessageId: sentPhoto.providerMessageId,
+            status: "sent",
+            sentAt: new Date(),
+          },
+        });
+      } catch (err) {
+        await prisma.notification.create({
+          data: {
+            packageId: pkg.id,
+            channel: "whatsapp",
+            templateName: "paquete_foto_v1",
+            recipientPhone: resident.phone,
+            status: "failed",
+            errorPayload: { message: err instanceof Error ? err.message : String(err) },
+          },
+        });
+      }
+    }
   }
 
   return {

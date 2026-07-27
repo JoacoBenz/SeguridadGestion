@@ -58,6 +58,16 @@ export default async function IngresoPage({
     const notes = formData.get("notes");
     const photoUrl = formData.get("photoUrl");
 
+    // Con storage configurado, la foto es obligatoria — chequeo del lado del
+    // server, independiente de la validación del navegador.
+    if (photoEnabled && (typeof photoUrl !== "string" || !photoUrl)) {
+      redirect(
+        `/${slug}/conserjeria/ingreso?error=${encodeURIComponent(
+          "Sacale una foto al paquete antes de registrarlo.",
+        )}`,
+      );
+    }
+
     // El redirect de éxito va FUERA del try: redirect() tira NEXT_REDIRECT
     // y un catch-all lo convertiría en ?error=.
     let pickupCode: string;
@@ -116,7 +126,7 @@ export default async function IngresoPage({
 
         {photoEnabled && (
           <section>
-            <PhotoCapture slug={slug} name="photoUrl" label="Foto del paquete" />
+            <PhotoCapture slug={slug} name="photoUrl" label="Foto del paquete" required />
           </section>
         )}
 
