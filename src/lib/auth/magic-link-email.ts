@@ -63,7 +63,7 @@ export function renderMagicLinkEmail(url: string): MagicLinkEmail {
           </tr>
           <tr>
             <td style="padding:20px 8px 0;text-align:center;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-              <p style="margin:0;font-size:12px;line-height:1.6;color:#71717A;">Si no pediste este acceso, ignor&aacute; este mensaje &#8212; nadie puede entrar sin este link.<br>PackItO &#183; un producto de <a href="https://bexovar.com" style="color:#71717A;text-decoration:underline;">BEXOVAR</a></p>
+              <p style="margin:0;font-size:12px;line-height:1.6;color:#71717A;">Si no pediste este acceso, ignor&aacute; este mensaje &#8212; nadie puede entrar sin este link.<br>PackItO &#183; un producto de <a href="https://www.bexovar.com.ar" style="color:#71717A;text-decoration:underline;">BEXOVAR</a></p>
             </td>
           </tr>
         </table>

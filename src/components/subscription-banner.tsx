@@ -12,7 +12,7 @@ export function SubscriptionBlockedScreen({ tenantName }: { tenantName: string }
         pendientes siguen funcionando.
       </p>
       <p className="mt-3 text-xs text-ink-500">
-        El administrador del consorcio puede regularizarla escribiendo a hola@bexovar.com.
+        El administrador del consorcio puede regularizarla escribiendo a bexovar@gmail.com.
       </p>
     </div>
   );
@@ -29,7 +29,7 @@ export function SubscriptionWarningBanner({
     return (
       <div className="mb-6 rounded-xl border border-critical/40 bg-critical/10 px-4 py-3 text-sm text-critical">
         Suscripción inactiva: se pueden entregar los paquetes pendientes, pero no registrar
-        nuevos. Para regularizarla, escribí a hola@bexovar.com.
+        nuevos. Para regularizarla, escribí a bexovar@gmail.com.
       </div>
     );
   }
@@ -39,7 +39,7 @@ export function SubscriptionWarningBanner({
         {daysLeft === 0
           ? "El período de prueba vence hoy."
           : `Quedan ${daysLeft} día${daysLeft === 1 ? "" : "s"} de prueba.`}{" "}
-        Para seguir sin cortes, activá la suscripción con hola@bexovar.com.
+        Para seguir sin cortes, activá la suscripción con bexovar@gmail.com.
       </div>
     );
   }

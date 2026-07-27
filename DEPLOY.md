@@ -69,6 +69,7 @@ Crear en Business Manager → categoría **Utility**, idioma **Spanish (ARG) / e
 - [x] Funciones en `gru1` (São Paulo, junto a la DB) vía `vercel.json` — evita ~140ms por query cross-continente.
 - [ ] **[vos]** Monitor de uptime (UptimeRobot gratis) a `GET /api/health`.
 - [ ] `PUBLIC_BASE_URL` = `https://packito.bexovar.com.ar` (arma la URL del QR que Meta descarga).
+- [ ] **[vos]** `NEXT_PUBLIC_CONTACT_WHATSAPP` = tu número comercial en E.164 **sin `+` ni espacios** (ej. `5491133334444`). Es el destino de los 3 CTA de la landing (`wa.me` con mensaje pre-cargado). Sin esta var los botones caen a un `mailto:` — que en desktop sin cliente de mail configurado no abre nada. Es `NEXT_PUBLIC_*`, así que se inlinea en build: hay que **redeployar** para que tome un cambio.
 - [ ] Sentry: no cableado; agregá `@sentry/nextjs` cuando lo necesites.
 
 ## 7. Onboarding de un edificio (sin deploy)

@@ -1,7 +1,17 @@
 import Link from "next/link";
 
-const CONTACT_MAILTO =
-  "mailto:hola@bexovar.com?subject=Quiero%20PackItO%20en%20mi%20edificio";
+// CTA de contacto. `NEXT_PUBLIC_CONTACT_WHATSAPP` = número en E.164 sin `+`
+// ni espacios (ej. 5491133334444) → abre WhatsApp con el mensaje pre-cargado,
+// que funciona igual en desktop y en celular. Sin esa var cae a un mailto al
+// buzón real; un `mailto:` no abre nada en desktop sin cliente de mail
+// configurado, así que en prod seteá el número.
+const CONTACT_PHONE = process.env.NEXT_PUBLIC_CONTACT_WHATSAPP;
+const CONTACT_MESSAGE = "Hola! Quiero PackItO en mi edificio.";
+const CONTACT_HREF = CONTACT_PHONE
+  ? `https://wa.me/${CONTACT_PHONE}?text=${encodeURIComponent(CONTACT_MESSAGE)}`
+  : `mailto:bexovar@gmail.com?subject=${encodeURIComponent(
+      "Quiero PackItO en mi edificio",
+    )}`;
 
 export default function Home() {
   return (
@@ -54,7 +64,9 @@ function Hero() {
       </p>
       <div className="flex flex-col gap-3 sm:flex-row">
         <a
-          href={CONTACT_MAILTO}
+          href={CONTACT_HREF}
+          target="_blank"
+          rel="noopener noreferrer"
           className="rounded-2xl bg-accent px-7 py-4 text-center font-semibold text-accent-fg transition-transform active:scale-[0.98]"
         >
           Sumá tu edificio
@@ -192,7 +204,9 @@ function Pricing() {
           ))}
         </ul>
         <a
-          href={CONTACT_MAILTO}
+          href={CONTACT_HREF}
+          target="_blank"
+          rel="noopener noreferrer"
           className="mt-8 block rounded-2xl bg-accent px-6 py-4 text-center font-semibold text-accent-fg transition-transform active:scale-[0.98]"
         >
           Empezar la prueba gratis
@@ -216,7 +230,9 @@ function CierreCta() {
         WhatsApp automáticos.
       </p>
       <a
-        href={CONTACT_MAILTO}
+        href={CONTACT_HREF}
+        target="_blank"
+        rel="noopener noreferrer"
         className="mt-8 inline-block rounded-2xl bg-accent px-8 py-4 font-semibold text-accent-fg transition-transform active:scale-[0.98]"
       >
         Sumá tu edificio
@@ -233,7 +249,7 @@ function Footer() {
         <span>
           PackItO · un producto de{" "}
           <a
-            href="https://bexovar.com"
+            href="https://www.bexovar.com.ar"
             className="text-ink-300 underline-offset-4 hover:underline"
           >
             BEXOVAR

@@ -718,7 +718,7 @@ const QCierre: React.FC<SceneProps> = ({ vertical }) => {
             Sumá tu edificio
           </div>
           <div style={{ fontFamily: MONO, fontSize: 28, color: C.textDim }}>
-            bexovar.com
+            www.bexovar.com.ar
           </div>
         </div>
       </AbsoluteFill>

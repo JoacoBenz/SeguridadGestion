@@ -656,7 +656,9 @@ export const Cierre: React.FC<SceneProps> = ({ vertical }) => {
           >
             Sumá tu edificio
           </div>
-          <div style={{ fontFamily: MONO, fontSize: 30, color: C.textDim }}>bexovar.com</div>
+          <div style={{ fontFamily: MONO, fontSize: 30, color: C.textDim }}>
+            www.bexovar.com.ar
+          </div>
         </div>
       </AbsoluteFill>
     </Bg>

@@ -120,7 +120,7 @@ export default function PrivacidadPage() {
 
       <footer className="mt-12 border-t border-ink-800 pt-6 text-sm text-ink-500">
         PackItO · un producto de{" "}
-        <a href="https://bexovar.com" className="text-ink-300 underline-offset-4 hover:underline">
+        <a href="https://www.bexovar.com.ar" className="text-ink-300 underline-offset-4 hover:underline">
           BEXOVAR
         </a>
       </footer>
