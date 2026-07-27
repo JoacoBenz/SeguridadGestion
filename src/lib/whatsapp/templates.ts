@@ -2,7 +2,7 @@
 // Los nombres y orden de parámetros tienen que matchear exactamente lo aprobado.
 
 export type TemplateName =
-  | "paquete_recibido_v2"
+  | "paquete_recibido_v3"
   | "paquete_retirado_v1"
   | "paquete_pendiente_v1"
   | "paquete_escalado_v1"
@@ -27,8 +27,8 @@ export const TEMPLATES: Record<TemplateName, TemplateSpec> = {
   // Authentication y rechaza la plantilla. El QR es el mecanismo de retiro del
   // residente; el código de 6 caracteres es una herramienta del guardia (lo ve
   // en su lista de pendientes) y sigue disponible en la vista mis-paquetes.
-  paquete_recibido_v2: {
-    name: "paquete_recibido_v2",
+  paquete_recibido_v3: {
+    name: "paquete_recibido_v3",
     language: "es_AR",
     bodyParamNames: ["nombre", "edificio", "unidad"],
     hasImageHeader: true,
@@ -50,7 +50,7 @@ export const TEMPLATES: Record<TemplateName, TemplateSpec> = {
     bodyParamNames: ["unidad", "fecha", "recordatorios"],
   },
   // Header: image (la foto real del paquete). Body: unidad. Se manda como
-  // segundo mensaje después de paquete_recibido_v2 (una imagen por plantilla,
+  // segundo mensaje después de paquete_recibido_v3 (una imagen por plantilla,
   // y el header de aquella lo ocupa el QR).
   paquete_foto_v1: {
     name: "paquete_foto_v1",

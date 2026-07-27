@@ -51,7 +51,7 @@ All three call `recordAudit()` and use `requireTenantRole()`. Adding any new sta
 - Inbound delivery/read receipts hit `src/app/api/whatsapp/webhook/route.ts`. The route verifies `X-Hub-Signature-256` with `WHATSAPP_APP_SECRET` and updates `Notification.status` by `providerMessageId`.
 
 ### Resident notification — message, not page
-- There is **no public page** for the resident. The full notification — QR + code + instructions — is delivered as a single WhatsApp template message (`paquete_recibido_v2`) with the QR as the header image. Forwarding the message also forwards the QR.
+- There is **no public page** for the resident. The full notification — QR + code + instructions — is delivered as a single WhatsApp template message (`paquete_recibido_v3`) with the QR as the header image. Forwarding the message also forwards the QR.
 - The QR is served on demand by `src/app/api/qr/[token]/route.ts` as a PNG. Meta downloads it once when constructing the message. The endpoint is public (the token is the capability) and serves `Cache-Control: public, max-age=31536000, immutable` since a token's QR is invariant. It 404s for unknown tokens to avoid being a generic QR generator.
 - **The QR encodes the raw token, not a URL.** `extractPickupToken()` accepts both shapes, but new packages emit raw-token QRs so the system has no implicit dependency on a webpage existing. If you reintroduce a resident-facing page, add it without touching the QR contract.
 
@@ -87,7 +87,7 @@ All three call `recordAudit()` and use `requireTenantRole()`. Adding any new sta
 
 ## Conventions specific to this project
 
-- **Spanish in user-facing strings, English in code.** UI copy, audit `action` strings as user sees them, and template names are Spanish (`paquete_recibido_v2`). Identifiers, comments, and error codes thrown from server actions (`PACKAGE_NOT_FOUND`, `FORBIDDEN_TENANT`, `INVALID_CODE`) are English so they're greppable.
+- **Spanish in user-facing strings, English in code.** UI copy, audit `action` strings as user sees them, and template names are Spanish (`paquete_recibido_v3`). Identifiers, comments, and error codes thrown from server actions (`PACKAGE_NOT_FOUND`, `FORBIDDEN_TENANT`, `INVALID_CODE`) are English so they're greppable.
 - **Pickup codes use a Crockford-ish alphabet** (`23456789ABCDEFGHJKMNPQRSTVWXYZ`) — no `0/O/1/I/L/U`. Don't expand the alphabet without changing `isValidPickupCode` and the unit tests; ambiguity at the desk is the whole reason it's restricted.
 - **Audit everything that changes a `Package`.** `recordAudit()` is one line; skipping it loses the only durable trail for disputes ("ese paquete no llegó nunca").
 - **Server actions validate input with Zod** at the boundary, then trust the parsed object. Don't re-validate downstream.

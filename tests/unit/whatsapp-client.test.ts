@@ -24,7 +24,7 @@ describe("WhatsApp client (dev LoggingClient)", () => {
     const client = getWhatsAppClient();
     const result = await client.sendTemplate({
       to: "+5491100000001",
-      template: "paquete_recibido_v2",
+      template: "paquete_recibido_v3",
       params: ["Juan", "Edificio Libertad", "3B"],
       headerImageUrl: "https://example.test/api/qr/abc1234",
     });
@@ -39,7 +39,7 @@ describe("WhatsApp client (dev LoggingClient)", () => {
     await expect(
       client.sendTemplate({
         to: "+5491100000001",
-        template: "paquete_recibido_v2",
+        template: "paquete_recibido_v3",
         params: ["Juan", "Edificio Libertad", "3B"],
         // headerImageUrl omitida a propósito
       }),
@@ -51,7 +51,7 @@ describe("WhatsApp client (dev LoggingClient)", () => {
     await expect(
       client.sendTemplate({
         to: "+5491100000001",
-        template: "paquete_recibido_v2",
+        template: "paquete_recibido_v3",
         params: ["solo uno"],
         headerImageUrl: "https://example.test/api/qr/abc1234",
       }),

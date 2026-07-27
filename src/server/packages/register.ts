@@ -98,7 +98,7 @@ export async function registerPackage(
     try {
       const sent = await whatsapp.sendTemplate({
         to: resident.phone,
-        template: "paquete_recibido_v2",
+        template: "paquete_recibido_v3",
         params: [resident.name, tenant.name, unit.label],
         headerImageUrl,
       });
@@ -106,7 +106,7 @@ export async function registerPackage(
         data: {
           packageId: pkg.id,
           channel: "whatsapp",
-          templateName: "paquete_recibido_v2",
+          templateName: "paquete_recibido_v3",
           recipientPhone: resident.phone,
           providerMessageId: sent.providerMessageId,
           status: "sent",
@@ -119,7 +119,7 @@ export async function registerPackage(
         data: {
           packageId: pkg.id,
           channel: "whatsapp",
-          templateName: "paquete_recibido_v2",
+          templateName: "paquete_recibido_v3",
           recipientPhone: resident.phone,
           status: "failed",
           errorPayload: { message: err instanceof Error ? err.message : String(err) },

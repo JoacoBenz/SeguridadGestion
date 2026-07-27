@@ -21,11 +21,11 @@ Everything below marked **[you]** needs an account/credential only you can creat
 
 - [ ] **[you]** Meta Business account + WhatsApp Business Platform app. Get `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN` (permanent token), `WHATSAPP_BUSINESS_ACCOUNT_ID`, `WHATSAPP_APP_SECRET`.
 - [ ] **[you]** Submit the message templates for approval in Meta Business Manager. Names/params must match `src/lib/whatsapp/templates.ts` exactly:
-  - `paquete_recibido_v2` — **image header** (the QR) + 4 body params `{nombre, edificio, unidad, código}`. Media-header templates take **3–5 days**.
+  - `paquete_recibido_v3` — **image header** (the QR) + 4 body params `{nombre, edificio, unidad, código}`. Media-header templates take **3–5 days**.
   - `paquete_retirado_v1` — 2 body params `{fecha ingreso, hora retiro}`. Text-only, 1–3 days.
   - `paquete_pendiente_v1` — 1 body param `{fecha ingreso}`.
   - `paquete_escalado_v1` — **NEW**, 3 body params `{unidad, fecha ingreso, cantidad de recordatorios}`. Submit this one too or escalation sends will fail.
-  - `paquete_foto_v1` — **image header** (la foto real del paquete) + 1 body param `{unidad}`. Se envía como segundo mensaje tras `paquete_recibido_v2` cuando hay foto. Media-header: 3–5 días de aprobación.
+  - `paquete_foto_v1` — **image header** (la foto real del paquete) + 1 body param `{unidad}`. Se envía como segundo mensaje tras `paquete_recibido_v3` cuando hay foto. Media-header: 3–5 días de aprobación.
 - [ ] Set `WHATSAPP_WEBHOOK_VERIFY_TOKEN` (any long random string), then register the webhook in Meta:
   - Callback URL: `https://<prod>/api/whatsapp/webhook`
   - Verify token: the value you set.

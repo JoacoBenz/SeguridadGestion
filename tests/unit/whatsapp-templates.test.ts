@@ -15,9 +15,9 @@ describe("WhatsApp templates", () => {
     }
   });
 
-  it("paquete_recibido_v2 tiene header image y 4 variables nombradas", () => {
-    expect(TEMPLATES.paquete_recibido_v2.hasImageHeader).toBe(true);
-    expect(TEMPLATES.paquete_recibido_v2.bodyParamNames).toEqual([
+  it("paquete_recibido_v3 tiene header image y 4 variables nombradas", () => {
+    expect(TEMPLATES.paquete_recibido_v3.hasImageHeader).toBe(true);
+    expect(TEMPLATES.paquete_recibido_v3.bodyParamNames).toEqual([
       "nombre",
       "edificio",
       "unidad",
@@ -25,9 +25,9 @@ describe("WhatsApp templates", () => {
   });
 
   it("assertParamCount cuenta sólo los del body, no el header", () => {
-    expect(() => assertParamCount("paquete_recibido_v2", ["solo uno"])).toThrow();
+    expect(() => assertParamCount("paquete_recibido_v3", ["solo uno"])).toThrow();
     expect(() =>
-      assertParamCount("paquete_recibido_v2", ["a", "b", "c"]),
+      assertParamCount("paquete_recibido_v3", ["a", "b", "c"]),
     ).not.toThrow();
   });
 });
@@ -43,7 +43,7 @@ describe("paquete_foto_v1", () => {
 
 describe("buildComponents (payload para Meta)", () => {
   it("emite parameter_name apareado por posición con los nombres de la plantilla", () => {
-    const comps = buildComponents("paquete_recibido_v2", ["Juan", "Edificio Libertad", "3B"], "https://x/qr.png");
+    const comps = buildComponents("paquete_recibido_v3", ["Juan", "Edificio Libertad", "3B"], "https://x/qr.png");
     const header = comps.find((c) => c.type === "header");
     const body = comps.find((c) => c.type === "body");
     expect(header?.parameters[0]).toEqual({ type: "image", image: { link: "https://x/qr.png" } });
