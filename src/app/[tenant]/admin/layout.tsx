@@ -19,11 +19,15 @@ export default async function AdminLayout({
   });
   if (!tenant) notFound();
 
-  await requireTenantRoleOrRedirect(tenant.id, ["admin"], `/${slug}/admin`);
+  const session = await requireTenantRoleOrRedirect(tenant.id, ["admin"], `/${slug}/admin`);
 
   return (
     <div className="min-h-screen">
-      <AdminNav slug={slug} tenantName={tenant.name} />
+      <AdminNav
+        slug={slug}
+        tenantName={tenant.name}
+        isSuperadmin={session.role === "superadmin"}
+      />
       <div className="mx-auto max-w-6xl px-4 pb-16 pt-6">
         {/* Aviso informativo, no es control de acceso (eso vive en cada page). */}
         <SubscriptionWarningBanner

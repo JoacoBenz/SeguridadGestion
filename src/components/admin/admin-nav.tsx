@@ -7,6 +7,7 @@ import { LogoutButton } from "@/components/logout-button";
 interface Props {
   slug: string;
   tenantName: string;
+  isSuperadmin?: boolean;
 }
 
 interface NavItem {
@@ -15,7 +16,7 @@ interface NavItem {
   exact?: boolean;
 }
 
-export function AdminNav({ slug, tenantName }: Props) {
+export function AdminNav({ slug, tenantName, isSuperadmin = false }: Props) {
   const pathname = usePathname();
   const base = `/${slug}/admin`;
 
@@ -42,6 +43,14 @@ export function AdminNav({ slug, tenantName }: Props) {
           <h1 className="text-lg font-bold tracking-tight">Administración</h1>
         </div>
         <div className="flex items-center gap-2">
+          {isSuperadmin && (
+            <Link
+              href="/superadmin"
+              className="rounded-xl border border-ink-700 px-3 py-2 text-xs text-ink-400 transition-colors hover:text-ink-100"
+            >
+              ← Edificios
+            </Link>
+          )}
           <Link
             href={`/${slug}/conserjeria`}
             className="rounded-xl border border-ink-700 bg-ink-800 px-3 py-2 text-xs text-ink-300 transition-colors hover:text-ink-100"

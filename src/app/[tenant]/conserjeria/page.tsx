@@ -23,7 +23,14 @@ export default async function ConserjeriaHome({
   });
   if (!tenant) notFound();
 
-  await requireTenantRoleOrRedirect(tenant.id, ["guard", "admin"], `/${slug}/conserjeria`);
+  const session = await requireTenantRoleOrRedirect(
+    tenant.id,
+    ["guard", "admin"],
+    `/${slug}/conserjeria`,
+  );
+  // Los guardias (incl. sesiones de dispositivo) no ven accesos al panel.
+  const canSeeAdmin = session.role === "admin" || session.role === "superadmin";
+  const isSuperadmin = session.role === "superadmin";
 
   const pendientes = await prisma.package.findMany({
     where: { tenantId: tenant.id, status: "awaiting_pickup" },
@@ -41,7 +48,25 @@ export default async function ConserjeriaHome({
         </div>
         <div className="flex flex-col items-end gap-2">
           <PendingBadge count={pendientes.length} />
-          <LogoutButton />
+          <div className="flex items-center gap-2">
+            {isSuperadmin && (
+              <Link
+                href="/superadmin"
+                className="rounded-xl border border-ink-700 px-3 py-2 text-xs text-ink-400 transition-colors hover:text-ink-100"
+              >
+                ← Edificios
+              </Link>
+            )}
+            {canSeeAdmin && (
+              <Link
+                href={`/${slug}/admin`}
+                className="rounded-xl border border-ink-700 bg-ink-800 px-3 py-2 text-xs text-ink-300 transition-colors hover:text-ink-100"
+              >
+                Panel de admin →
+              </Link>
+            )}
+            <LogoutButton />
+          </div>
         </div>
       </header>
 
