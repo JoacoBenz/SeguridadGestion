@@ -40,7 +40,8 @@ Crear en Business Manager → categoría **Utility**, idioma **Spanish (ARG) / e
 - [ ] **[vos]** Número dedicado registrado en la WABA (WhatsApp → Step 2 Production setup → Register phone number). **Tiene que ser un número que NO esté en la app de WhatsApp** — si lo está, borrá esa cuenta de WhatsApp y esperá ~3 min. Display name: `PackItO`.
 - [ ] **[vos]** Método de pago cargado (obligatorio: los mensajes business-initiated se cobran).
 - [ ] **[vos]** Token permanente vía System User (business.facebook.com/settings/system-users): Full control sobre la WABA, permisos `whatsapp_business_messaging` + `whatsapp_business_management`, expiración **Never**.
-- [ ] Env vars: `WHATSAPP_PHONE_NUMBER_ID` (del número real), `WHATSAPP_ACCESS_TOKEN` (el permanente), `WHATSAPP_BUSINESS_ACCOUNT_ID`, `WHATSAPP_APP_SECRET` (App settings → Basic → Show).
+- [ ] Env vars — el código lee **exactamente estas 4** (`src/lib/whatsapp/client.ts` + `src/app/api/whatsapp/webhook/route.ts`): `WHATSAPP_PHONE_NUMBER_ID` (el ID interno del número, no el teléfono), `WHATSAPP_ACCESS_TOKEN` (el permanente del System User), `WHATSAPP_APP_SECRET` (App settings → Basic → Show), `WHATSAPP_WEBHOOK_VERIFY_TOKEN`. El WABA ID no se usa en runtime; guardalo aparte si lo necesitás para la API de plantillas.
+- El cliente se activa sólo si están **`WHATSAPP_PHONE_NUMBER_ID` y `WHATSAPP_ACCESS_TOKEN`**; si falta cualquiera de las dos, cae al `LoggingClient` en silencio y los mensajes no salen. Un typo en el nombre de la var se ve igual que "no configurado".
 
 ### 3c. Webhook
 - [ ] `WHATSAPP_WEBHOOK_VERIFY_TOKEN` = string random. Cargala en Vercel + Redeploy **antes** de verificar en Meta (Meta hace un GET a la URL y compara el token).
