@@ -113,6 +113,10 @@ export async function sendPendingReminders(
           });
           escalatedThisPkg = true;
         } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          console.error(
+            `[whatsapp] paquete_escalado_v1 falló para ${admin.phone} (package ${pkg.id}): ${message}`,
+          );
           await prisma.notification.create({
             data: {
               packageId: pkg.id,
@@ -120,7 +124,7 @@ export async function sendPendingReminders(
               templateName: "paquete_escalado_v1",
               recipientPhone: admin.phone!,
               status: "failed",
-              errorPayload: { message: err instanceof Error ? err.message : String(err) },
+              errorPayload: { message },
             },
           });
         }
@@ -164,6 +168,10 @@ export async function sendPendingReminders(
         });
         sentForPackage++;
       } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(
+          `[whatsapp] paquete_pendiente_v1 falló para ${phone} (package ${pkg.id}): ${message}`,
+        );
         await prisma.notification.create({
           data: {
             packageId: pkg.id,
@@ -171,7 +179,7 @@ export async function sendPendingReminders(
             templateName: "paquete_pendiente_v1",
             recipientPhone: phone,
             status: "failed",
-            errorPayload: { message: err instanceof Error ? err.message : String(err) },
+            errorPayload: { message },
           },
         });
       }

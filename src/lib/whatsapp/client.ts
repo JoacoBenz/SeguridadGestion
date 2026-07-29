@@ -138,6 +138,18 @@ export function getWhatsAppClient(): WhatsAppClient {
   if (phoneNumberId && accessToken) {
     cached = new MetaCloudClient(phoneNumberId, accessToken);
   } else {
+    // En dev el LoggingClient es lo esperado. En prod significa que falta (o
+    // está mal escrita) alguna de las dos vars, y el síntoma es mudo: la app
+    // registra paquetes sin errores y los WhatsApp simplemente no salen.
+    if (process.env.NODE_ENV === "production") {
+      const missing = [
+        phoneNumberId ? null : "WHATSAPP_PHONE_NUMBER_ID",
+        accessToken ? null : "WHATSAPP_ACCESS_TOKEN",
+      ].filter(Boolean);
+      console.error(
+        `[whatsapp] modo logging en producción — no se envía ningún mensaje. Faltan: ${missing.join(", ")}`,
+      );
+    }
     cached = new LoggingClient();
   }
   return cached;

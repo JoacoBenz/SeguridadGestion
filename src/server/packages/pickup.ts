@@ -99,6 +99,10 @@ export async function pickupPackage(raw: PickupInput): Promise<PickupResult> {
         },
       });
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(
+        `[whatsapp] paquete_retirado_v1 falló para ${phone} (package ${pkg.id}): ${message}`,
+      );
       await prisma.notification.create({
         data: {
           packageId: pkg.id,
@@ -106,7 +110,7 @@ export async function pickupPackage(raw: PickupInput): Promise<PickupResult> {
           templateName: "paquete_retirado_v1",
           recipientPhone: phone,
           status: "failed",
-          errorPayload: { message: err instanceof Error ? err.message : String(err) },
+          errorPayload: { message },
         },
       });
     }

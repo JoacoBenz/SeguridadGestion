@@ -115,6 +115,13 @@ export async function registerPackage(
       });
       notifiedPhones.push(resident.phone);
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      // El fallo se persiste en Notification, pero también va a stdout: sin esto
+      // un envío roto es invisible en los logs del server (el alta del paquete
+      // devuelve 303 igual) y hay que ir a mirar la tabla para enterarse.
+      console.error(
+        `[whatsapp] paquete_recibido_v3 falló para ${resident.phone} (package ${pkg.id}): ${message}`,
+      );
       await prisma.notification.create({
         data: {
           packageId: pkg.id,
@@ -122,7 +129,7 @@ export async function registerPackage(
           templateName: "paquete_recibido_v3",
           recipientPhone: resident.phone,
           status: "failed",
-          errorPayload: { message: err instanceof Error ? err.message : String(err) },
+          errorPayload: { message },
         },
       });
     }
@@ -149,6 +156,10 @@ export async function registerPackage(
           },
         });
       } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(
+          `[whatsapp] paquete_foto_v1 falló para ${resident.phone} (package ${pkg.id}): ${message}`,
+        );
         await prisma.notification.create({
           data: {
             packageId: pkg.id,
@@ -156,7 +167,7 @@ export async function registerPackage(
             templateName: "paquete_foto_v1",
             recipientPhone: resident.phone,
             status: "failed",
-            errorPayload: { message: err instanceof Error ? err.message : String(err) },
+            errorPayload: { message },
           },
         });
       }
