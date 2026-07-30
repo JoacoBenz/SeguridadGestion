@@ -6,7 +6,8 @@ import { getStorageClient } from "@/lib/storage/client";
 // la app responde y llega a la base; 503 si la DB no contesta. La respuesta
 // pública no expone datos; con ?debug=$CRON_SECRET incluye diagnóstico de
 // configuración: destino de DB sanitizado (nunca la contraseña), estado del
-// storage y qué variables STORAGE_* faltan.
+// storage, qué variables STORAGE_* faltan, y qué WhatsApp phone number ID
+// tomó realmente el build (sin exponer el token).
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,6 +33,21 @@ function missingStorageVars(): string[] {
   ].filter((name) => !process.env[name]);
 }
 
+// El phone number ID NO es secreto (identifica al emisor, no autoriza nada) y
+// es justo el dato que hace falta para saber si el build tomó la variable que
+// creés que tomó — un cambio en Vercel sin redeploy no se ve por ningún lado.
+// El token sí es secreto: sólo se reporta si está presente y su largo.
+function whatsappDiagnostics(): Record<string, unknown> {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  return {
+    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID ?? null,
+    accessTokenPresent: Boolean(token),
+    accessTokenLength: token?.length ?? 0,
+    appSecretPresent: Boolean(process.env.WHATSAPP_APP_SECRET),
+    webhookVerifyTokenPresent: Boolean(process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN),
+  };
+}
+
 export async function GET(req: Request) {
   const debug = new URL(req.url).searchParams.get("debug");
   const debugOk = Boolean(process.env.CRON_SECRET) && debug === process.env.CRON_SECRET;
@@ -42,6 +58,7 @@ export async function GET(req: Request) {
     if (debugOk) {
       body.storageConfigured = getStorageClient().isConfigured;
       body.storageMissingVars = missingStorageVars();
+      body.whatsapp = whatsappDiagnostics();
     }
     return NextResponse.json(body);
   } catch (err) {
@@ -55,6 +72,7 @@ export async function GET(req: Request) {
       body.detail = detail;
       body.storageConfigured = getStorageClient().isConfigured;
       body.storageMissingVars = missingStorageVars();
+      body.whatsapp = whatsappDiagnostics();
     }
     return NextResponse.json(body, { status: 503 });
   }
