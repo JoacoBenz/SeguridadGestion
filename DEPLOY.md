@@ -32,7 +32,9 @@ Crear en Business Manager → categoría **Utility**, idioma **Spanish (ARG) / e
 | `paquete_escalado_v1` | — | `unidad`, `fecha`, `recordatorios` |
 | `paquete_foto_v1` | Image (foto real) | `unidad` |
 
+- ⚠️ **Las plantillas pertenecen a una WABA, no a la cuenta.** Si el número de envío vive en una WABA y las plantillas se crearon en otra, Meta responde `132001 — template name does not exist in es_AR` aunque en WhatsApp Manager las veas aprobadas: estás mirando la otra cuenta. Antes de crear nada, confirmá en qué WABA está el número (API Setup → elegí el número en "From" → el *WhatsApp Business Account ID* de abajo es el que vale). `scripts/copy-templates.mjs` copia plantillas entre WABAs por API; las que tienen header de imagen fallan con `100 Invalid parameter` porque su `header_handle` no es transferible — esas se crean a mano.
 - **El código de retiro NO va en ninguna plantilla**: Meta clasifica "código corto enviado a una persona" como Authentication y rechaza la Utility. El QR es el mecanismo del residente; el código de 6 caracteres lo ve el guardia en su pantalla y el residente en `mis-paquetes`.
+- El idioma tiene que ser **es_AR** en las 5. Una creada como "Spanish" a secas queda en `es` y falla igual que si no existiera; `templates.ts` pide `es_AR` para todas.
 - Si una plantilla se rechaza, Meta no deja reusar el nombre → subí el número de versión (por eso `recibido` es `v3`) y actualizá el nombre en `templates.ts`.
 
 ### 3b. App, número y credenciales
