@@ -18,7 +18,9 @@ function cameraErrorMessage(err: unknown): string {
   switch (name) {
     case "NotAllowedError":
     case "SecurityError":
-      return "Bloqueaste el acceso a la cámara. Habilitalo en los ajustes del navegador (en iPhone: Ajustes → Safari → Cámara) o usá 'Tipear código'.";
+      // Sin nombrar un navegador: la conserjería puede estar en Chrome, Safari,
+      // Samsung Internet o la app instalada, y cada uno lo ubica en otro lado.
+      return "La cámara está bloqueada. Habilitá el permiso desde los ajustes del navegador o del teléfono, o usá 'Tipear código'.";
     case "NotFoundError":
     case "OverconstrainedError":
       return "Este dispositivo no tiene una cámara disponible. Usá 'Tipear código'.";
