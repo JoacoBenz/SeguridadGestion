@@ -3,6 +3,7 @@ import {
   DEFAULT_PHOTO_MODE,
   DEFAULT_PHOTO_RETENTION_DAYS,
   isPhotoRequired,
+  photoCopyPhone,
   photoMode,
   photoRetentionCutoff,
   photoRetentionDays,
@@ -46,6 +47,19 @@ describe("shouldShowPhotoField / isPhotoRequired", () => {
   it("deshabilitada: ni se muestra", () => {
     expect(shouldShowPhotoField(true, "disabled")).toBe(false);
     expect(isPhotoRequired(true, "disabled")).toBe(false);
+  });
+});
+
+describe("photoCopyPhone", () => {
+  it("devuelve el teléfono configurado", () => {
+    expect(photoCopyPhone({ conserjeriaPhone: "+5491123885910" })).toBe("+5491123885910");
+  });
+
+  it("null cuando está vacío, ausente o no es string", () => {
+    expect(photoCopyPhone({ conserjeriaPhone: "" })).toBeNull();
+    expect(photoCopyPhone({})).toBeNull();
+    expect(photoCopyPhone(null)).toBeNull();
+    expect(photoCopyPhone({ conserjeriaPhone: 5491123885910 })).toBeNull();
   });
 });
 

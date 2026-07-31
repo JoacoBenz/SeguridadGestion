@@ -6,6 +6,7 @@ import { recordAudit } from "@/lib/audit";
 import { requireTenantRole } from "@/lib/auth";
 import { isTenantOperational } from "@/lib/subscription";
 import { getWhatsAppClient } from "@/lib/whatsapp/client";
+import { photoCopyPhone } from "@/lib/photo-policy";
 import { qrImageUrl } from "@/lib/urls";
 
 const RegisterPackageInput = z.object({
@@ -33,7 +34,7 @@ export async function registerPackage(
 
   const tenant = await prisma.tenant.findUniqueOrThrow({
     where: { id: input.tenantId },
-    select: { name: true, subscriptionStatus: true, trialEndsAt: true },
+    select: { name: true, settings: true, subscriptionStatus: true, trialEndsAt: true },
   });
 
   // El gate de suscripción aplica solo al alta de paquetes: los retiros y
@@ -171,6 +172,49 @@ export async function registerPackage(
           },
         });
       }
+    }
+  }
+
+  // Copia de la foto a la conserjería: le deja el mismo mensaje en su propio
+  // WhatsApp, que es donde el guardia realmente va a buscarla después. No
+  // depende del panel ni de que la foto siga en el bucket cuando venza la
+  // retención. Independiente de los envíos al residente: si aquellos fallaron,
+  // esta copia igual tiene sentido.
+  const copyPhone = photoCopyPhone(tenant.settings);
+  if (input.photoUrl && copyPhone) {
+    try {
+      const sentCopy = await whatsapp.sendTemplate({
+        to: copyPhone,
+        template: "paquete_foto_v1",
+        params: [unit.label],
+        headerImageUrl: input.photoUrl,
+      });
+      await prisma.notification.create({
+        data: {
+          packageId: pkg.id,
+          channel: "whatsapp",
+          templateName: "paquete_foto_v1",
+          recipientPhone: copyPhone,
+          providerMessageId: sentCopy.providerMessageId,
+          status: "sent",
+          sentAt: new Date(),
+        },
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(
+        `[whatsapp] copia a conserjería falló para ${copyPhone} (package ${pkg.id}): ${message}`,
+      );
+      await prisma.notification.create({
+        data: {
+          packageId: pkg.id,
+          channel: "whatsapp",
+          templateName: "paquete_foto_v1",
+          recipientPhone: copyPhone,
+          status: "failed",
+          errorPayload: { message },
+        },
+      });
     }
   }
 

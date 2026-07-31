@@ -40,6 +40,19 @@ export function isPhotoMode(value: unknown): value is PhotoMode {
   return typeof value === "string" && PHOTO_MODES.includes(value as PhotoMode);
 }
 
+/**
+ * Teléfono de la conserjería al que se manda una copia de la foto del paquete.
+ *
+ * Le deja al guardia el mismo mensaje que recibe el residente en su propio
+ * WhatsApp, que termina siendo el archivo real: si mañana hay que buscar un
+ * paquete de hace dos semanas, lo tiene en su chat sin depender del panel ni
+ * de que la foto siga en el bucket. Vacío = no se manda copia.
+ */
+export function photoCopyPhone(settings: unknown): string | null {
+  const value = settingsObject(settings).conserjeriaPhone;
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
 export function photoRetentionDays(settings: unknown): number {
   const value = settingsObject(settings).photoRetentionDays;
   if (typeof value !== "number" || !Number.isFinite(value)) {

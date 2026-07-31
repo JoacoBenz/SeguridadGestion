@@ -7,7 +7,12 @@ import { setGuardPinAction, clearGuardPinAction } from "@/server/conserjeria/dev
 import { setPhotoSettingsAction } from "@/server/admin/photo-settings";
 import { formatDate } from "@/lib/datetime";
 import { getStorageClient } from "@/lib/storage/client";
-import { photoMode, photoRetentionDays, type PhotoMode } from "@/lib/photo-policy";
+import {
+  photoCopyPhone,
+  photoMode,
+  photoRetentionDays,
+  type PhotoMode,
+} from "@/lib/photo-policy";
 
 export default async function AdminDashboard({
   params,
@@ -34,6 +39,7 @@ export default async function AdminDashboard({
 
   const currentPhotoMode = photoMode(tenant.settings);
   const currentRetentionDays = photoRetentionDays(tenant.settings);
+  const currentCopyPhone = photoCopyPhone(tenant.settings);
   const storageConfigured = getStorageClient().isConfigured;
   const savePhotoSettings = setPhotoSettingsAction.bind(null, slug);
 
@@ -218,6 +224,7 @@ export default async function AdminDashboard({
         action={savePhotoSettings}
         mode={currentPhotoMode}
         retentionDays={currentRetentionDays}
+        copyPhone={currentCopyPhone}
         storageConfigured={storageConfigured}
       />
     </div>
@@ -228,11 +235,13 @@ function PhotoSettingsSection({
   action,
   mode,
   retentionDays,
+  copyPhone,
   storageConfigured,
 }: {
   action: (formData: FormData) => Promise<void>;
   mode: PhotoMode;
   retentionDays: number;
+  copyPhone: string | null;
   storageConfigured: boolean;
 }) {
   const options: { value: PhotoMode; label: string; hint: string }[] = [
@@ -294,6 +303,23 @@ function PhotoSettingsSection({
               </label>
             ))}
           </fieldset>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-semibold uppercase tracking-widest text-ink-400">
+              Copia al WhatsApp de la conserjería (opcional)
+            </span>
+            <input
+              name="conserjeriaPhone"
+              type="tel"
+              defaultValue={copyPhone ?? ""}
+              placeholder="+54 9 11 2388-5910"
+              className="w-full max-w-xs rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 font-mono text-ink-100 placeholder:text-ink-500 focus:border-accent focus:outline-none"
+            />
+            <span className="text-xs text-ink-500">
+              Le llega la misma foto al teléfono del mostrador, así queda en su chat para
+              buscarla después. Dejalo vacío para no mandar copia.
+            </span>
+          </label>
 
           <label className="flex flex-col gap-1">
             <span className="text-xs font-semibold uppercase tracking-widest text-ink-400">
