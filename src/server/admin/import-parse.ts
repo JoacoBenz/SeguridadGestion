@@ -20,9 +20,8 @@ export interface ParseResult {
 }
 
 import { normalizeUnitLabel, UNIT_LABEL_HINT } from "@/lib/unit-label";
+import { normalizePhone } from "@/lib/phone";
 
-// E.164 con el + opcional (lo normalizamos agregándolo).
-const PHONE_RE = /^\+?[1-9]\d{6,14}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function splitFields(line: string): string[] {
@@ -67,13 +66,16 @@ export function parseResidentsCsv(text: string): ParseResult {
     else if (!normalizedUnit) row.error = `Unidad inválida: ${unit} — ${UNIT_LABEL_HINT}`;
     else if (!name) row.error = "Falta el nombre";
     else if (!phoneRaw) row.error = "Falta el teléfono";
-    else if (!PHONE_RE.test(phoneRaw)) row.error = `Teléfono inválido: ${phoneRaw}`;
     else {
-      const phone = phoneRaw.startsWith("+") ? phoneRaw : `+${phoneRaw}`;
-      if (seenPhones.has(phone)) row.error = `Teléfono duplicado en el archivo: ${phone}`;
-      else {
-        seenPhones.add(phone);
-        row.phone = phone;
+      // Misma normalización que la carga de a uno: el CSV suele venir de una
+      // planilla del consorcio con 0, 15 y guiones.
+      const parsed = normalizePhone(phoneRaw);
+      if (!parsed.ok) row.error = parsed.error;
+      else if (seenPhones.has(parsed.phone)) {
+        row.error = `Teléfono duplicado en el archivo: ${parsed.phone}`;
+      } else {
+        seenPhones.add(parsed.phone);
+        row.phone = parsed.phone;
       }
     }
 

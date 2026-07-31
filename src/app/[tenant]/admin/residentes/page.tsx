@@ -92,14 +92,19 @@ export default async function ResidentesPage({
               className="w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 text-ink-100 placeholder:text-ink-500 focus:border-accent focus:outline-none"
             />
           </Field>
-          <Field label="Teléfono (E.164)">
+          <Field label="Teléfono (WhatsApp)">
             <input
               name="phone"
               required
               type="tel"
-              placeholder="+5491100000000"
+              placeholder="+54 9 11 2388-5910"
+              aria-describedby="phone-hint"
               className="w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 font-mono text-ink-100 placeholder:text-ink-500 focus:border-accent focus:outline-none"
             />
+            <p id="phone-hint" className="mt-1 text-xs text-ink-500">
+              Con código de área, sin el 0 ni el 15. Si lo escribís como{" "}
+              <span className="font-mono">011 15 2388-5910</span> se corrige solo.
+            </p>
           </Field>
           <Field label="Email (opcional)">
             <input

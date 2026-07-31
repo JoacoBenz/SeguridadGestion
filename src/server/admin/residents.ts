@@ -6,14 +6,21 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireTenantRole } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
+import { normalizePhone } from "@/lib/phone";
 import { parseResidentsCsv } from "./import-parse";
 
-// Teléfono en E.164 (con el +) o vacío. WhatsApp espera ese formato.
-const PhoneSchema = z
-  .string()
-  .trim()
-  .regex(/^\+?[1-9]\d{6,14}$/, "Teléfono inválido — usá formato E.164 (+549…)")
-  .transform((s) => (s.startsWith("+") ? s : `+${s}`));
+// El teléfono se normaliza a E.164 acá, en el borde: si entra mal, el envío
+// falla recién al registrar un paquete y el error queda enterrado en una
+// Notification. normalizePhone acepta las formas habituales (con 0, con 15,
+// con espacios) y rechaza con un mensaje concreto lo que no puede resolver.
+const PhoneSchema = z.string().transform((raw, ctx) => {
+  const result = normalizePhone(raw);
+  if (!result.ok) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: result.error });
+    return z.NEVER;
+  }
+  return result.phone;
+});
 
 const CreateResidentSchema = z.object({
   name: z.string().trim().min(1, "Falta el nombre").max(80),
