@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
+import { formatDateTime } from "@/lib/datetime";
 
 const PAGE_SIZE = 100;
 
@@ -39,7 +40,7 @@ export default async function AuditoriaPage({
 
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
-    select: { id: true },
+    select: { id: true, timezone: true },
   });
   if (!tenant) notFound();
 
@@ -116,7 +117,7 @@ export default async function AuditoriaPage({
                     </span>
                   </p>
                   <p className="shrink-0 text-xs text-ink-400">
-                    {log.at.toLocaleString("es-AR")}
+                    {formatDateTime(log.at, tenant.timezone)}
                   </p>
                 </div>
                 <p className="text-xs text-ink-400">

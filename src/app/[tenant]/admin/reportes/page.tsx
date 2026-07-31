@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { KpiCard } from "@/components/admin/kpi-card";
+import { formatDate } from "@/lib/datetime";
 
 export default async function ReportesPage({
   params,
@@ -11,7 +12,7 @@ export default async function ReportesPage({
   const { tenant: slug } = await params;
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
-    select: { id: true },
+    select: { id: true, timezone: true },
   });
   if (!tenant) notFound();
 
@@ -106,7 +107,7 @@ export default async function ReportesPage({
       <header>
         <h2 className="text-xl font-bold">Reportes</h2>
         <p className="text-xs text-ink-400">
-          Datos desde {startOfMonth.toLocaleDateString("es-AR")}
+          Datos desde {formatDate(startOfMonth, tenant.timezone)}
         </p>
       </header>
 

@@ -4,6 +4,7 @@ import { recordAudit } from "@/lib/audit";
 import { requireTenantRole } from "@/lib/auth";
 import { isValidPickupCode } from "@/lib/codes";
 import { getWhatsAppClient } from "@/lib/whatsapp/client";
+import { formatDate, formatTime } from "@/lib/datetime";
 
 const PickupInput = z
   .object({
@@ -41,6 +42,7 @@ export async function pickupPackage(raw: PickupInput): Promise<PickupResult> {
         : { pickupCode: input.pickupCode }),
     },
     include: {
+      tenant: { select: { timezone: true } },
       unit: {
         include: {
           residents: { include: { user: { select: { phone: true, name: true } } } },
@@ -50,6 +52,7 @@ export async function pickupPackage(raw: PickupInput): Promise<PickupResult> {
   });
 
   if (!pkg) throw new Error("PACKAGE_NOT_FOUND");
+  const tz = pkg.tenant.timezone;
 
   const now = new Date();
   // Conditional update: two guards scanning the same package at once must not
@@ -85,7 +88,7 @@ export async function pickupPackage(raw: PickupInput): Promise<PickupResult> {
       const sent = await whatsapp.sendTemplate({
         to: phone,
         template: "paquete_retirado_v1",
-        params: [pkg.receivedAt.toLocaleDateString("es-AR"), now.toLocaleTimeString("es-AR")],
+        params: [formatDate(pkg.receivedAt, tz), formatTime(now, tz)],
       });
       await prisma.notification.create({
         data: {

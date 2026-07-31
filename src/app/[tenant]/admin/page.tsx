@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { KpiCard } from "@/components/admin/kpi-card";
 import { setGuardPinAction, clearGuardPinAction } from "@/server/conserjeria/device";
+import { formatDate } from "@/lib/datetime";
 
 export default async function AdminDashboard({
   params,
@@ -16,7 +17,7 @@ export default async function AdminDashboard({
   const { ok, error } = await searchParams;
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
-    select: { id: true, settings: true },
+    select: { id: true, settings: true, timezone: true },
   });
   if (!tenant) notFound();
 
@@ -93,7 +94,7 @@ export default async function AdminDashboard({
           <KpiCard
             label="Recibidos / mes"
             value={receivedThisMonth}
-            hint={`desde ${startOfMonth.toLocaleDateString("es-AR")}`}
+            hint={`desde ${formatDate(startOfMonth, tenant.timezone)}`}
           />
           <KpiCard
             label="Retirados / mes"

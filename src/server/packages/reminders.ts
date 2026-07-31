@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { recordAudit } from "@/lib/audit";
 import { isTenantOperational } from "@/lib/subscription";
 import { getWhatsAppClient } from "@/lib/whatsapp/client";
+import { formatDate } from "@/lib/datetime";
 import { isReminderDue, reminderCutoff } from "./reminder-policy";
 
 export interface ReminderRunResult {
@@ -46,6 +47,7 @@ export async function sendPendingReminders(
           id: true,
           name: true,
           settings: true,
+          timezone: true,
           subscriptionStatus: true,
           trialEndsAt: true,
         },
@@ -96,7 +98,7 @@ export async function sendPendingReminders(
             template: "paquete_escalado_v1",
             params: [
               pkg.unit.label,
-              pkg.receivedAt.toLocaleDateString("es-AR"),
+              formatDate(pkg.receivedAt, pkg.tenant.timezone),
               String(priorReminders),
             ],
           });
@@ -153,7 +155,7 @@ export async function sendPendingReminders(
         const sent = await whatsapp.sendTemplate({
           to: phone,
           template: "paquete_pendiente_v1",
-          params: [pkg.receivedAt.toLocaleDateString("es-AR")],
+          params: [formatDate(pkg.receivedAt, pkg.tenant.timezone)],
         });
         await prisma.notification.create({
           data: {

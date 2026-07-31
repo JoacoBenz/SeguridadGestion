@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
+import { formatDateTime } from "@/lib/datetime";
 
 export default async function MisPaquetesPage({
   params,
@@ -10,7 +11,7 @@ export default async function MisPaquetesPage({
   const { tenant: slug } = await params;
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
-    select: { id: true, name: true },
+    select: { id: true, name: true, timezone: true },
   });
   if (!tenant) notFound();
 
@@ -88,7 +89,7 @@ export default async function MisPaquetesPage({
                     {p.carrier && ` · ${p.carrier}`}
                   </p>
                   <p className="text-xs text-ink-400">
-                    Llegó {p.receivedAt.toLocaleString("es-AR")}
+                    Llegó {formatDateTime(p.receivedAt, tenant.timezone)}
                   </p>
                   <p className="mt-2 text-xs text-ink-500">
                     Mostrá el QR o decí el código en la conserjería.
@@ -121,7 +122,7 @@ export default async function MisPaquetesPage({
                 </div>
                 {p.status === "picked_up" ? (
                   <span className="text-xs text-positive">
-                    Retirado {p.pickedUpAt?.toLocaleString("es-AR")}
+                    Retirado {p.pickedUpAt ? formatDateTime(p.pickedUpAt, tenant.timezone) : ""}
                   </span>
                 ) : (
                   <span className="text-xs text-ink-500">Cancelado</span>

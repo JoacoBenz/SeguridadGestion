@@ -4,6 +4,7 @@ import type { PackageStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { cancelPackageAction } from "@/server/admin/packages";
+import { formatDateTime } from "@/lib/datetime";
 
 const PAGE_SIZE = 50;
 
@@ -35,7 +36,7 @@ export default async function PaquetesPage({
 
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
-    select: { id: true },
+    select: { id: true, timezone: true },
   });
   if (!tenant) notFound();
 
@@ -124,16 +125,16 @@ export default async function PaquetesPage({
                     </span>
                   </p>
                   <p className="text-xs text-ink-400">
-                    Recibido {p.receivedAt.toLocaleString("es-AR")} · por {p.receivedBy.name}
+                    Recibido {formatDateTime(p.receivedAt, tenant.timezone)} · por {p.receivedBy.name}
                   </p>
                   {p.pickedUpAt && p.pickedUpBy && (
                     <p className="text-xs text-positive">
-                      Retirado {p.pickedUpAt.toLocaleString("es-AR")} · por {p.pickedUpBy.name}
+                      Retirado {formatDateTime(p.pickedUpAt, tenant.timezone)} · por {p.pickedUpBy.name}
                     </p>
                   )}
                   {p.cancelledAt && (
                     <p className="text-xs text-ink-500">
-                      Cancelado {p.cancelledAt.toLocaleString("es-AR")}
+                      Cancelado {formatDateTime(p.cancelledAt, tenant.timezone)}
                       {p.cancelledReason && ` · ${p.cancelledReason}`}
                     </p>
                   )}

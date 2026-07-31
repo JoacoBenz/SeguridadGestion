@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Scanner, type IDetectedBarcode } from "@yudiel/react-qr-scanner";
 import { pickupByTokenAction } from "@/server/packages/pickup-actions";
@@ -20,6 +21,10 @@ export function PickupFlow({ tenantSlug, codeAction }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [scanning, startTransition] = useTransition();
   const [lastHandled, setLastHandled] = useState<string | null>(null);
+  // Al confirmar un retiro reemplazamos el escáner por la pantalla de éxito.
+  // Desmontar <Scanner> es lo que apaga la cámara: si sigue montado el visor
+  // queda vivo detrás del cartel y el guardia no sabe si el escaneo funcionó.
+  const [done, setDone] = useState<string | null>(null);
 
   function onScan(codes: IDetectedBarcode[]) {
     const first = codes[0]?.rawValue;
@@ -35,15 +40,24 @@ export function PickupFlow({ tenantSlug, codeAction }: Props) {
         result = { ok: false, error: "No se pudo procesar el retiro. Probá de nuevo." };
       }
       if (result.ok) {
-        router.replace(
-          `/${tenantSlug}/conserjeria/retiro?ok=${encodeURIComponent(`Depto ${result.unitLabel}`)}`,
-        );
+        setDone(result.unitLabel);
+        // Refresca la lista de pendientes que quedó atrás.
         router.refresh();
       } else {
         setError(result.error);
         setTimeout(() => setLastHandled(null), 1500);
       }
     });
+  }
+
+  function scanAnother() {
+    setDone(null);
+    setError(null);
+    setLastHandled(null);
+  }
+
+  if (done) {
+    return <PickupSuccess unitLabel={done} tenantSlug={tenantSlug} onScanAnother={scanAnother} />;
   }
 
   return (
@@ -91,6 +105,55 @@ export function PickupFlow({ tenantSlug, codeAction }: Props) {
           {error}
         </p>
       )}
+    </div>
+  );
+}
+
+function PickupSuccess({
+  unitLabel,
+  tenantSlug,
+  onScanAnother,
+}: {
+  unitLabel: string;
+  tenantSlug: string;
+  onScanAnother: () => void;
+}) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex flex-col items-center gap-6 rounded-2xl border border-positive/40 bg-positive/10 px-6 py-10 text-center"
+    >
+      <span
+        aria-hidden
+        className="flex h-20 w-20 items-center justify-center rounded-full bg-positive/20 text-4xl text-positive"
+      >
+        ✓
+      </span>
+      <div>
+        <p className="text-2xl font-bold text-positive">Retiro confirmado</p>
+        <p className="mt-1 text-ink-200">
+          Depto <span className="font-semibold text-ink-100">{unitLabel}</span>
+        </p>
+        <p className="mt-3 text-sm text-ink-400">
+          El residente recibió el aviso por WhatsApp.
+        </p>
+      </div>
+      <div className="flex w-full max-w-sm flex-col gap-3">
+        <button
+          type="button"
+          onClick={onScanAnother}
+          className="rounded-2xl bg-accent px-4 py-4 text-lg font-bold text-accent-fg transition-transform active:scale-[0.98]"
+        >
+          Escanear otro
+        </button>
+        <Link
+          href={`/${tenantSlug}/conserjeria`}
+          className="rounded-2xl border border-ink-700 bg-ink-850 px-4 py-3 font-medium text-ink-200 transition-colors hover:border-ink-500"
+        >
+          Volver a conserjería
+        </Link>
+      </div>
     </div>
   );
 }
