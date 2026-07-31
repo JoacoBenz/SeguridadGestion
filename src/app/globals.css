@@ -23,3 +23,25 @@ body {
   scrollbar-width: thin;
   scrollbar-color: #3f3f46 transparent;
 }
+
+/* iOS Safari hace zoom al enfocar cualquier campo con font-size < 16px, y no
+   vuelve solo: el guardia queda con la pantalla corrida y tiene que pellizcar
+   para salir. Forzamos 16px en pantallas chicas; en desktop siguen mandando
+   las clases de Tailwind. */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Con viewport-fit=cover el contenido llega hasta los bordes físicos, así que
+   hay que respetar el notch y la barra de gestos del iPhone a mano. En
+   pantallas sin recortes los env() valen 0 y esto no cambia nada. */
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}

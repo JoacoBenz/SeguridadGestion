@@ -10,6 +10,25 @@ import { SubmitButton } from "@/components/submit-button";
 
 type Mode = "qr" | "code";
 
+// getUserMedia tira errores con `name` estandarizado y `message` en inglés del
+// navegador ("Requested device not found"). El guardia veía ese texto crudo, sin
+// saber que el permiso se arregla desde los ajustes del sistema.
+function cameraErrorMessage(err: unknown): string {
+  const name = err instanceof Error ? err.name : "";
+  switch (name) {
+    case "NotAllowedError":
+    case "SecurityError":
+      return "Bloqueaste el acceso a la cámara. Habilitalo en los ajustes del navegador (en iPhone: Ajustes → Safari → Cámara) o usá 'Tipear código'.";
+    case "NotFoundError":
+    case "OverconstrainedError":
+      return "Este dispositivo no tiene una cámara disponible. Usá 'Tipear código'.";
+    case "NotReadableError":
+      return "Otra app está usando la cámara. Cerrala y probá de nuevo, o usá 'Tipear código'.";
+    default:
+      return "No se pudo abrir la cámara. Usá 'Tipear código' para procesar el retiro.";
+  }
+}
+
 interface Props {
   tenantSlug: string;
   codeAction: (formData: FormData) => Promise<void>;
@@ -69,9 +88,7 @@ export function PickupFlow({ tenantSlug, codeAction }: Props) {
           <div className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-ink-700 bg-black">
             <Scanner
               onScan={onScan}
-              onError={(err) =>
-                setError(err instanceof Error ? err.message : "Error de cámara")
-              }
+              onError={(err) => setError(cameraErrorMessage(err))}
               constraints={{ facingMode: "environment" }}
               formats={["qr_code"]}
               styles={{ container: { width: "100%", aspectRatio: "1 / 1" } }}
