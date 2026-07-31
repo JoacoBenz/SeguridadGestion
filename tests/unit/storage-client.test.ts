@@ -36,6 +36,21 @@ describe("storage client", () => {
   });
 });
 
+describe("isOwnUrl — el campo photoUrl lo controla el cliente", () => {
+  it("el cliente dev sólo reconoce sus propias URLs", () => {
+    const client = getStorageClient();
+    expect(client.isOwnUrl("dev-storage://packages/t1/abc")).toBe(true);
+    // Una URL ajena inyectada en el form no puede terminar enviada a Meta ni
+    // renderizada en el panel del admin.
+    expect(client.isOwnUrl("https://evil.example/track.png")).toBe(false);
+    expect(client.isOwnUrl("http://169.254.169.254/latest/meta-data/")).toBe(false);
+  });
+
+  it("el cliente dev no lista nada (no persiste)", async () => {
+    await expect(getStorageClient().list("packages/")).resolves.toEqual([]);
+  });
+});
+
 describe("keyFromPublicUrl", () => {
   const base = "https://proj.supabase.co/storage/v1/object/public/paquetes";
 

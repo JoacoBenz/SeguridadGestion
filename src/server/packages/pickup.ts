@@ -5,6 +5,7 @@ import { requireTenantRole } from "@/lib/auth";
 import { isValidPickupCode } from "@/lib/codes";
 import { getWhatsAppClient } from "@/lib/whatsapp/client";
 import { formatDate, formatTime } from "@/lib/datetime";
+import { getStorageClient } from "@/lib/storage/client";
 
 const PickupInput = z
   .object({
@@ -31,6 +32,12 @@ export async function pickupPackage(raw: PickupInput): Promise<PickupResult> {
 
   if (input.pickupCode && !isValidPickupCode(input.pickupCode)) {
     throw new Error("INVALID_CODE");
+  }
+
+  // Igual que en register: el campo lo controla el cliente, así que sólo
+  // aceptamos URLs que haya producido nuestro propio storage.
+  if (input.pickupPhotoUrl && !getStorageClient().isOwnUrl(input.pickupPhotoUrl)) {
+    throw new Error("INVALID_PHOTO_URL");
   }
 
   const pkg = await prisma.package.findFirst({

@@ -53,6 +53,22 @@ export function photoCopyPhone(settings: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+/**
+ * ¿Se borra la foto del bucket apenas se manda por WhatsApp?
+ *
+ * Con esto la foto vive segundos en el servidor: se sube, Meta la descarga al
+ * armar el mensaje, y se borra. El archivo permanente pasa a ser el chat de
+ * WhatsApp del residente y el de la conserjería, y nosotros no guardamos una
+ * imagen que suele mostrar nombre y dirección en un bucket de lectura pública.
+ *
+ * Default activado. `photoRetentionDays` queda como red de seguridad para lo
+ * que igual haya quedado (un envío fallido, o fotos previas a este cambio).
+ */
+export function isPhotoEphemeral(settings: unknown): boolean {
+  const value = settingsObject(settings).photoEphemeral;
+  return typeof value === "boolean" ? value : true;
+}
+
 export function photoRetentionDays(settings: unknown): number {
   const value = settingsObject(settings).photoRetentionDays;
   if (typeof value !== "number" || !Number.isFinite(value)) {

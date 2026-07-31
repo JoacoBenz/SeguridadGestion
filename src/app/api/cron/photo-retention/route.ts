@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { purgeExpiredPhotos } from "@/server/packages/photo-retention";
+import { purgeExpiredPhotos, purgeOrphanPhotos } from "@/server/packages/photo-retention";
 
 // Disparado por Vercel Cron (ver vercel.json) una vez por día. Misma auth que
 // /api/cron/reminders: `Authorization: Bearer ${CRON_SECRET}`.
@@ -25,5 +25,13 @@ export async function GET(req: Request) {
   console.log(
     `[cron/photo-retention] scanned=${result.scanned} deleted=${result.photosDeleted} failed=${result.failed} tenantsSkipped=${result.tenantsSkipped}`,
   );
-  return NextResponse.json({ ok: true, ...result });
+
+  // Después de limpiar por retención, barre lo que quedó sin dueño: fotos
+  // subidas desde el form que nunca llegaron a asociarse a un paquete.
+  const orphans = await purgeOrphanPhotos();
+  console.log(
+    `[cron/photo-retention] huérfanos listed=${orphans.listed} deleted=${orphans.orphansDeleted} failed=${orphans.failed}`,
+  );
+
+  return NextResponse.json({ ok: true, ...result, orphans });
 }

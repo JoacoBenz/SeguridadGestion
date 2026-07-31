@@ -14,6 +14,8 @@ const PhotoSettingsSchema = z.object({
   // 0 = conservar para siempre. El tope alto es un guard contra un typo
   // (escribir 3650 en vez de 365 es recuperable; 36500 no aporta nada).
   photoRetentionDays: z.coerce.number().int().min(0).max(3650),
+  // Un checkbox sin marcar no manda el campo, por eso el default explícito.
+  photoEphemeral: z.boolean(),
   // Vacío = no mandar copia. Si viene algo, se normaliza igual que el teléfono
   // de un residente: un número mal cargado acá falla en silencio al enviar.
   conserjeriaPhone: z.string().transform((raw, ctx) => {
@@ -36,6 +38,7 @@ export async function setPhotoSettingsAction(slug: string, formData: FormData) {
     photoMode: formData.get("photoMode"),
     photoRetentionDays: formData.get("photoRetentionDays"),
     conserjeriaPhone: formData.get("conserjeriaPhone") ?? "",
+    photoEphemeral: formData.get("photoEphemeral") === "on",
   });
   if (!parsed.success) {
     const msg = parsed.error.issues[0]?.message ?? "Configuración de fotos inválida";
@@ -56,6 +59,7 @@ export async function setPhotoSettingsAction(slug: string, formData: FormData) {
         photoMode: parsed.data.photoMode,
         photoRetentionDays: parsed.data.photoRetentionDays,
         conserjeriaPhone: parsed.data.conserjeriaPhone,
+        photoEphemeral: parsed.data.photoEphemeral,
       } as Prisma.InputJsonValue,
     },
   });
@@ -72,6 +76,7 @@ export async function setPhotoSettingsAction(slug: string, formData: FormData) {
       // El número no va al audit: es un dato personal y el log lo lee cualquier
       // admin. Alcanza con saber si quedó configurado o no.
       copyToConserjeria: Boolean(parsed.data.conserjeriaPhone),
+      photoEphemeral: parsed.data.photoEphemeral,
     },
   });
 

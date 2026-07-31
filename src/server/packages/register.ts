@@ -6,7 +6,8 @@ import { recordAudit } from "@/lib/audit";
 import { requireTenantRole } from "@/lib/auth";
 import { isTenantOperational } from "@/lib/subscription";
 import { getWhatsAppClient } from "@/lib/whatsapp/client";
-import { photoCopyPhone } from "@/lib/photo-policy";
+import { isPhotoEphemeral, photoCopyPhone } from "@/lib/photo-policy";
+import { getStorageClient } from "@/lib/storage/client";
 import { qrImageUrl } from "@/lib/urls";
 
 const RegisterPackageInput = z.object({
@@ -41,6 +42,15 @@ export async function registerPackage(
   // cancelaciones de pendientes siguen permitidos aunque el tenant esté caído.
   if (!isTenantOperational(tenant)) {
     throw new Error("SUBSCRIPTION_INACTIVE");
+  }
+
+  // photoUrl llega como campo del form, así que lo controla el cliente: sin
+  // este chequeo un guardia podría pasar cualquier URL y quedaría (a) enviada a
+  // los residentes como imagen del mensaje desde el número oficial del
+  // edificio, y (b) guardada y renderizada en el panel del admin, filtrándole
+  // la visita a un host ajeno. Sólo aceptamos lo que produjo nuestro storage.
+  if (input.photoUrl && !getStorageClient().isOwnUrl(input.photoUrl)) {
+    throw new Error("INVALID_PHOTO_URL");
   }
 
   const unit = await prisma.unit.findFirstOrThrow({
@@ -90,7 +100,12 @@ export async function registerPackage(
   });
 
   const notifiedPhones: string[] = [];
+  // Sólo borramos la foto del bucket si Meta llegó a llevarse al menos una
+  // copia: si todos los envíos fallaron, conservarla permite diagnosticar y
+  // reenviar en vez de perder la evidencia del paquete.
+  let photoDelivered = false;
   const whatsapp = getWhatsAppClient();
+  const storage = getStorageClient();
   const headerImageUrl = qrImageUrl(pkg.pickupToken);
 
   for (const membership of unit.residents) {
@@ -156,6 +171,7 @@ export async function registerPackage(
             sentAt: new Date(),
           },
         });
+        photoDelivered = true;
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         console.error(
@@ -200,6 +216,7 @@ export async function registerPackage(
           sentAt: new Date(),
         },
       });
+      photoDelivered = true;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(
@@ -215,6 +232,28 @@ export async function registerPackage(
           errorPayload: { message },
         },
       });
+    }
+  }
+
+  // Foto efímera: Meta ya descargó la imagen al armar cada mensaje (un
+  // sendTemplate que devuelve message id implica que se la llevó; si no puede
+  // bajarla responde error). A partir de acá el archivo permanente es el chat
+  // de WhatsApp, no nuestro bucket — así no queda una imagen con nombre y
+  // dirección del residente en un bucket de lectura pública.
+  if (input.photoUrl && photoDelivered && isPhotoEphemeral(tenant.settings)) {
+    try {
+      await storage.remove(input.photoUrl);
+      await prisma.package.update({
+        where: { id: pkg.id },
+        data: { photoUrl: null },
+      });
+    } catch (err) {
+      // No es fatal: el cron de retención lo vuelve a intentar más adelante.
+      console.error(
+        `[storage] no se pudo borrar la foto efímera de ${pkg.id}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
     }
   }
 

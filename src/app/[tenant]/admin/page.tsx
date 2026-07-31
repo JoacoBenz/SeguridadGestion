@@ -8,6 +8,7 @@ import { setPhotoSettingsAction } from "@/server/admin/photo-settings";
 import { formatDate } from "@/lib/datetime";
 import { getStorageClient } from "@/lib/storage/client";
 import {
+  isPhotoEphemeral,
   photoCopyPhone,
   photoMode,
   photoRetentionDays,
@@ -40,6 +41,7 @@ export default async function AdminDashboard({
   const currentPhotoMode = photoMode(tenant.settings);
   const currentRetentionDays = photoRetentionDays(tenant.settings);
   const currentCopyPhone = photoCopyPhone(tenant.settings);
+  const currentEphemeral = isPhotoEphemeral(tenant.settings);
   const storageConfigured = getStorageClient().isConfigured;
   const savePhotoSettings = setPhotoSettingsAction.bind(null, slug);
 
@@ -225,6 +227,7 @@ export default async function AdminDashboard({
         mode={currentPhotoMode}
         retentionDays={currentRetentionDays}
         copyPhone={currentCopyPhone}
+        ephemeral={currentEphemeral}
         storageConfigured={storageConfigured}
       />
     </div>
@@ -236,12 +239,14 @@ function PhotoSettingsSection({
   mode,
   retentionDays,
   copyPhone,
+  ephemeral,
   storageConfigured,
 }: {
   action: (formData: FormData) => Promise<void>;
   mode: PhotoMode;
   retentionDays: number;
   copyPhone: string | null;
+  ephemeral: boolean;
   storageConfigured: boolean;
 }) {
   const options: { value: PhotoMode; label: string; hint: string }[] = [
@@ -318,6 +323,25 @@ function PhotoSettingsSection({
             <span className="text-xs text-ink-500">
               Le llega la misma foto al teléfono del mostrador, así queda en su chat para
               buscarla después. Dejalo vacío para no mandar copia.
+            </span>
+          </label>
+
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-ink-700 bg-ink-900 px-4 py-3">
+            <input
+              type="checkbox"
+              name="photoEphemeral"
+              value="on"
+              defaultChecked={ephemeral}
+              className="mt-1 accent-accent"
+            />
+            <span>
+              <span className="block text-sm font-semibold text-ink-100">
+                Borrar la foto del servidor apenas se envía
+              </span>
+              <span className="block text-xs text-ink-400">
+                La foto queda sólo en los chats de WhatsApp. Recomendado: no guardamos una
+                imagen que suele mostrar el nombre y la dirección del residente.
+              </span>
             </span>
           </label>
 

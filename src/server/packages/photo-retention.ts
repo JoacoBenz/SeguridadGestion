@@ -113,3 +113,73 @@ export async function purgeExpiredPhotos(
 
   return { scanned: candidates.length, photosDeleted, failed, tenantsSkipped };
 }
+
+export interface OrphanPurgeResult {
+  listed: number;
+  orphansDeleted: number;
+  failed: number;
+}
+
+// Margen antes de considerar huérfano a un archivo recién subido: la foto se
+// sube apenas el guardia la saca, pero el paquete recién se crea cuando manda
+// el form. Sin esta ventana borraríamos la foto de un formulario todavía
+// abierto sobre el mostrador.
+const ORPHAN_MIN_AGE_HOURS = 24;
+
+/**
+ * Borra archivos del bucket que ninguna fila referencia.
+ *
+ * `PhotoCapture` sube la foto al elegirla, antes de enviar el formulario. Si el
+ * guardia saca otra foto, abandona el alta o el registro falla, el archivo
+ * anterior queda en el bucket sin ningún `Package` que lo apunte — y como
+ * `purgeExpiredPhotos` recorre filas, nunca lo ve. Sacar una foto dos veces
+ * alcanza para dejar un huérfano permanente.
+ */
+export async function purgeOrphanPhotos(
+  now: Date = new Date(),
+  minAgeHours = ORPHAN_MIN_AGE_HOURS,
+): Promise<OrphanPurgeResult> {
+  const storage = getStorageClient();
+  if (!storage.isConfigured) return { listed: 0, orphansDeleted: 0, failed: 0 };
+
+  const objects = await storage.list("packages/");
+  const cutoff = new Date(now.getTime() - minAgeHours * 60 * 60 * 1000);
+
+  // Un objeto sin fecha no se toca: preferimos dejar basura antes que borrar
+  // algo que quizás se subió recién.
+  const oldEnough = objects.filter((o) => o.lastModified && o.lastModified <= cutoff);
+  if (oldEnough.length === 0) {
+    return { listed: objects.length, orphansDeleted: 0, failed: 0 };
+  }
+
+  // Todas las URLs referenciadas, en memoria. A esta escala (miles de filas)
+  // entra sin problema; si algún día no entra, hay que ir por lotes de keys.
+  const referenced = new Set<string>();
+  const rows = await prisma.package.findMany({
+    where: { OR: [{ photoUrl: { not: null } }, { pickupPhotoUrl: { not: null } }] },
+    select: { photoUrl: true, pickupPhotoUrl: true },
+  });
+  for (const row of rows) {
+    if (row.photoUrl) referenced.add(row.photoUrl);
+    if (row.pickupPhotoUrl) referenced.add(row.pickupPhotoUrl);
+  }
+
+  let orphansDeleted = 0;
+  let failed = 0;
+  for (const obj of oldEnough) {
+    if (referenced.has(obj.url)) continue;
+    try {
+      await storage.remove(obj.url);
+      orphansDeleted++;
+    } catch (err) {
+      failed++;
+      console.error(
+        `[photo-retention] no se pudo borrar el huérfano ${obj.key}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  return { listed: objects.length, orphansDeleted, failed };
+}

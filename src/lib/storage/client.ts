@@ -3,6 +3,7 @@ import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
+  ListObjectsV2Command,
   type PutObjectCommandInput,
 } from "@aws-sdk/client-s3";
 
@@ -24,8 +25,21 @@ export interface StorageClient {
   // Borra por URL pública (la que quedó guardada en la fila del paquete).
   // Idempotente: borrar algo que ya no está no es un error.
   remove(url: string): Promise<void>;
+  // ¿Esta URL la produjo este storage? El campo photoUrl viaja como input del
+  // form y el cliente lo controla, así que hay que verificar el origen antes de
+  // guardarlo o mandárselo a Meta.
+  isOwnUrl(url: string): boolean;
+  // Lista objetos bajo un prefijo. Sirve para encontrar huérfanos: archivos
+  // subidos que nunca quedaron referenciados por una fila.
+  list(prefix: string, max?: number): Promise<StoredObject[]>;
   // Indica si el storage está configurado (para esconder la UI de foto en dev).
   readonly isConfigured: boolean;
+}
+
+export interface StoredObject {
+  key: string;
+  url: string;
+  lastModified: Date | null;
 }
 
 const ALLOWED_CONTENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -85,6 +99,35 @@ class S3StorageClient implements StorageClient {
     return { url: `${this.publicBaseUrl}/${key}` };
   }
 
+  isOwnUrl(url: string): boolean {
+    return keyFromPublicUrl(url, this.publicBaseUrl) !== null;
+  }
+
+  async list(prefix: string, max = 5000): Promise<StoredObject[]> {
+    const out: StoredObject[] = [];
+    let token: string | undefined;
+    do {
+      const page = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: prefix,
+          ContinuationToken: token,
+        }),
+      );
+      for (const item of page.Contents ?? []) {
+        if (!item.Key) continue;
+        out.push({
+          key: item.Key,
+          url: `${this.publicBaseUrl}/${item.Key}`,
+          lastModified: item.LastModified ?? null,
+        });
+        if (out.length >= max) return out;
+      }
+      token = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (token);
+    return out;
+  }
+
   async remove(url: string): Promise<void> {
     const key = keyFromPublicUrl(url, this.publicBaseUrl);
     // Una URL que no pertenece a este bucket (dev-storage://, o un bucket
@@ -117,6 +160,15 @@ class DevStorageClient implements StorageClient {
     const url = `dev-storage://${keyPrefix}/${randomUUID()}`;
     console.log(`[storage:dev] would upload ${contentType} to ${url}`);
     return { url };
+  }
+
+  isOwnUrl(url: string): boolean {
+    return url.startsWith("dev-storage://");
+  }
+
+  async list(): Promise<StoredObject[]> {
+    // Dev no persiste nada, así que nunca hay huérfanos que barrer.
+    return [];
   }
 
   async remove(url: string): Promise<void> {

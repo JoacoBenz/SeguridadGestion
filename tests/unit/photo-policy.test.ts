@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_PHOTO_MODE,
   DEFAULT_PHOTO_RETENTION_DAYS,
+  isPhotoEphemeral,
   isPhotoRequired,
   photoCopyPhone,
   photoMode,
@@ -47,6 +48,23 @@ describe("shouldShowPhotoField / isPhotoRequired", () => {
   it("deshabilitada: ni se muestra", () => {
     expect(shouldShowPhotoField(true, "disabled")).toBe(false);
     expect(isPhotoRequired(true, "disabled")).toBe(false);
+  });
+});
+
+describe("isPhotoEphemeral", () => {
+  it("por default se borra apenas se envía", () => {
+    expect(isPhotoEphemeral({})).toBe(true);
+    expect(isPhotoEphemeral(null)).toBe(true);
+  });
+
+  it("respeta el valor configurado", () => {
+    expect(isPhotoEphemeral({ photoEphemeral: false })).toBe(false);
+    expect(isPhotoEphemeral({ photoEphemeral: true })).toBe(true);
+  });
+
+  it("un valor no booleano no desactiva el borrado por accidente", () => {
+    expect(isPhotoEphemeral({ photoEphemeral: "false" })).toBe(true);
+    expect(isPhotoEphemeral({ photoEphemeral: 0 })).toBe(true);
   });
 });
 
