@@ -23,6 +23,11 @@ export function PhotoCapture({
   const [preview, setPreview] = useState<string | null>(null);
   const [state, setState] = useState<"idle" | "uploading" | "error">("idle");
   const urlInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // Si el guardia saca otra foto mientras la anterior todavía sube, las
+  // respuestas pueden llegar al revés y dejar pegada la URL de la foto vieja.
+  // Sólo la subida más reciente tiene derecho a escribir el estado.
+  const uploadSeq = useRef(0);
 
   // setCustomValidity persiste en el elemento: hay que limpiarlo cuando la
   // foto ya subió, o el form quedaría bloqueado aunque el campo sea válido.
@@ -30,9 +35,21 @@ export function PhotoCapture({
     urlInputRef.current?.setCustomValidity("");
   }, [url]);
 
+  // Descarta del bucket una foto que se reemplazó o se borró. Best-effort: si
+  // falla, el barrido de huérfanos la levanta igual más adelante.
+  function discard(target: string) {
+    void fetch(
+      `/api/upload?slug=${encodeURIComponent(slug)}&url=${encodeURIComponent(target)}`,
+      { method: "DELETE", keepalive: true },
+    ).catch(() => undefined);
+  }
+
   async function onChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    const seq = ++uploadSeq.current;
+    const replaced = url;
+
     setPreview(URL.createObjectURL(file));
     setState("uploading");
     try {
@@ -44,12 +61,31 @@ export function PhotoCapture({
       });
       if (!res.ok) throw new Error(String(res.status));
       const json = (await res.json()) as { url: string };
+      if (seq !== uploadSeq.current) {
+        // Quedó vieja: la nueva ya está en curso, así que esta no sirve.
+        discard(json.url);
+        return;
+      }
       setUrl(json.url);
       setState("idle");
+      // La que se reemplaza se borra recién ahora: si el borrado saliera antes
+      // y la nueva subida fallara, el guardia se quedaría sin ninguna.
+      if (replaced) discard(replaced);
     } catch {
+      if (seq !== uploadSeq.current) return;
       setState("error");
       setUrl(null);
     }
+  }
+
+  function removePhoto() {
+    uploadSeq.current++;
+    if (url) discard(url);
+    setUrl(null);
+    setPreview(null);
+    setState("idle");
+    // Sin esto, volver a elegir el mismo archivo no dispara change.
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   return (
@@ -81,6 +117,7 @@ export function PhotoCapture({
       />
       <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-ink-700 bg-ink-850 px-4 py-3 text-ink-300 transition-colors hover:border-ink-500">
         <input
+          ref={fileInputRef}
           type="file"
           accept="image/*"
           capture="environment"
@@ -99,10 +136,33 @@ export function PhotoCapture({
             : state === "error"
               ? "Error al subir — tocá para reintentar"
               : url
-                ? "Foto lista ✓ — tocá para cambiar"
+                ? "Foto lista ✓"
                 : "Sacar o elegir foto"}
         </span>
       </label>
+
+      {/* Botones explícitos: "salió movida, saco otra" es el caso común en el
+          mostrador y no puede depender de descubrir que la tarjeta es tocable. */}
+      {(url || state === "error") && (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="rounded-xl border border-ink-700 bg-ink-850 px-4 py-2 text-sm font-medium text-ink-200 transition-colors hover:border-ink-500"
+          >
+            📷 Sacar de nuevo
+          </button>
+          {url && (
+            <button
+              type="button"
+              onClick={removePhoto}
+              className="rounded-xl border border-ink-700 px-4 py-2 text-sm text-ink-400 transition-colors hover:border-critical/60 hover:text-critical"
+            >
+              Quitar
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

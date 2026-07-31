@@ -29,6 +29,9 @@ export interface StorageClient {
   // form y el cliente lo controla, así que hay que verificar el origen antes de
   // guardarlo o mandárselo a Meta.
   isOwnUrl(url: string): boolean;
+  // La key del objeto, o null si la URL no es de este storage. El llamador la
+  // usa para verificar que el archivo pertenece al tenant que pide borrarlo.
+  keyOf(url: string): string | null;
   // Lista objetos bajo un prefijo. Sirve para encontrar huérfanos: archivos
   // subidos que nunca quedaron referenciados por una fila.
   list(prefix: string, max?: number): Promise<StoredObject[]>;
@@ -100,7 +103,11 @@ class S3StorageClient implements StorageClient {
   }
 
   isOwnUrl(url: string): boolean {
-    return keyFromPublicUrl(url, this.publicBaseUrl) !== null;
+    return this.keyOf(url) !== null;
+  }
+
+  keyOf(url: string): string | null {
+    return keyFromPublicUrl(url, this.publicBaseUrl);
   }
 
   async list(prefix: string, max = 5000): Promise<StoredObject[]> {
@@ -163,7 +170,12 @@ class DevStorageClient implements StorageClient {
   }
 
   isOwnUrl(url: string): boolean {
-    return url.startsWith("dev-storage://");
+    return this.keyOf(url) !== null;
+  }
+
+  keyOf(url: string): string | null {
+    const prefix = "dev-storage://";
+    return url.startsWith(prefix) ? url.slice(prefix.length) || null : null;
   }
 
   async list(): Promise<StoredObject[]> {

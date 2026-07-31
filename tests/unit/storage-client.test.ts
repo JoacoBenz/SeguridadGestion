@@ -49,6 +49,14 @@ describe("isOwnUrl — el campo photoUrl lo controla el cliente", () => {
   it("el cliente dev no lista nada (no persiste)", async () => {
     await expect(getStorageClient().list("packages/")).resolves.toEqual([]);
   });
+
+  it("keyOf devuelve la key, que es lo que permite chequear el prefijo del tenant", () => {
+    const client = getStorageClient();
+    expect(client.keyOf("dev-storage://packages/t1/abc.jpg")).toBe("packages/t1/abc.jpg");
+    expect(client.keyOf("https://evil.example/packages/t1/abc.jpg")).toBeNull();
+    // Sin key no hay forma de verificar el prefijo, así que el borrado se niega.
+    expect(client.keyOf("dev-storage://")).toBeNull();
+  });
 });
 
 describe("keyFromPublicUrl", () => {
