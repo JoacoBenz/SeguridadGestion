@@ -59,12 +59,15 @@ Crear en Business Manager → categoría **Utility**, idioma **Spanish (ARG) / e
   - `STORAGE_REGION` = `sa-east-1`
   - `STORAGE_ACCESS_KEY_ID` / `STORAGE_SECRET_ACCESS_KEY` = las S3 keys
   - `STORAGE_PUBLIC_BASE_URL` = `https://njorckajlftgzruahqfo.supabase.co/storage/v1/object/public/paquetes`
-- Con storage configurado, la foto del paquete es **obligatoria** al registrar. Sin las vars, el campo se esconde y el registro sigue funcionando. Cuidado con el nombre EXACTO de cada var (un typo tipo `STORAGE_BUKCET` la deja invisible — verificá con `/api/health?debug=`).
+- El bucket es de **lectura pública** porque Meta descarga la imagen para armar el mensaje de WhatsApp. La URL lleva un UUID (no enumerable) pero no hay control de acceso: quien tenga el link entra. Tenelo en cuenta — la etiqueta del envío suele mostrar nombre y dirección del residente.
+- Cada edificio elige desde `/[tenant]/admin` si la foto es **obligatoria / opcional / deshabilitada** (`Tenant.settings.photoMode`, default `required`) y a los cuántos días se borra (`photoRetentionDays`, default 60; `0` = nunca). Sin las `STORAGE_*` el campo se esconde igual, sin importar lo que elija el admin.
+- Cuidado con el nombre EXACTO de cada var (un typo tipo `STORAGE_BUKCET` la deja invisible — verificá con `/api/health?debug=`).
 
 ## 5. Cron de recordatorios
 
 - [ ] `CRON_SECRET` = string random. Vercel Cron lo manda como `Authorization: Bearer`; la ruta rechaza sin él en prod. **También habilita `/api/health?debug=` y protege el cron** — sin esta var los recordatorios no salen.
-- [x] `vercel.json` agenda `GET /api/cron/reminders` diario 12:00 UTC (≈09:00 ART). Ajustá el horario si querés.
+- [x] `vercel.json` agenda `GET /api/cron/reminders` diario 12:00 UTC (≈09:00 ART) y `GET /api/cron/photo-retention` a las 04:30 UTC. Ajustá los horarios si querés.
+- El cron de fotos borra del bucket las de paquetes ya retirados o cancelados que pasaron la ventana de retención del edificio, y limpia la columna. Las de paquetes **pendientes nunca se tocan**. Borra primero del bucket y después la fila: si el borrado falla, la próxima corrida reintenta en vez de dejar un archivo huérfano.
 - Umbral de escalamiento por tenant vía `Tenant.settings.reminderEscalateAfter` (default 2).
 
 ## 6. Región y ops

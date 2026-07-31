@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   S3Client,
   PutObjectCommand,
+  DeleteObjectCommand,
   type PutObjectCommandInput,
 } from "@aws-sdk/client-s3";
 
@@ -20,6 +21,9 @@ export interface StorageClient {
     contentType: string;
     keyPrefix: string;
   }): Promise<{ url: string }>;
+  // Borra por URL pública (la que quedó guardada en la fila del paquete).
+  // Idempotente: borrar algo que ya no está no es un error.
+  remove(url: string): Promise<void>;
   // Indica si el storage está configurado (para esconder la UI de foto en dev).
   readonly isConfigured: boolean;
 }
@@ -80,6 +84,27 @@ class S3StorageClient implements StorageClient {
     await this.client.send(new PutObjectCommand(params));
     return { url: `${this.publicBaseUrl}/${key}` };
   }
+
+  async remove(url: string): Promise<void> {
+    const key = keyFromPublicUrl(url, this.publicBaseUrl);
+    // Una URL que no pertenece a este bucket (dev-storage://, o un bucket
+    // anterior si se migró) no es un error: no hay nada nuestro que borrar.
+    if (!key) return;
+    await this.client.send(
+      new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
+  }
+}
+
+/**
+ * Saca la key del objeto a partir de la URL pública guardada en la DB.
+ * Devuelve null si la URL no cuelga de este bucket.
+ */
+export function keyFromPublicUrl(url: string, publicBaseUrl: string): string | null {
+  const base = publicBaseUrl.replace(/\/$/, "");
+  if (!url.startsWith(`${base}/`)) return null;
+  const key = url.slice(base.length + 1);
+  return key.length > 0 ? key : null;
 }
 
 class DevStorageClient implements StorageClient {
@@ -92,6 +117,10 @@ class DevStorageClient implements StorageClient {
     const url = `dev-storage://${keyPrefix}/${randomUUID()}`;
     console.log(`[storage:dev] would upload ${contentType} to ${url}`);
     return { url };
+  }
+
+  async remove(url: string): Promise<void> {
+    console.log(`[storage:dev] would delete ${url}`);
   }
 }
 

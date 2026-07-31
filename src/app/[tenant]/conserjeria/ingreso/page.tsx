@@ -9,6 +9,7 @@ import { UnitTilePicker } from "@/components/conserjeria/unit-tile-picker";
 import { SubmitButton } from "@/components/submit-button";
 import { PhotoCapture } from "@/components/conserjeria/photo-capture";
 import { getStorageClient } from "@/lib/storage/client";
+import { isPhotoRequired, photoMode, shouldShowPhotoField } from "@/lib/photo-policy";
 
 export default async function IngresoPage({
   params,
@@ -21,7 +22,13 @@ export default async function IngresoPage({
   const { error } = await searchParams;
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
-    select: { id: true, name: true, subscriptionStatus: true, trialEndsAt: true },
+    select: {
+      id: true,
+      name: true,
+      settings: true,
+      subscriptionStatus: true,
+      trialEndsAt: true,
+    },
   });
   if (!tenant) notFound();
 
@@ -46,7 +53,10 @@ export default async function IngresoPage({
     select: { id: true, label: true },
   });
 
-  const photoEnabled = getStorageClient().isConfigured;
+  const storageConfigured = getStorageClient().isConfigured;
+  const mode = photoMode(tenant.settings);
+  const photoEnabled = shouldShowPhotoField(storageConfigured, mode);
+  const photoRequired = isPhotoRequired(storageConfigured, mode);
 
   async function action(formData: FormData) {
     "use server";
@@ -58,9 +68,9 @@ export default async function IngresoPage({
     const notes = formData.get("notes");
     const photoUrl = formData.get("photoUrl");
 
-    // Con storage configurado, la foto es obligatoria — chequeo del lado del
-    // server, independiente de la validación del navegador.
-    if (photoEnabled && (typeof photoUrl !== "string" || !photoUrl)) {
+    // La obligatoriedad la decide el admin del edificio. El chequeo va del lado
+    // del server, independiente de la validación del navegador.
+    if (photoRequired && (typeof photoUrl !== "string" || !photoUrl)) {
       redirect(
         `/${slug}/conserjeria/ingreso?error=${encodeURIComponent(
           "Sacale una foto al paquete antes de registrarlo.",
@@ -126,7 +136,12 @@ export default async function IngresoPage({
 
         {photoEnabled && (
           <section>
-            <PhotoCapture slug={slug} name="photoUrl" label="Foto del paquete" required />
+            <PhotoCapture
+              slug={slug}
+              name="photoUrl"
+              label="Foto del paquete"
+              required={photoRequired}
+            />
           </section>
         )}
 

@@ -4,7 +4,10 @@ import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { KpiCard } from "@/components/admin/kpi-card";
 import { setGuardPinAction, clearGuardPinAction } from "@/server/conserjeria/device";
+import { setPhotoSettingsAction } from "@/server/admin/photo-settings";
 import { formatDate } from "@/lib/datetime";
+import { getStorageClient } from "@/lib/storage/client";
+import { photoMode, photoRetentionDays, type PhotoMode } from "@/lib/photo-policy";
 
 export default async function AdminDashboard({
   params,
@@ -28,6 +31,11 @@ export default async function AdminDashboard({
   const hasPin = Boolean((tenant.settings as Record<string, unknown>)?.guardPinHash);
   const setPin = setGuardPinAction.bind(null, slug);
   const clearPin = clearGuardPinAction.bind(null, slug);
+
+  const currentPhotoMode = photoMode(tenant.settings);
+  const currentRetentionDays = photoRetentionDays(tenant.settings);
+  const storageConfigured = getStorageClient().isConfigured;
+  const savePhotoSettings = setPhotoSettingsAction.bind(null, slug);
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -205,7 +213,119 @@ export default async function AdminDashboard({
           )}
         </div>
       </section>
+
+      <PhotoSettingsSection
+        action={savePhotoSettings}
+        mode={currentPhotoMode}
+        retentionDays={currentRetentionDays}
+        storageConfigured={storageConfigured}
+      />
     </div>
+  );
+}
+
+function PhotoSettingsSection({
+  action,
+  mode,
+  retentionDays,
+  storageConfigured,
+}: {
+  action: (formData: FormData) => Promise<void>;
+  mode: PhotoMode;
+  retentionDays: number;
+  storageConfigured: boolean;
+}) {
+  const options: { value: PhotoMode; label: string; hint: string }[] = [
+    {
+      value: "required",
+      label: "Obligatoria",
+      hint: "El guardia no puede registrar un paquete sin sacarle foto.",
+    },
+    {
+      value: "optional",
+      label: "Opcional",
+      hint: "Puede sacarla si quiere, pero no lo frena.",
+    },
+    {
+      value: "disabled",
+      label: "Sin fotos",
+      hint: "No se pide ni se muestra el campo.",
+    },
+  ];
+
+  return (
+    <section>
+      <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-400">
+        Fotos de paquetes
+      </h2>
+      <div className="rounded-2xl border border-ink-700 bg-ink-850 p-5">
+        {!storageConfigured && (
+          <p className="mb-4 rounded-xl border border-warn/40 bg-warn/10 px-4 py-3 text-sm text-warn">
+            El almacenamiento de fotos no está configurado en el servidor, así que por ahora
+            no se piden fotos sin importar lo que elijas acá.
+          </p>
+        )}
+        <p className="mb-4 text-sm text-ink-400">
+          La foto se le manda al residente por WhatsApp junto con el aviso. Tené en cuenta que
+          la etiqueta del envío suele mostrar su nombre y dirección.
+        </p>
+
+        <form action={action} className="flex flex-col gap-5">
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-2 text-xs font-semibold uppercase tracking-widest text-ink-400">
+              Al registrar un paquete
+            </legend>
+            {options.map((opt) => (
+              <label
+                key={opt.value}
+                className="flex cursor-pointer items-start gap-3 rounded-xl border border-ink-700 bg-ink-900 px-4 py-3 transition-colors hover:border-ink-500"
+              >
+                <input
+                  type="radio"
+                  name="photoMode"
+                  value={opt.value}
+                  defaultChecked={mode === opt.value}
+                  className="mt-1 accent-accent"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-ink-100">{opt.label}</span>
+                  <span className="block text-xs text-ink-400">{opt.hint}</span>
+                </span>
+              </label>
+            ))}
+          </fieldset>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-semibold uppercase tracking-widest text-ink-400">
+              Borrar las fotos después de (días)
+            </span>
+            <input
+              name="photoRetentionDays"
+              type="number"
+              min={0}
+              max={3650}
+              required
+              defaultValue={retentionDays}
+              className="w-40 rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 font-mono text-ink-100 focus:border-accent focus:outline-none"
+            />
+            <span className="text-xs text-ink-500">
+              Se cuenta desde que el paquete se retira o se cancela — las fotos de paquetes
+              pendientes nunca se borran. <span className="font-mono">0</span> = conservarlas
+              para siempre.
+            </span>
+          </label>
+
+          <div>
+            <button
+              type="submit"
+              className="rounded-xl bg-accent px-4 py-2 font-semibold text-accent-fg"
+            >
+              Guardar
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
   );
 }
 
