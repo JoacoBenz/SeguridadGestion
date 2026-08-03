@@ -140,7 +140,7 @@ export default async function PaquetesPage({
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <span
                   className={`rounded-md border px-2 py-1 text-xs font-medium ${STATUS_TONE[p.status]}`}
                 >
@@ -232,13 +232,13 @@ function CancelButton({
   cancelAction: (fd: FormData) => Promise<void>;
 }) {
   return (
-    <details className="relative">
-      <summary className="cursor-pointer list-none rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-400 transition-colors hover:border-critical/60 hover:text-critical">
+    <details className="w-full sm:relative sm:w-auto">
+      <summary className="cursor-pointer list-none rounded-lg border border-ink-700 px-3 py-2.5 text-center text-xs text-ink-400 transition-colors hover:border-critical/60 hover:text-critical sm:py-1.5 sm:text-left">
         Cancelar
       </summary>
       <form
         action={cancelAction}
-        className="absolute right-0 z-10 mt-2 flex w-72 flex-col gap-2 rounded-xl border border-ink-700 bg-ink-850 p-3 shadow-xl"
+        className="mt-2 flex w-full flex-col gap-2 rounded-xl border border-ink-700 bg-ink-850 p-3 shadow-xl sm:absolute sm:right-0 sm:z-10 sm:w-72"
       >
         <input type="hidden" name="packageId" value={packageId} />
         <label className="text-xs text-ink-400">

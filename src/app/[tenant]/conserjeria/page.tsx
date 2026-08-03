@@ -147,7 +147,13 @@ function PendingBadge({ count }: { count: number }) {
 
 function FloatingActions({ slug }: { slug: string }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-10 border-t border-ink-800 bg-ink-900/95 backdrop-blur">
+    <div
+      className="fixed inset-x-0 bottom-0 z-10 border-t border-ink-800 bg-ink-900/95 backdrop-blur"
+      // La barra es `fixed`, así que el padding de safe-area del body no la
+      // alcanza: sin esto, en un iPhone con barra de gestos los botones quedan
+      // parcialmente debajo de ella.
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
       <div className="mx-auto flex max-w-3xl gap-3 px-4 py-3">
         <Link
           href={`/${slug}/conserjeria/ingreso`}

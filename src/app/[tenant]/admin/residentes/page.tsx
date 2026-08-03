@@ -174,7 +174,7 @@ export default async function ResidentesPage({
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <EditButton
                   resident={{ id: r.id, name: r.name, phone: r.phone, email: r.email }}
                   linkedUnitIds={r.unitMemberships.map((m) => m.unit.id)}
@@ -185,7 +185,7 @@ export default async function ResidentesPage({
                   <input type="hidden" name="userId" value={r.id} />
                   <button
                     type="submit"
-                    className="rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-400 transition-colors hover:border-critical/60 hover:text-critical"
+                    className="w-full rounded-lg border border-ink-700 px-3 py-2.5 text-xs text-ink-400 transition-colors hover:border-critical/60 hover:text-critical sm:w-auto sm:py-1.5"
                   >
                     Borrar
                   </button>
@@ -223,13 +223,13 @@ function EditButton({
 }) {
   const linkable = units.filter((u) => !linkedUnitIds.includes(u.id));
   return (
-    <details className="relative">
-      <summary className="cursor-pointer list-none rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-400 transition-colors hover:border-accent/60 hover:text-accent">
+    <details className="w-full sm:relative sm:w-auto">
+      <summary className="cursor-pointer list-none rounded-lg border border-ink-700 px-3 py-2.5 text-center text-xs text-ink-400 transition-colors hover:border-accent/60 hover:text-accent sm:py-1.5 sm:text-left">
         Editar
       </summary>
       <form
         action={updateAction}
-        className="absolute right-0 z-10 mt-2 flex w-72 flex-col gap-2 rounded-xl border border-ink-700 bg-ink-850 p-3 shadow-xl"
+        className="mt-2 flex w-full flex-col gap-2 rounded-xl border border-ink-700 bg-ink-850 p-3 shadow-xl sm:absolute sm:right-0 sm:z-10 sm:w-72"
       >
         <input type="hidden" name="userId" value={resident.id} />
         <label className="text-xs text-ink-400">
@@ -243,7 +243,7 @@ function EditButton({
           />
         </label>
         <label className="text-xs text-ink-400">
-          Teléfono (E.164)
+          Teléfono (WhatsApp)
           <input
             name="phone"
             required
