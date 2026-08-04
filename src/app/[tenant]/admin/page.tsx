@@ -308,7 +308,7 @@ function PhotoSettingsSection({
               name="conserjeriaPhone"
               type="tel"
               defaultValue={copyPhone ?? ""}
-              placeholder="+54 9 11 2388-5910"
+              placeholder="+54 9 11 0000-0000"
               className="w-full max-w-xs rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 font-mono text-ink-100 placeholder:text-ink-500 focus:border-accent focus:outline-none"
             />
             <span className="text-xs text-ink-500">

@@ -79,7 +79,7 @@ export default async function EquipoPage({
           <input
             name="name"
             required
-            placeholder="Natalia Liust"
+            placeholder="Nombre y apellido"
             maxLength={80}
             className="w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 text-ink-100 placeholder:text-ink-500 focus:border-accent focus:outline-none"
           />

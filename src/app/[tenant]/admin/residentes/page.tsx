@@ -121,7 +121,7 @@ export default async function ResidentesPage({
             <input
               name="name"
               required
-              placeholder="Juan Pérez"
+              placeholder="Nombre y apellido"
               maxLength={80}
               className="w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 text-ink-100 placeholder:text-ink-500 focus:border-accent focus:outline-none"
             />
@@ -131,20 +131,20 @@ export default async function ResidentesPage({
               name="phone"
               required
               type="tel"
-              placeholder="+54 9 11 2388-5910"
+              placeholder="+54 9 11 0000-0000"
               aria-describedby="phone-hint"
               className="w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 font-mono text-ink-100 placeholder:text-ink-500 focus:border-accent focus:outline-none"
             />
             <p id="phone-hint" className="mt-1 text-xs text-ink-500">
               Con código de área, sin el 0 ni el 15. Si lo escribís como{" "}
-              <span className="font-mono">011 15 2388-5910</span> se corrige solo.
+              <span className="font-mono">011 15 0000-0000</span> se corrige solo.
             </p>
           </Field>
           <Field label="Email (opcional)">
             <input
               name="email"
               type="email"
-              placeholder="juan@email.com"
+              placeholder="nombre@email.com"
               className="w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 text-ink-100 placeholder:text-ink-500 focus:border-accent focus:outline-none"
             />
           </Field>

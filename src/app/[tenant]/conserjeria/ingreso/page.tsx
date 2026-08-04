@@ -154,7 +154,7 @@ export default async function IngresoPage({
             <textarea
               name="notes"
               rows={3}
-              placeholder="Encomienda grande, viene del veterinario…"
+              placeholder="Detalle del paquete…"
               className="w-full resize-none rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-ink-100 placeholder:text-ink-500 focus:border-accent focus:outline-none"
             />
           </label>

@@ -75,7 +75,7 @@ function IosSteps() {
     <ol className="mt-3 flex flex-col gap-2 text-sm text-ink-300">
       <Step n={1}>
         Tocá <ShareIcon /> <strong className="text-ink-100">Compartir</strong>, abajo en
-        la barra de Safari
+        la barra del navegador
       </Step>
       <Step n={2}>
         Bajá y elegí{" "}

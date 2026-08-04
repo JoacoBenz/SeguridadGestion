@@ -5,9 +5,9 @@ import { importResidentsAction } from "@/server/admin/residents";
 import { parseResidentsCsv } from "@/server/admin/import-parse";
 
 const EXAMPLE = `unidad,nombre,telefono,email
-3B,Juan Pérez,+5491133334444,juan@email.com
-3B,Ana Pérez,+5491155556666,
-5A,Carla Gómez,+5491177778888,carla@email.com`;
+3B,Nombre Apellido,+5491100000001,nombre@email.com
+3B,Otro Residente,+5491100000002,
+5A,Tercer Residente,+5491100000003,tercero@email.com`;
 
 export default async function ImportarPage({
   params,

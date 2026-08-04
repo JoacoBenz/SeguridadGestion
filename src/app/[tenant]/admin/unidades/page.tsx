@@ -88,7 +88,7 @@ export default async function UnidadesPage({
           </span>
           <input
             name="notes"
-            placeholder="Piso entero, contramano…"
+            placeholder="Nota interna del depto…"
             maxLength={200}
             className="rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 text-ink-100 placeholder:text-ink-500 focus:border-accent focus:outline-none"
           />
