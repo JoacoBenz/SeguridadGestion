@@ -6,6 +6,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireTenantRole } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
+import { sendEmail } from "@/lib/email";
+import { renderWelcomeEmail } from "@/lib/auth/welcome-email";
 
 // Gestión del equipo del edificio: usuarios con rol admin o guard, que entran
 // por email (magic link). NO incluye residentes (esos viven en residents.ts)
@@ -36,6 +38,10 @@ function back(slug: string, params: string): never {
 
 export async function createMemberAction(slug: string, formData: FormData) {
   const tenantId = await resolveTenant(slug);
+  const tenant = await prisma.tenant.findUniqueOrThrow({
+    where: { id: tenantId },
+    select: { name: true },
+  });
   const session = await requireTenantRole(tenantId, ["admin"]);
 
   const parsed = CreateMemberSchema.safeParse({
@@ -76,6 +82,16 @@ export async function createMemberAction(slug: string, formData: FormData) {
     }
     throw err;
   }
+
+  // Igual que al crear un edificio: sin el mail, la persona queda dada de alta
+  // y sin enterarse. No puede tumbar la acción — el alta ya está hecha.
+  const welcome = renderWelcomeEmail({
+    tenantName: tenant.name,
+    recipientEmail: email,
+    role,
+    invitedByName: session.name,
+  });
+  await sendEmail({ to: email, ...welcome });
 
   await recordAudit({
     tenantId,

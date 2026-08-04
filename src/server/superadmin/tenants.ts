@@ -7,6 +7,8 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 import { newTrialEnd } from "@/lib/subscription";
+import { sendEmail } from "@/lib/email";
+import { renderWelcomeEmail } from "@/lib/auth/welcome-email";
 
 const SLUG = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?$/;
 
@@ -23,14 +25,14 @@ const CreateTenantSchema = z.object({
   adminName: z.string().trim().min(1, "Falta el nombre").max(80),
 });
 
-async function requireSuperadmin(): Promise<{ userId: string }> {
+async function requireSuperadmin(): Promise<{ userId: string; name: string }> {
   const session = await requireSession();
   if (session.role !== "superadmin") throw new Error("FORBIDDEN_ROLE");
-  return { userId: session.userId };
+  return { userId: session.userId, name: session.name };
 }
 
 export async function createTenantAction(formData: FormData) {
-  const { userId } = await requireSuperadmin();
+  const { userId, name: invitedByName } = await requireSuperadmin();
 
   const parsed = CreateTenantSchema.safeParse({
     slug: formData.get("slug"),
@@ -87,6 +89,17 @@ export async function createTenantAction(formData: FormData) {
       `/superadmin/tenants/new?error=${encodeURIComponent(err instanceof Error ? err.message : "ERROR")}`,
     );
   }
+
+  // Sin esto el admin queda creado y sin enterarse: alguien tiene que avisarle
+  // a mano. El envío va después del audit y no puede tumbar la acción — el
+  // edificio ya existe aunque Resend esté caído.
+  const welcome = renderWelcomeEmail({
+    tenantName: parsed.data.name,
+    recipientEmail: parsed.data.adminEmail,
+    role: "admin",
+    invitedByName,
+  });
+  await sendEmail({ to: parsed.data.adminEmail, ...welcome });
 
   await recordAudit({
     tenantId,

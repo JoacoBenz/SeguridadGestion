@@ -5,6 +5,7 @@ import type { Adapter } from "next-auth/adapters";
 import type { Role } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { renderMagicLinkEmail } from "@/lib/auth/magic-link-email";
+import { sendEmail } from "@/lib/email";
 
 declare module "next-auth" {
   interface Session {
@@ -59,25 +60,11 @@ const authConfig: NextAuthConfig = {
           return;
         }
         const email = renderMagicLinkEmail(url);
-        const res = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: process.env.EMAIL_FROM,
-            to: identifier,
-            subject: email.subject,
-            html: email.html,
-            // La versión de texto plano mejora deliverability y accesibilidad.
-            text: email.text,
-          }),
-        });
-        if (!res.ok) {
-          const body = await res.text();
-          throw new Error(`Resend ${res.status}: ${body}`);
-        }
+        // Auth.js espera que esto tire si el envío falla: sin mail no hay
+        // acceso, así que acá el fallo SÍ tiene que llegar al usuario — al
+        // revés que en el mail de bienvenida, donde el alta ya está hecha.
+        const ok = await sendEmail({ to: identifier, ...email });
+        if (!ok) throw new Error("No se pudo enviar el magic link");
       },
     }),
   ],
