@@ -64,3 +64,26 @@ describe("compareUnitLabels", () => {
     expect(() => sorted(["PB", "3A"])).not.toThrow();
   });
 });
+
+// El carrusel del selector de deptos parte la lista en páginas de 4x5. La
+// aritmética es trivial pero define cuántas páginas ve el guardia, así que
+// conviene que quede fijada.
+describe("paginado del carrusel de deptos (4x5)", () => {
+  const PER_PAGE = 20;
+  const pageCount = (n: number) => Math.ceil(n / PER_PAGE);
+
+  it("100 deptos son 5 páginas", () => {
+    expect(pageCount(100)).toBe(5);
+  });
+
+  it("una página exacta no genera una vacía de más", () => {
+    expect(pageCount(20)).toBe(1);
+    expect(pageCount(40)).toBe(2);
+  });
+
+  it("el resto ocupa una página propia", () => {
+    expect(pageCount(21)).toBe(2);
+    expect(pageCount(99)).toBe(5);
+    expect(pageCount(101)).toBe(6);
+  });
+});
