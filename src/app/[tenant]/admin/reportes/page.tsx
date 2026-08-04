@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { KpiCard } from "@/components/admin/kpi-card";
 import { formatDate } from "@/lib/datetime";
+import { buildMonthlyReport } from "@/server/admin/reports";
 
 export default async function ReportesPage({
   params,
@@ -19,95 +20,14 @@ export default async function ReportesPage({
   // Las pages no pueden delegar el auth al layout (renderizan en paralelo).
   await requireTenantRoleOrRedirect(tenant.id, ["admin"], `/${slug}/admin/reportes`);
 
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const last30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-  const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-
-  const [received, pickedUp, cancelled, stalePending, topCarriers, topUnits, pickupSamples] = await Promise.all(
-    [
-      prisma.package.count({
-        where: { tenantId: tenant.id, receivedAt: { gte: startOfMonth } },
-      }),
-      prisma.package.count({
-        where: {
-          tenantId: tenant.id,
-          status: "picked_up",
-          pickedUpAt: { gte: startOfMonth },
-        },
-      }),
-      prisma.package.count({
-        where: {
-          tenantId: tenant.id,
-          status: "cancelled",
-          cancelledAt: { gte: startOfMonth },
-        },
-      }),
-      prisma.package.count({
-        where: {
-          tenantId: tenant.id,
-          status: "awaiting_pickup",
-          receivedAt: { lte: threeDaysAgo },
-        },
-      }),
-      prisma.package.groupBy({
-        by: ["carrier"],
-        where: { tenantId: tenant.id, receivedAt: { gte: startOfMonth } },
-        _count: { _all: true },
-        orderBy: { _count: { carrier: "desc" } },
-        take: 5,
-      }),
-      prisma.package.groupBy({
-        by: ["unitId"],
-        where: { tenantId: tenant.id, receivedAt: { gte: startOfMonth } },
-        _count: { _all: true },
-        orderBy: { _count: { unitId: "desc" } },
-        take: 5,
-      }),
-      // Muestra de hasta 200 retiros recientes para promedio de tiempo a retiro.
-      prisma.package.findMany({
-        where: {
-          tenantId: tenant.id,
-          status: "picked_up",
-          pickedUpAt: { gte: last30, not: null },
-        },
-        select: { receivedAt: true, pickedUpAt: true },
-        take: 200,
-      }),
-    ],
-  );
-
-  const avgHoursToPickup =
-    pickupSamples.length === 0
-      ? null
-      : Math.round(
-          pickupSamples.reduce((acc, p) => {
-            return acc + (p.pickedUpAt!.getTime() - p.receivedAt.getTime());
-          }, 0) /
-            pickupSamples.length /
-            (60 * 60 * 1000),
-        );
-
-  const pickupRate =
-    received === 0 ? null : Math.round((pickedUp / received) * 100);
-
-  // Resolver labels de unidades para top
-  const topUnitIds = topUnits.map((u) => u.unitId);
-  const unitLabels = topUnitIds.length
-    ? await prisma.unit.findMany({
-        where: { id: { in: topUnitIds } },
-        select: { id: true, label: true },
-      })
-    : [];
-  const labelById = new Map(unitLabels.map((u) => [u.id, u.label]));
+  const report = await buildMonthlyReport(tenant.id, tenant.timezone);
 
   return (
     <div className="flex flex-col gap-8">
       <header>
         <h2 className="text-xl font-bold">Reportes</h2>
         <p className="text-xs text-ink-400">
-          Datos desde {formatDate(startOfMonth, tenant.timezone)}
+          Datos desde {formatDate(report.startOfMonth, tenant.timezone)}
         </p>
       </header>
 
@@ -116,14 +36,14 @@ export default async function ReportesPage({
           Mes en curso
         </h3>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <KpiCard label="Recibidos" value={received} />
-          <KpiCard label="Retirados" value={pickedUp} tone="positive" />
-          <KpiCard label="Cancelados" value={cancelled} tone="neutral" />
+          <KpiCard label="Recibidos" value={report.received} />
+          <KpiCard label="Retirados" value={report.pickedUpThisMonth} tone="positive" />
+          <KpiCard label="Cancelados" value={report.cancelled} tone="neutral" />
           <KpiCard
             label="% retirados"
-            value={pickupRate !== null ? `${pickupRate}%` : "—"}
-            hint="del total recibido"
-            tone={pickupRate !== null && pickupRate >= 80 ? "positive" : "neutral"}
+            value={report.pickupRate !== null ? `${report.pickupRate}%` : "—"}
+            hint={`${report.pickedUpFromCohort} de ${report.received} recibidos`}
+            tone={report.pickupRate !== null && report.pickupRate >= 80 ? "positive" : "neutral"}
           />
         </div>
       </section>
@@ -135,14 +55,14 @@ export default async function ReportesPage({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <KpiCard
             label="Promedio a retiro"
-            value={avgHoursToPickup !== null ? `${formatHours(avgHoursToPickup)}` : "—"}
+            value={report.avgHoursToPickup !== null ? formatHours(report.avgHoursToPickup) : "—"}
             hint="últimos 30 días (hasta 200 muestras)"
           />
           <KpiCard
             label="Pendientes >3 días"
-            value={stalePending}
+            value={report.stalePending}
             hint="candidatos a recordatorio"
-            tone={stalePending > 0 ? "neutral" : "positive"}
+            tone={report.stalePending > 0 ? "neutral" : "positive"}
           />
         </div>
       </section>
@@ -150,19 +70,13 @@ export default async function ReportesPage({
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <RankingCard
           title="Top transportistas"
-          rows={topCarriers.map((c) => ({
-            label: c.carrier ?? "Sin transportista",
-            count: c._count._all,
-          }))}
-          totalForBars={topCarriers[0]?._count._all ?? 1}
+          rows={report.topCarriers}
+          totalForBars={report.topCarriers[0]?.count ?? 1}
         />
         <RankingCard
           title="Deptos con más actividad"
-          rows={topUnits.map((u) => ({
-            label: labelById.get(u.unitId) ?? "?",
-            count: u._count._all,
-          }))}
-          totalForBars={topUnits[0]?._count._all ?? 1}
+          rows={report.topUnits}
+          totalForBars={report.topUnits[0]?.count ?? 1}
         />
       </section>
     </div>

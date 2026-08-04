@@ -42,6 +42,8 @@ A `Package` moves: `awaiting_pickup → picked_up | cancelled`. Three server act
 - `pickup.ts` — accepts either `pickupCode` (manual entry) or `pickupToken` (QR scan), marks `picked_up`, fires confirmation WhatsApp.
 - `cancel.ts` — admin/guard escape hatch.
 
+Report metrics live in `src/server/admin/reports.ts`, not inside the page, so the counting is testable. The subtlety worth keeping: `pickedUpFromCohort` (of the packages *received* this month, how many are picked up) is the only figure comparable against `received` — dividing by "pickups that happened this month" mixes cohorts and yields rates above 100%.
+
 All three call `recordAudit()` and use `requireTenantRole()`. Adding any new state transition? Do it in `src/server/packages/`, not inline in pages.
 
 ### WhatsApp integration
@@ -91,7 +93,7 @@ All three call `recordAudit()` and use `requireTenantRole()`. Adding any new sta
 - **Pickup codes use a Crockford-ish alphabet** (`23456789ABCDEFGHJKMNPQRSTVWXYZ`) — no `0/O/1/I/L/U`. Don't expand the alphabet without changing `isValidPickupCode` and the unit tests; ambiguity at the desk is the whole reason it's restricted.
 - **Audit everything that changes a `Package`.** `recordAudit()` is one line; skipping it loses the only durable trail for disputes ("ese paquete no llegó nunca").
 - **Server actions validate input with Zod** at the boundary, then trust the parsed object. Don't re-validate downstream.
-- **Timezone is `America/Argentina/Buenos_Aires` by default per tenant.** Format dates with `toLocaleString("es-AR")` for user display; store as UTC.
+- **Timezone is `America/Argentina/Buenos_Aires` by default per tenant** (`Tenant.timezone`). Store UTC; format through `src/lib/datetime.ts`, never `toLocaleString` directly — the bare call formats in the *server's* zone (UTC on Vercel) and es-AR defaults to 12h without a meridiem, so 13:52 renders as "01:52" and looks plausible. The same applies to date *maths*: `startOfMonthInTimeZone()` exists because `new Date(y, m, 1)` starts the month at 21:00 of the previous day in Argentina, putting three hours of packages in the wrong month.
 
 ### Subscription / billing (manual for now)
 - `Tenant.subscriptionStatus` (`trial | active | past_due | suspended`) + `trialEndsAt`. No payment gateway yet: the **superadmin flips states** from `/superadmin` (Activar / Suspender / +14 días). New tenants start as 14-day `trial`; `past_due` still operates (grace).

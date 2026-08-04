@@ -5,7 +5,7 @@ import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { KpiCard } from "@/components/admin/kpi-card";
 import { setGuardPinAction, clearGuardPinAction } from "@/server/conserjeria/device";
 import { setPhotoSettingsAction } from "@/server/admin/photo-settings";
-import { formatDate } from "@/lib/datetime";
+import { formatDate, startOfMonthInTimeZone } from "@/lib/datetime";
 import { getStorageClient } from "@/lib/storage/client";
 import {
   PHOTO_RETENTION_DAYS,
@@ -43,7 +43,7 @@ export default async function AdminDashboard({
   const savePhotoSettings = setPhotoSettingsAction.bind(null, slug);
 
   const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfMonth = startOfMonthInTimeZone(now, tenant.timezone);
   const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
 
   const [pending, stale, receivedThisMonth, pickedUpThisMonth, unitCount, residentCount] =

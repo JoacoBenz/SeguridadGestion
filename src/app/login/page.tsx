@@ -5,6 +5,7 @@ import { getSession, type Session } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { redirect } from "next/navigation";
+import { describeLoginError } from "@/lib/auth/login-errors";
 
 const EmailSchema = z.string().trim().toLowerCase().email();
 
@@ -14,6 +15,7 @@ export default async function LoginPage({
   searchParams: Promise<{ callbackUrl?: string; error?: string; sent?: string }>;
 }) {
   const { callbackUrl, error, sent } = await searchParams;
+  const loginError = describeLoginError(error);
 
   const session = await getSession();
   if (session) redirect(await landingPathFor(session));
@@ -82,10 +84,16 @@ export default async function LoginPage({
           Te mandamos un link a <strong className="text-ink-100">{sent}</strong>. Revisá tu casilla.
         </p>
       )}
-      {error && (
-        <p className="mt-6 rounded-xl border border-critical/40 bg-critical/10 px-4 py-3 text-sm text-critical">
-          {error}
-        </p>
+      {loginError && (
+        <div
+          role="alert"
+          className="mt-6 rounded-xl border border-critical/40 bg-critical/10 px-4 py-3 text-sm"
+        >
+          <p className="font-semibold text-critical">{loginError.title}</p>
+          {loginError.action && (
+            <p className="mt-1 text-ink-300">{loginError.action}</p>
+          )}
+        </div>
       )}
 
       <form action={action} className="mt-8 flex flex-col gap-4">
