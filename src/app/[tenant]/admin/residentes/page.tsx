@@ -111,7 +111,8 @@ export default async function ResidentesPage({
 
       {ok && (
         <div className="rounded-xl border border-positive/40 bg-positive/10 px-4 py-3 text-sm text-positive">
-          {OK_MESSAGES[ok] ?? ok}
+          {/* Un código desconocido no se refleja: viene de la URL. */}
+          {OK_MESSAGES[ok] ?? "Operación realizada."}
         </div>
       )}
       {error && (

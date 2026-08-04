@@ -3,7 +3,27 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Scanner, type IDetectedBarcode } from "@yudiel/react-qr-scanner";
+import {
+  Scanner,
+  prepareZXingModule,
+  type IDetectedBarcode,
+} from "@yudiel/react-qr-scanner";
+
+// El decodificador de QR es WASM, y zxing-wasm lo baja de jsDelivr por
+// default: el flujo principal del guardia quedaba colgado de un CDN ajeno (y
+// la CSP tendría que abrirle la puerta). `new URL(..., import.meta.url)` hace
+// que el bundler emita el .wasm como asset propio — mismo origen, y siempre en
+// sync con la versión instalada del paquete.
+const wasmUrl = new URL(
+  "zxing-wasm/reader/zxing_reader.wasm",
+  import.meta.url,
+);
+prepareZXingModule({
+  overrides: {
+    locateFile: (path: string, prefix: string) =>
+      path.endsWith(".wasm") ? wasmUrl.href : prefix + path,
+  },
+});
 import { pickupByTokenAction } from "@/server/packages/pickup-actions";
 import { OtpCodeInput } from "./otp-code-input";
 import { SubmitButton } from "@/components/submit-button";

@@ -13,6 +13,15 @@ export default async function DesbloquearPage({
 }) {
   const { tenant: slug } = await params;
   const { error } = await searchParams;
+  // Página PÚBLICA (es donde la tablet consigue la cookie): el ?error= lo
+  // arma quien manda el link, y un cartel oficial con texto ajeno es phishing.
+  // Sólo se muestran los mensajes que unlockDeviceAction realmente emite.
+  const UNLOCK_ERRORS = new Set([
+    "Demasiados intentos. Esperá un minuto.",
+    "Edificio no encontrado",
+    "PIN incorrecto",
+  ]);
+  const shownError = error && UNLOCK_ERRORS.has(error) ? error : error ? "No se pudo desbloquear. Probá de nuevo." : null;
 
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
@@ -33,9 +42,9 @@ export default async function DesbloquearPage({
         </p>
       </header>
 
-      {error && (
+      {shownError && (
         <div className="rounded-xl border border-critical/40 bg-critical/10 px-4 py-3 text-center text-sm text-critical">
-          {error}
+          {shownError}
         </div>
       )}
 
