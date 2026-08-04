@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { formatDateTime } from "@/lib/datetime";
+import { PAGE_SIZE, Pager, pageFromParam, skipFor } from "@/components/admin/pager";
 
-const PAGE_SIZE = 100;
 
 // Etiquetas legibles para las acciones conocidas; las desconocidas se muestran crudas.
 const ACTION_LABEL: Record<string, string> = {
@@ -33,7 +33,7 @@ export default async function AuditoriaPage({
   searchParams,
 }: {
   params: Promise<{ tenant: string }>;
-  searchParams: Promise<{ action?: string }>;
+  searchParams: Promise<{ action?: string; page?: string }>;
 }) {
   const { tenant: slug } = await params;
   const sp = await searchParams;
@@ -47,13 +47,17 @@ export default async function AuditoriaPage({
   // Las pages no pueden delegar el auth al layout (renderizan en paralelo).
   await requireTenantRoleOrRedirect(tenant.id, ["admin"], `/${slug}/admin/auditoria`);
 
-  const [logs, actions] = await Promise.all([
+  const page = pageFromParam(sp.page);
+  const logWhere = {
+    tenantId: tenant.id,
+    ...(sp.action ? { action: sp.action } : {}),
+  };
+
+  const [logs, actions, total] = await Promise.all([
     prisma.auditLog.findMany({
-      where: {
-        tenantId: tenant.id,
-        ...(sp.action ? { action: sp.action } : {}),
-      },
+      where: logWhere,
       orderBy: { at: "desc" },
+      skip: skipFor(page),
       take: PAGE_SIZE,
       include: { actor: { select: { name: true } } },
     }),
@@ -63,13 +67,14 @@ export default async function AuditoriaPage({
       select: { action: true },
       orderBy: { action: "asc" },
     }),
+    prisma.auditLog.count({ where: logWhere }),
   ]);
 
   return (
     <div className="flex flex-col gap-6">
       <header className="flex items-baseline justify-between">
         <h2 className="text-xl font-bold">Auditoría</h2>
-        <p className="text-xs text-ink-400">últimos {PAGE_SIZE} eventos</p>
+        <p className="text-xs text-ink-400">{total} eventos</p>
       </header>
 
       <form method="get" className="flex items-end gap-2 rounded-2xl border border-ink-700 bg-ink-850 p-4">
@@ -133,6 +138,13 @@ export default async function AuditoriaPage({
           })}
         </ul>
       )}
+
+      <Pager
+        page={page}
+        total={total}
+        basePath={`/${slug}/admin/auditoria`}
+        params={{ action: sp.action }}
+      />
     </div>
   );
 }

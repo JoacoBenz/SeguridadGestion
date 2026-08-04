@@ -5,8 +5,8 @@ import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { cancelPackageAction } from "@/server/admin/packages";
 import { formatDateTime } from "@/lib/datetime";
+import { PAGE_SIZE, Pager, pageFromParam, skipFor } from "@/components/admin/pager";
 
-const PAGE_SIZE = 50;
 
 const STATUS_LABEL: Record<PackageStatus, string> = {
   awaiting_pickup: "Pendiente",
@@ -29,7 +29,13 @@ export default async function PaquetesPage({
   searchParams,
 }: {
   params: Promise<{ tenant: string }>;
-  searchParams: Promise<{ status?: string; unit?: string; ok?: string; error?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    unit?: string;
+    ok?: string;
+    error?: string;
+    page?: string;
+  }>;
 }) {
   const { tenant: slug } = await params;
   const sp = await searchParams;
@@ -43,6 +49,7 @@ export default async function PaquetesPage({
   // Las pages no pueden delegar el auth al layout (renderizan en paralelo).
   await requireTenantRoleOrRedirect(tenant.id, ["admin"], `/${slug}/admin/paquetes`);
 
+  const page = pageFromParam(sp.page);
   const status = isValidStatus(sp.status) ? sp.status : undefined;
   const unitId = sp.unit && sp.unit.length > 0 ? sp.unit : undefined;
 
@@ -61,6 +68,7 @@ export default async function PaquetesPage({
     prisma.package.findMany({
       where,
       orderBy: { receivedAt: "desc" },
+      skip: skipFor(page),
       take: PAGE_SIZE,
       include: {
         unit: { select: { label: true } },
@@ -154,6 +162,13 @@ export default async function PaquetesPage({
           ))}
         </ul>
       )}
+
+      <Pager
+        page={page}
+        total={total}
+        basePath={`/${slug}/admin/paquetes`}
+        params={{ status: sp.status, unit: sp.unit }}
+      />
     </div>
   );
 }

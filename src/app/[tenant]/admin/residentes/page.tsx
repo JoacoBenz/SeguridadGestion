@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
+import { PAGE_SIZE, Pager, pageFromParam, skipFor } from "@/components/admin/pager";
+import { SearchBox } from "@/components/admin/search-box";
 import {
   createResidentAction,
   deleteResidentAction,
@@ -20,10 +22,12 @@ export default async function ResidentesPage({
   searchParams,
 }: {
   params: Promise<{ tenant: string }>;
-  searchParams: Promise<{ error?: string; ok?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string; q?: string; page?: string }>;
 }) {
   const { tenant: slug } = await params;
-  const { error, ok } = await searchParams;
+  const { error, ok, q, page: pageParam } = await searchParams;
+  const page = pageFromParam(pageParam);
+  const query = q?.trim() ?? "";
 
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
@@ -34,21 +38,45 @@ export default async function ResidentesPage({
   // Las pages no pueden delegar el auth al layout (renderizan en paralelo).
   await requireTenantRoleOrRedirect(tenant.id, ["admin"], `/${slug}/admin/residentes`);
 
-  const [units, residents] = await Promise.all([
+  // El filtro busca por nombre, teléfono, email o etiqueta de depto: son las
+  // cuatro cosas por las que un admin llega a un residente.
+  const where = {
+    tenantId: tenant.id,
+    role: "resident" as const,
+    ...(query
+      ? {
+          OR: [
+            { name: { contains: query, mode: "insensitive" as const } },
+            { phone: { contains: query } },
+            { email: { contains: query, mode: "insensitive" as const } },
+            {
+              unitMemberships: {
+                some: { unit: { label: { contains: query, mode: "insensitive" as const } } },
+              },
+            },
+          ],
+        }
+      : {}),
+  };
+
+  const [units, residents, total] = await Promise.all([
     prisma.unit.findMany({
       where: { tenantId: tenant.id },
       orderBy: { label: "asc" },
       select: { id: true, label: true },
     }),
     prisma.user.findMany({
-      where: { tenantId: tenant.id, role: "resident" },
+      where,
       orderBy: { name: "asc" },
+      skip: skipFor(page),
+      take: PAGE_SIZE,
       include: {
         unitMemberships: {
           include: { unit: { select: { id: true, label: true } } },
         },
       },
     }),
+    prisma.user.count({ where }),
   ]);
 
   const create = createResidentAction.bind(null, slug);
@@ -60,8 +88,14 @@ export default async function ResidentesPage({
     <div className="flex flex-col gap-6">
       <header className="flex items-baseline justify-between">
         <h2 className="text-xl font-bold">Residentes</h2>
-        <p className="text-xs text-ink-400">{residents.length} cargados</p>
+        <p className="text-xs text-ink-400">{total} cargados</p>
       </header>
+
+      <SearchBox
+        basePath={`/${slug}/admin/residentes`}
+        defaultValue={query}
+        placeholder="Buscar por nombre, teléfono, email o depto"
+      />
 
       {ok && (
         <div className="rounded-xl border border-positive/40 bg-positive/10 px-4 py-3 text-sm text-positive">
@@ -144,7 +178,7 @@ export default async function ResidentesPage({
 
       {residents.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-ink-700 bg-ink-850 px-6 py-12 text-center text-sm text-ink-400">
-          Sin residentes cargados.
+          {query ? `Ningún residente coincide con “${query}”.` : "Sin residentes cargados."}
         </div>
       ) : (
         <ul className="overflow-hidden rounded-2xl border border-ink-700 bg-ink-850 divide-y divide-ink-800">
@@ -195,6 +229,13 @@ export default async function ResidentesPage({
           ))}
         </ul>
       )}
+
+      <Pager
+        page={page}
+        total={total}
+        basePath={`/${slug}/admin/residentes`}
+        params={{ q: query || undefined }}
+      />
     </div>
   );
 }

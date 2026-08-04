@@ -2,16 +2,21 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { createUnitAction, deleteUnitAction } from "@/server/admin/units";
+import { PAGE_SIZE, Pager, pageFromParam, skipFor } from "@/components/admin/pager";
+import { SearchBox } from "@/components/admin/search-box";
+import { compareUnitLabels } from "@/lib/unit-label";
 
 export default async function UnidadesPage({
   params,
   searchParams,
 }: {
   params: Promise<{ tenant: string }>;
-  searchParams: Promise<{ error?: string; ok?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string; q?: string; page?: string }>;
 }) {
   const { tenant: slug } = await params;
-  const { error, ok } = await searchParams;
+  const { error, ok, q, page: pageParam } = await searchParams;
+  const page = pageFromParam(pageParam);
+  const query = q?.trim() ?? "";
 
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
@@ -22,13 +27,26 @@ export default async function UnidadesPage({
   // Las pages no pueden delegar el auth al layout (renderizan en paralelo).
   await requireTenantRoleOrRedirect(tenant.id, ["admin"], `/${slug}/admin/unidades`);
 
-  const units = await prisma.unit.findMany({
-    where: { tenantId: tenant.id },
-    orderBy: { label: "asc" },
-    include: {
-      _count: { select: { residents: true, packages: true } },
-    },
-  });
+  const where = {
+    tenantId: tenant.id,
+    ...(query ? { label: { contains: query, mode: "insensitive" as const } } : {}),
+  };
+
+  const [units, total] = await Promise.all([
+    prisma.unit.findMany({
+      where,
+      // Postgres ordena "10A" antes que "1A"; el orden natural se aplica sobre
+      // la página ya traída (dentro de una página el salto es imperceptible).
+      orderBy: { label: "asc" },
+      skip: skipFor(page),
+      take: PAGE_SIZE,
+      include: {
+        _count: { select: { residents: true, packages: true } },
+      },
+    }),
+    prisma.unit.count({ where }),
+  ]);
+  units.sort((a, b) => compareUnitLabels(a.label, b.label));
 
   const create = createUnitAction.bind(null, slug);
   const remove = deleteUnitAction.bind(null, slug);
@@ -37,8 +55,14 @@ export default async function UnidadesPage({
     <div className="flex flex-col gap-6">
       <header className="flex items-baseline justify-between">
         <h2 className="text-xl font-bold">Unidades</h2>
-        <p className="text-xs text-ink-400">{units.length} cargadas</p>
+        <p className="text-xs text-ink-400">{total} cargadas</p>
       </header>
+
+      <SearchBox
+        basePath={`/${slug}/admin/unidades`}
+        defaultValue={query}
+        placeholder="Buscar depto — ej. 3B"
+      />
 
       {ok && <SuccessBanner text={ok === "creada" ? "Unidad creada" : "Unidad borrada"} />}
       {error && <ErrorBanner text={error} />}
@@ -78,7 +102,13 @@ export default async function UnidadesPage({
       </form>
 
       {units.length === 0 ? (
-        <EmptyState text="Todavía no cargaste unidades." />
+        <EmptyState
+          text={
+            query
+              ? `Ningún depto coincide con “${query}”.`
+              : "Todavía no cargaste unidades."
+          }
+        />
       ) : (
         <ul className="overflow-hidden rounded-2xl border border-ink-700 bg-ink-850 divide-y divide-ink-800">
           {units.map((u) => (
@@ -103,6 +133,13 @@ export default async function UnidadesPage({
           ))}
         </ul>
       )}
+
+      <Pager
+        page={page}
+        total={total}
+        basePath={`/${slug}/admin/unidades`}
+        params={{ q: query || undefined }}
+      />
     </div>
   );
 }

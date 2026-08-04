@@ -62,6 +62,17 @@ export async function registerPackage(
     },
   });
 
+  // Un paquete en una unidad sin a quién avisarle es un paquete que el
+  // residente nunca va a venir a buscar: queda ocupando el mostrador hasta que
+  // alguien lo note. Cortamos antes de crearlo — el guardia todavía tiene el
+  // paquete en la mano y puede avisar que falta cargar al residente.
+  const reachable = unit.residents.filter((m) => m.user.phone);
+  if (reachable.length === 0) {
+    throw new Error(
+      unit.residents.length === 0 ? "UNIT_WITHOUT_RESIDENTS" : "UNIT_WITHOUT_PHONES",
+    );
+  }
+
   // generateUniquePickupCode chequea colisiones antes de insertar, pero dos
   // registros simultáneos pueden elegir el mismo código en esa ventana. El
   // índice único parcial (tenantId, pickupCode) WHERE awaiting_pickup tira

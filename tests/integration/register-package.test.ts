@@ -190,6 +190,41 @@ describe("registerPackage — dónde manda photoMode y dónde no", () => {
   });
 });
 
+describe("registerPackage — no aceptar paquetes que nadie va a venir a buscar", () => {
+  it("rechaza el alta si la unidad no tiene residentes cargados", async () => {
+    const empty = await prisma.unit.create({ data: { tenantId, label: "9Z" } });
+    await expect(
+      registerPackage({ tenantId, unitId: empty.id }),
+    ).rejects.toThrow("UNIT_WITHOUT_RESIDENTS");
+    expect(sent).toHaveLength(0);
+    // Y no deja el paquete a medio crear.
+    expect(await prisma.package.count({ where: { unitId: empty.id } })).toBe(0);
+    await prisma.unit.delete({ where: { id: empty.id } });
+  });
+
+  it("rechaza el alta si los residentes no tienen teléfono", async () => {
+    const unit = await prisma.unit.create({ data: { tenantId, label: "8Y" } });
+    const mudo = await prisma.user.create({
+      data: {
+        tenantId,
+        email: `sin-tel-${Math.random().toString(36).slice(2, 8)}@test.local`,
+        name: "Sin teléfono",
+        role: "resident",
+      },
+    });
+    await prisma.unitResident.create({ data: { unitId: unit.id, userId: mudo.id } });
+
+    await expect(registerPackage({ tenantId, unitId: unit.id })).rejects.toThrow(
+      "UNIT_WITHOUT_PHONES",
+    );
+    expect(sent).toHaveLength(0);
+
+    await prisma.unitResident.deleteMany({ where: { unitId: unit.id } });
+    await prisma.user.delete({ where: { id: mudo.id } });
+    await prisma.unit.delete({ where: { id: unit.id } });
+  });
+});
+
 describe("registerPackage — invariantes", () => {
   it("rechaza una photoUrl que no salió de nuestro storage", async () => {
     await expect(

@@ -91,10 +91,7 @@ export default async function IngresoPage({
       });
       pickupCode = result.pickupCode;
     } catch (err) {
-      const msg =
-        err instanceof Error && err.message === "SUBSCRIPTION_INACTIVE"
-          ? "La suscripción del edificio está inactiva: no se pueden registrar paquetes nuevos."
-          : "No se pudo registrar el paquete. Probá de nuevo.";
+      const msg = registerErrorMessage(err);
       redirect(`/${slug}/conserjeria/ingreso?error=${encodeURIComponent(msg)}`);
     }
     redirect(`/${slug}/conserjeria?codigo=${pickupCode}`);
@@ -190,4 +187,20 @@ function PageHeader({ slug, tenantName }: { slug: string; tenantName: string }) 
       </div>
     </header>
   );
+}
+
+// Los códigos internos son ingleses y greppables; al guardia le mostramos
+// castellano con qué hacer al respecto.
+function registerErrorMessage(err: unknown): string {
+  const code = err instanceof Error ? err.message : "";
+  switch (code) {
+    case "SUBSCRIPTION_INACTIVE":
+      return "La suscripción del edificio está inactiva: no se pueden registrar paquetes nuevos.";
+    case "UNIT_WITHOUT_RESIDENTS":
+      return "Ese departamento no tiene residentes cargados, así que no hay a quién avisarle. Pedile al administrador que lo cargue antes de recibir el paquete.";
+    case "UNIT_WITHOUT_PHONES":
+      return "Los residentes de ese departamento no tienen teléfono cargado, así que no se les puede avisar. Avisale al administrador.";
+    default:
+      return "No se pudo registrar el paquete. Probá de nuevo.";
+  }
 }
