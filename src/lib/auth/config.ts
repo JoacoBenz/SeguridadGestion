@@ -1,6 +1,7 @@
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import Resend from "next-auth/providers/resend";
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import type { Adapter } from "next-auth/adapters";
 import type { Role } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { renderMagicLinkEmail } from "@/lib/auth/magic-link-email";
@@ -17,8 +18,24 @@ declare module "next-auth" {
   }
 }
 
+// PrismaAdapter borra la sesión con `delete()`, que tira P2025 si la fila no
+// existe. Una cookie que apunta a una sesión ya borrada —limpieza de vencidas,
+// restore de un backup, borrado manual— hace fallar TODO el login con
+// `AdapterError`, que la UI muestra como "problema de configuración": el
+// usuario queda afuera y la única salida es que borre las cookies a mano, cosa
+// que no tiene por qué saber. Cerrar una sesión que ya no está es exactamente
+// el resultado buscado, así que `deleteMany` (idempotente) es lo correcto.
+const prismaAdapter = PrismaAdapter(prisma);
+const resilientAdapter: Adapter = {
+  ...prismaAdapter,
+  async deleteSession(sessionToken) {
+    await prisma.session.deleteMany({ where: { sessionToken } });
+    return null;
+  },
+};
+
 const authConfig: NextAuthConfig = {
-  adapter: PrismaAdapter(prisma),
+  adapter: resilientAdapter,
   session: { strategy: "database" },
   pages: { signIn: "/login", error: "/login" },
   providers: [
