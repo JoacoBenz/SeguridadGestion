@@ -48,6 +48,44 @@ function whatsappDiagnostics(): Record<string, unknown> {
   };
 }
 
+// Auth.js devuelve `?error=Configuration` para media docena de causas
+// distintas —secreto ausente, host no confiable, AUTH_URL apuntando a otro
+// dominio— y el motivo real sólo queda en el log del server. Esto expone lo
+// necesario para distinguirlas sin leer logs: presencia de los secretos (nunca
+// su valor) y los hosts, que no son secretos y son justo lo que se compara.
+function authDiagnostics(req: Request): Record<string, unknown> {
+  const authUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
+  let authUrlHost: string | null = null;
+  let authUrlValid = true;
+  if (authUrl) {
+    try {
+      authUrlHost = new URL(authUrl).host;
+    } catch {
+      authUrlValid = false;
+    }
+  }
+
+  const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+  return {
+    secretPresent: Boolean(secret),
+    secretLength: secret?.length ?? 0,
+    // Sin AUTH_URL, Auth.js deduce el host del request. Si está seteado y NO
+    // coincide con el host por el que entrás, las cookies se escriben en otro
+    // dominio y el callback falla.
+    authUrlSet: Boolean(authUrl),
+    authUrlHost,
+    authUrlValid,
+    requestHost: req.headers.get("host"),
+    hostsMatch: authUrlHost ? authUrlHost === req.headers.get("host") : true,
+    // En Vercel, trustHost se activa solo por esta variable.
+    onVercel: Boolean(process.env.VERCEL),
+    trustHostEnv: Boolean(process.env.AUTH_TRUST_HOST),
+    resendKeyPresent: Boolean(process.env.RESEND_API_KEY),
+    emailFrom: process.env.EMAIL_FROM ?? null,
+    publicBaseUrl: process.env.PUBLIC_BASE_URL ?? null,
+  };
+}
+
 export async function GET(req: Request) {
   const debug = new URL(req.url).searchParams.get("debug");
   const debugOk = Boolean(process.env.CRON_SECRET) && debug === process.env.CRON_SECRET;
@@ -59,6 +97,7 @@ export async function GET(req: Request) {
       body.storageConfigured = getStorageClient().isConfigured;
       body.storageMissingVars = missingStorageVars();
       body.whatsapp = whatsappDiagnostics();
+      body.auth = authDiagnostics(req);
     }
     return NextResponse.json(body);
   } catch (err) {
@@ -73,6 +112,7 @@ export async function GET(req: Request) {
       body.storageConfigured = getStorageClient().isConfigured;
       body.storageMissingVars = missingStorageVars();
       body.whatsapp = whatsappDiagnostics();
+      body.auth = authDiagnostics(req);
     }
     return NextResponse.json(body, { status: 503 });
   }

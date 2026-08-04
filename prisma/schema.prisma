@@ -64,7 +64,10 @@ model User {
   id            String    @id @default(cuid())
   tenantId      String?
   role          Role      @default(resident)
-  name          String
+  // Default vacío porque el adapter de Auth.js crea el usuario con lo que trae
+  // el proveedor, y un magic link sólo trae el email: sin default, cualquier
+  // alta por link falla con NOT NULL y Auth.js la reporta como "Configuration".
+  name          String    @default("")
   email         String?   @unique
   emailVerified DateTime?
   image         String?
