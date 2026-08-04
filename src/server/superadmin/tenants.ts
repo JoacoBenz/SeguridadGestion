@@ -25,14 +25,14 @@ const CreateTenantSchema = z.object({
   adminName: z.string().trim().min(1, "Falta el nombre").max(80),
 });
 
-async function requireSuperadmin(): Promise<{ userId: string; name: string }> {
+async function requireSuperadmin(): Promise<{ userId: string }> {
   const session = await requireSession();
   if (session.role !== "superadmin") throw new Error("FORBIDDEN_ROLE");
-  return { userId: session.userId, name: session.name };
+  return { userId: session.userId };
 }
 
 export async function createTenantAction(formData: FormData) {
-  const { userId, name: invitedByName } = await requireSuperadmin();
+  const { userId } = await requireSuperadmin();
 
   const parsed = CreateTenantSchema.safeParse({
     slug: formData.get("slug"),
@@ -97,7 +97,6 @@ export async function createTenantAction(formData: FormData) {
     tenantName: parsed.data.name,
     recipientEmail: parsed.data.adminEmail,
     role: "admin",
-    invitedByName,
   });
   await sendEmail({ to: parsed.data.adminEmail, ...welcome });
 

@@ -6,7 +6,6 @@ import { renderWelcomeEmail } from "@/lib/auth/welcome-email";
 const BASE = {
   tenantName: "Edificio Libertad",
   recipientEmail: "usuario@ejemplo.com",
-  invitedByName: "Joaco",
 } as const;
 
 const admin = () => renderWelcomeEmail({ ...BASE, role: "admin" });
@@ -37,18 +36,23 @@ describe("mail de bienvenida", () => {
     expect(text).toContain("usuario@ejemplo.com");
   });
 
-  it("dice quién dio el acceso", () => {
-    expect(admin().text).toContain("Joaco");
+  it("habla del acceso a PackItO, sin nombrar a quién lo dio", () => {
+    const { text } = admin();
+    expect(text).toContain("Ya tenés acceso a PackItO");
+    expect(text).not.toContain("undefined");
   });
 
-  it("funciona sin saber quién invitó", () => {
-    const sinInvitador = renderWelcomeEmail({
-      tenantName: "Edificio Libertad",
-      recipientEmail: "usuario@ejemplo.com",
-      role: "admin",
-    });
-    expect(sinInvitador.text).toContain("Te dieron acceso");
-    expect(sinInvitador.text).not.toContain("undefined");
+  it("el link deja el email precargado, así el primer acceso sale con un clic", () => {
+    const { html, text } = admin();
+    expect(html).toContain("/login?email=usuario%40ejemplo.com");
+    expect(text).toContain("/login?email=usuario%40ejemplo.com");
+  });
+
+  it("el link NO dispara el envío por sí solo — los clientes de mail prefetchean", () => {
+    // Si abrirlo mandara el mail, un escáner de Gmail quemaría el throttle de
+    // links pendientes antes de que la persona haga clic.
+    const { html } = admin();
+    expect(html).not.toMatch(/\/api\/(auth\/signin|acceso|enviar)/);
   });
 
   it("el texto cambia según el rol", () => {

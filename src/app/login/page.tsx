@@ -12,9 +12,14 @@ const EmailSchema = z.string().trim().toLowerCase().email();
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string; error?: string; sent?: string }>;
+  searchParams: Promise<{
+    callbackUrl?: string;
+    error?: string;
+    sent?: string;
+    email?: string;
+  }>;
 }) {
-  const { callbackUrl, error, sent } = await searchParams;
+  const { callbackUrl, error, sent, email: prefill } = await searchParams;
   const loginError = describeLoginError(error);
 
   const session = await getSession();
@@ -106,6 +111,9 @@ export default async function LoginPage({
             type="email"
             required
             autoFocus
+            // El mail de bienvenida linkea con ?email=, así el primer acceso
+            // sale con un solo clic y sin tipear nada.
+            defaultValue={prefill ?? ""}
             placeholder="tu@email.com"
             className="rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-ink-100 placeholder:text-ink-500 focus:border-accent focus:outline-none"
           />

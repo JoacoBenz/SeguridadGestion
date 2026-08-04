@@ -89,7 +89,6 @@ export async function createMemberAction(slug: string, formData: FormData) {
     tenantName: tenant.name,
     recipientEmail: email,
     role,
-    invitedByName: session.name,
   });
   await sendEmail({ to: email, ...welcome });
 

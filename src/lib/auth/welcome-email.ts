@@ -25,8 +25,6 @@ export interface WelcomeEmailInput {
   /** El email con el que tiene que entrar — es su usuario. */
   recipientEmail: string;
   role: WelcomeRole;
-  /** Quién le dio el acceso. Sin esto el mail parece spam. */
-  invitedByName?: string;
 }
 
 const ACCENT = "#FBBF24";
@@ -56,14 +54,16 @@ const ROLE_COPY: Record<WelcomeRole, { title: string; blurb: string }> = {
 };
 
 export function renderWelcomeEmail(input: WelcomeEmailInput): WelcomeEmail {
-  const { tenantName, recipientEmail, role, invitedByName } = input;
-  const loginUrl = `${publicBaseUrl()}/login`;
+  const { tenantName, recipientEmail, role } = input;
+  // El botón deja el email ya cargado en el form, así el primer link sale con
+  // un clic. A propósito NO es una URL que dispare el envío por sí sola: los
+  // clientes de correo prefetchean los links para escanearlos, y eso quemaría
+  // el throttle de links pendientes antes de que la persona haga clic.
+  const loginUrl = `${publicBaseUrl()}/login?email=${encodeURIComponent(recipientEmail)}`;
   const logoUrl = `${publicBaseUrl()}/icon-192.png`;
   const copy = ROLE_COPY[role];
 
-  const invitedBy = invitedByName
-    ? `${escapeHtml(invitedByName)} te dio acceso a PackItO para ${copy.title} <strong style="color:#F4F4F5;">${escapeHtml(tenantName)}</strong>.`
-    : `Te dieron acceso a PackItO para ${copy.title} <strong style="color:#F4F4F5;">${escapeHtml(tenantName)}</strong>.`;
+  const intro = `Ya tenés acceso a PackItO para ${copy.title} <strong style="color:#F4F4F5;">${escapeHtml(tenantName)}</strong>.`;
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -86,17 +86,16 @@ export function renderWelcomeEmail(input: WelcomeEmailInput): WelcomeEmail {
               <img src="${logoUrl}" width="56" height="56" alt="PackItO" style="display:inline-block;border-radius:14px;">
               <p style="margin:16px 0 0;font-size:13px;letter-spacing:4px;color:${ACCENT};font-weight:600;">PACK<span style="color:#F4F4F5;">ITO</span></p>
               <h1 style="margin:24px 0 8px;font-size:24px;line-height:1.3;color:#F4F4F5;font-weight:700;">Ya ten&eacute;s acceso</h1>
-              <p style="margin:0 0 8px;font-size:15px;line-height:1.5;color:${TEXT_SOFT};">${invitedBy}</p>
+              <p style="margin:0 0 8px;font-size:15px;line-height:1.5;color:${TEXT_SOFT};">${intro}</p>
               <p style="margin:0 0 28px;font-size:15px;line-height:1.5;color:${TEXT_SOFT};">${copy.blurb}</p>
               <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
                 <tr>
                   <td style="background-color:${ACCENT};border-radius:14px;">
-                    <a href="${loginUrl}" style="display:inline-block;padding:15px 44px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:700;color:${INK};text-decoration:none;">Entrar a PackItO</a>
+                    <a href="${loginUrl}" style="display:inline-block;padding:15px 44px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:700;color:${INK};text-decoration:none;">Pedir mi link de acceso</a>
                   </td>
                 </tr>
               </table>
-              <p style="margin:28px 0 0;font-size:13px;line-height:1.5;color:${TEXT_DIM};">Ingres&aacute; con este email:<br><strong style="color:${TEXT_SOFT};">${escapeHtml(recipientEmail)}</strong></p>
-              <p style="margin:12px 0 0;font-size:13px;line-height:1.5;color:${TEXT_DIM};">No hay contrase&ntilde;a: te mandamos un link para iniciar sesi&oacute;n.</p>
+              <p style="margin:28px 0 0;font-size:13px;line-height:1.5;color:${TEXT_DIM};">No hay contrase&ntilde;a. Toc&aacute; el bot&oacute;n y te mandamos un link para entrar a<br><strong style="color:${TEXT_SOFT};">${escapeHtml(recipientEmail)}</strong></p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;">
                 <tr><td style="border-top:1px solid #27272A;"></td></tr>
               </table>
@@ -115,20 +114,18 @@ export function renderWelcomeEmail(input: WelcomeEmailInput): WelcomeEmail {
 </body>
 </html>`;
 
-  const invitedByText = invitedByName
-    ? `${invitedByName} te dio acceso a PackItO para ${copy.title} ${tenantName}.`
-    : `Te dieron acceso a PackItO para ${copy.title} ${tenantName}.`;
+  const introText = `Ya tenés acceso a PackItO para ${copy.title} ${tenantName}.`;
 
   const text = [
     "Ya tenés acceso a PackItO",
     "",
-    invitedByText,
+    introText,
     copy.blurb,
     "",
-    `Entrá a: ${loginUrl}`,
-    `Ingresá con este email: ${recipientEmail}`,
+    "No hay contraseña. Abrí este link y pedí el tuyo:",
+    loginUrl,
     "",
-    "No hay contraseña: te mandamos un link para iniciar sesión.",
+    `Te va a llegar a: ${recipientEmail}`,
     "",
     "Si no esperabas este acceso, ignorá este mensaje.",
     "PackItO · un producto de BEXOVAR",
