@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { importResidentsAction } from "@/server/admin/residents";
 import { parseResidentsCsv } from "@/server/admin/import-parse";
+import { SubmitButton } from "@/components/submit-button";
 
 const EXAMPLE = `unidad,nombre,telefono,email
 3B,Nombre Apellido,+5491100000001,nombre@email.com
@@ -116,13 +117,15 @@ export default async function ImportarPage({
           {preview.errorCount === 0 ? (
             <form action={doImport}>
               <input type="hidden" name="csv" value={csv} />
-              <button
-                type="submit"
-                className="rounded-xl bg-accent px-5 py-3 font-semibold text-accent-fg transition-transform active:scale-[0.98]"
+              {/* Importar cientos de filas tarda: sin bloquear el botón, un
+                  segundo click manda otra corrida entera en paralelo. */}
+              <SubmitButton
+                pendingText={`Importando ${preview.validCount}… puede tardar unos segundos`}
+                className="w-full rounded-xl bg-accent px-5 py-3 font-semibold text-accent-fg transition-transform active:scale-[0.98] sm:w-auto"
               >
                 Confirmar importación de {preview.validCount} residente
                 {preview.validCount === 1 ? "" : "s"}
-              </button>
+              </SubmitButton>
             </form>
           ) : (
             <p className="text-sm text-ink-400">

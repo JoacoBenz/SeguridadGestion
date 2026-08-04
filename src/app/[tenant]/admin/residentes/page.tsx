@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { PAGE_SIZE, Pager, pageFromParam, skipFor } from "@/components/admin/pager";
 import { SearchBox } from "@/components/admin/search-box";
+import { ResidentActions } from "@/components/admin/resident-actions";
+import { SubmitButton } from "@/components/submit-button";
 import { normalizeUnitLabel } from "@/lib/unit-label";
 import {
   createResidentAction,
@@ -123,10 +125,20 @@ export default async function ResidentesPage({
           Cargá unidades primero antes de agregar residentes.
         </div>
       ) : (
-        <form
-          action={create}
-          className="grid grid-cols-1 gap-3 rounded-2xl border border-ink-700 bg-ink-850 p-5 sm:grid-cols-2"
-        >
+        // Plegado por default: al entrar casi siempre se viene a buscar o
+        // editar a alguien, no a dar de alta. Desplegado ocupaba una pantalla
+        // entera de celular antes de la lista.
+        <details className="rounded-2xl border border-ink-700 bg-ink-850">
+          <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-ink-100 [&::-webkit-details-marker]:hidden">
+            <span className="mr-2 text-accent" aria-hidden>
+              ＋
+            </span>
+            Agregar residente
+          </summary>
+          <form
+            action={create}
+            className="grid grid-cols-1 gap-3 border-t border-ink-800 p-5 sm:grid-cols-2"
+          >
           <Field label="Nombre">
             <input
               name="name"
@@ -176,14 +188,15 @@ export default async function ResidentesPage({
             </select>
           </Field>
           <div className="sm:col-span-2">
-            <button
-              type="submit"
-              className="w-full rounded-xl bg-accent px-4 py-3 font-semibold text-accent-fg transition-transform active:scale-[0.98]"
-            >
-              Agregar residente
-            </button>
-          </div>
-        </form>
+              <SubmitButton
+                pendingText="Agregando…"
+                className="w-full rounded-xl bg-accent px-4 py-3 font-semibold text-accent-fg transition-transform active:scale-[0.98]"
+              >
+                Agregar residente
+              </SubmitButton>
+            </div>
+          </form>
+        </details>
       )}
 
       {residents.length === 0 ? (
@@ -193,16 +206,14 @@ export default async function ResidentesPage({
       ) : (
         <ul className="overflow-hidden rounded-2xl border border-ink-700 bg-ink-850 divide-y divide-ink-800">
           {residents.map((r) => (
-            <li key={r.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            // Fila compacta: con cientos de residentes, cada uno tiene que
+            // entrar en dos renglones. Editar y borrar viven en un modal.
+            <li key={r.id} className="flex items-center gap-3 px-4 py-3">
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-ink-100">{r.name}</p>
-                <p className="font-mono text-xs text-ink-400">
-                  {r.phone ?? "sin tel"}
-                  {r.email && <span className="text-ink-500"> · {r.email}</span>}
-                </p>
-                <div className="mt-1 flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="truncate font-medium text-ink-100">{r.name}</span>
                   {r.unitMemberships.length === 0 ? (
-                    <span className="rounded-md border border-warn/40 bg-warn/10 px-2 py-0.5 text-xs text-warn">
+                    <span className="rounded border border-warn/40 bg-warn/10 px-1.5 text-xs text-warn">
                       sin depto
                     </span>
                   ) : (
@@ -217,24 +228,18 @@ export default async function ResidentesPage({
                     ))
                   )}
                 </div>
+                <p className="truncate font-mono text-xs text-ink-400">
+                  {r.phone ?? "sin tel"}
+                  {r.email && <span className="text-ink-500"> · {r.email}</span>}
+                </p>
               </div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <EditButton
-                  resident={{ id: r.id, name: r.name, phone: r.phone, email: r.email }}
-                  linkedUnitIds={r.unitMemberships.map((m) => m.unit.id)}
-                  units={units}
-                  updateAction={update}
-                />
-                <form action={remove}>
-                  <input type="hidden" name="userId" value={r.id} />
-                  <button
-                    type="submit"
-                    className="w-full rounded-lg border border-ink-700 px-3 py-2.5 text-xs text-ink-400 transition-colors hover:border-critical/60 hover:text-critical sm:w-auto sm:py-1.5"
-                  >
-                    Borrar
-                  </button>
-                </form>
-              </div>
+              <ResidentActions
+                resident={{ id: r.id, name: r.name, phone: r.phone, email: r.email }}
+                units={units}
+                linkedUnitIds={r.unitMemberships.map((m) => m.unit.id)}
+                updateAction={update}
+                deleteAction={remove}
+              />
             </li>
           ))}
         </ul>
@@ -258,85 +263,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       </span>
       {children}
     </label>
-  );
-}
-
-function EditButton({
-  resident,
-  linkedUnitIds,
-  units,
-  updateAction,
-}: {
-  resident: { id: string; name: string; phone: string | null; email: string | null };
-  linkedUnitIds: string[];
-  units: Array<{ id: string; label: string }>;
-  updateAction: (fd: FormData) => Promise<void>;
-}) {
-  const linkable = units.filter((u) => !linkedUnitIds.includes(u.id));
-  return (
-    <details className="w-full sm:relative sm:w-auto">
-      <summary className="cursor-pointer list-none rounded-lg border border-ink-700 px-3 py-2.5 text-center text-xs text-ink-400 transition-colors hover:border-accent/60 hover:text-accent sm:py-1.5 sm:text-left">
-        Editar
-      </summary>
-      <form
-        action={updateAction}
-        className="mt-2 flex w-full flex-col gap-2 rounded-xl border border-ink-700 bg-ink-850 p-3 shadow-xl sm:absolute sm:right-0 sm:z-10 sm:w-72"
-      >
-        <input type="hidden" name="userId" value={resident.id} />
-        <label className="text-xs text-ink-400">
-          Nombre
-          <input
-            name="name"
-            required
-            maxLength={80}
-            defaultValue={resident.name}
-            className="mt-1 w-full rounded-lg border border-ink-700 bg-ink-900 px-2 py-1.5 text-sm text-ink-100 focus:border-accent focus:outline-none"
-          />
-        </label>
-        <label className="text-xs text-ink-400">
-          Teléfono (WhatsApp)
-          <input
-            name="phone"
-            required
-            type="tel"
-            defaultValue={resident.phone ?? ""}
-            className="mt-1 w-full rounded-lg border border-ink-700 bg-ink-900 px-2 py-1.5 font-mono text-sm text-ink-100 focus:border-accent focus:outline-none"
-          />
-        </label>
-        <label className="text-xs text-ink-400">
-          Email (vacío lo borra)
-          <input
-            name="email"
-            type="email"
-            defaultValue={resident.email ?? ""}
-            className="mt-1 w-full rounded-lg border border-ink-700 bg-ink-900 px-2 py-1.5 text-sm text-ink-100 focus:border-accent focus:outline-none"
-          />
-        </label>
-        {linkable.length > 0 && (
-          <label className="text-xs text-ink-400">
-            Vincular a depto (opcional)
-            <select
-              name="unitId"
-              defaultValue=""
-              className="mt-1 w-full rounded-lg border border-ink-700 bg-ink-900 px-2 py-1.5 text-sm text-ink-100 focus:border-accent focus:outline-none"
-            >
-              <option value="">No cambiar</option>
-              {linkable.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        <button
-          type="submit"
-          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-fg"
-        >
-          Guardar cambios
-        </button>
-      </form>
-    </details>
   );
 }
 

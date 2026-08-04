@@ -280,9 +280,13 @@ export async function importResidentsAction(slug: string, formData: FormData) {
     metadata: { created, skipped, total: parsed.rows.length },
   });
 
-  redirect(
-    `/${slug}/admin/residentes?ok=${encodeURIComponent(`Importados ${created}, salteados ${skipped}`)}`,
-  );
+  // El detalle importa: "salteados" son teléfonos o emails ya cargados, y sin
+  // decirlo el admin no entiende por qué importó 168 y ve 160.
+  const detalle =
+    skipped === 0
+      ? `Se importaron ${created} residente${created === 1 ? "" : "s"}.`
+      : `Se importaron ${created} residente${created === 1 ? "" : "s"}. Se saltearon ${skipped} por teléfono o email repetido.`;
+  redirect(`/${slug}/admin/residentes?ok=${encodeURIComponent(detalle)}`);
 }
 
 export async function removeFromUnitAction(slug: string, formData: FormData) {
