@@ -157,6 +157,39 @@ describe("registerPackage — qué mensajes salen", () => {
   });
 });
 
+describe("registerPackage — dónde manda photoMode y dónde no", () => {
+  // El modo gatea la UI del guardia (si el campo se muestra y si frena el
+  // alta), no el envío: registerPackage decide por la presencia de photoUrl.
+  // Así, cambiar el modo mientras hay un form abierto no deja un paquete con
+  // foto guardada y sin avisarle al residente.
+  it("con 'sin fotos' configurado, un alta sin foto manda sólo el aviso", async () => {
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: { settings: { photoMode: "disabled" } },
+    });
+    await registerPackage({ tenantId, unitId });
+    expect(templatesSent()).toEqual(["paquete_recibido_v3"]);
+  });
+
+  it("si llega una foto, se manda aunque el modo diga 'sin fotos'", async () => {
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: { settings: { photoMode: "disabled" } },
+    });
+    await registerPackage({ tenantId, unitId, photoUrl: PHOTO_URL });
+    expect(templatesSent()).toEqual(["paquete_recibido_v3", "paquete_foto_v1"]);
+  });
+
+  it("con 'opcional', el alta sin foto es válida y no manda la foto", async () => {
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: { settings: { photoMode: "optional" } },
+    });
+    await registerPackage({ tenantId, unitId });
+    expect(templatesSent()).toEqual(["paquete_recibido_v3"]);
+  });
+});
+
 describe("registerPackage — invariantes", () => {
   it("rechaza una photoUrl que no salió de nuestro storage", async () => {
     await expect(

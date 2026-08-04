@@ -7,19 +7,24 @@ import { prisma } from "@/lib/db";
 import { requireTenantRole } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 import { normalizePhone } from "@/lib/phone";
+import { PHOTO_MODES, type PhotoMode } from "@/lib/photo-policy";
 
-// Lo único configurable por edificio sobre las fotos es a qué teléfono del
-// mostrador mandarles copia — es un dato que sólo conoce el administrador. Que
-// se pida la foto, y que se borre a los 30 días, son reglas del sistema
-// (src/lib/photo-policy.ts), no opciones.
-const ConserjeriaPhoneSchema = z.string().transform((raw, ctx) => {
-  if (!raw.trim()) return "";
-  const result = normalizePhone(raw);
-  if (!result.ok) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: result.error });
-    return z.NEVER;
-  }
-  return result.phone;
+// El edificio elige si pide foto y a qué teléfono mandarle copia. Cuánto se
+// conservan NO está acá a propósito: es una regla del sistema
+// (PHOTO_RETENTION_DAYS), no una preferencia por edificio.
+const PhotoSettingsSchema = z.object({
+  photoMode: z.enum(PHOTO_MODES as unknown as [PhotoMode, ...PhotoMode[]]),
+  // Vacío = no mandar copia. Si viene algo, se normaliza igual que el teléfono
+  // de un residente: un número mal cargado acá falla en silencio al enviar.
+  conserjeriaPhone: z.string().transform((raw, ctx) => {
+    if (!raw.trim()) return "";
+    const result = normalizePhone(raw);
+    if (!result.ok) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: result.error });
+      return z.NEVER;
+    }
+    return result.phone;
+  }),
 });
 
 export async function setPhotoSettingsAction(slug: string, formData: FormData) {
@@ -27,9 +32,12 @@ export async function setPhotoSettingsAction(slug: string, formData: FormData) {
   if (!tenant) throw new Error("TENANT_NOT_FOUND");
   const session = await requireTenantRole(tenant.id, ["admin"]);
 
-  const parsed = ConserjeriaPhoneSchema.safeParse(formData.get("conserjeriaPhone") ?? "");
+  const parsed = PhotoSettingsSchema.safeParse({
+    photoMode: formData.get("photoMode"),
+    conserjeriaPhone: formData.get("conserjeriaPhone") ?? "",
+  });
   if (!parsed.success) {
-    const msg = parsed.error.issues[0]?.message ?? "Teléfono inválido";
+    const msg = parsed.error.issues[0]?.message ?? "Configuración de fotos inválida";
     redirect(`/${slug}/admin?error=${encodeURIComponent(msg)}`);
   }
 
@@ -44,7 +52,8 @@ export async function setPhotoSettingsAction(slug: string, formData: FormData) {
     data: {
       settings: {
         ...settings,
-        conserjeriaPhone: parsed.data,
+        photoMode: parsed.data.photoMode,
+        conserjeriaPhone: parsed.data.conserjeriaPhone,
       } as Prisma.InputJsonValue,
     },
   });
@@ -55,12 +64,13 @@ export async function setPhotoSettingsAction(slug: string, formData: FormData) {
     action: "tenant.photo_settings_updated",
     entityType: "Tenant",
     entityId: tenant.id,
-    // El número no va al audit: es un dato personal y el log lo lee cualquier
-    // admin. Alcanza con saber si quedó configurado o no.
-    metadata: { copyToConserjeria: Boolean(parsed.data) },
+    metadata: {
+      photoMode: parsed.data.photoMode,
+      // El número no va al audit: es un dato personal y el log lo lee cualquier
+      // admin. Alcanza con saber si quedó configurado o no.
+      copyToConserjeria: Boolean(parsed.data.conserjeriaPhone),
+    },
   });
 
-  redirect(
-    `/${slug}/admin?ok=${encodeURIComponent("Teléfono de conserjería actualizado")}`,
-  );
+  redirect(`/${slug}/admin?ok=${encodeURIComponent("Configuración de fotos actualizada")}`);
 }

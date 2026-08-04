@@ -60,7 +60,7 @@ Crear en Business Manager → categoría **Utility**, idioma **Spanish (ARG) / e
   - `STORAGE_ACCESS_KEY_ID` / `STORAGE_SECRET_ACCESS_KEY` = las S3 keys
   - `STORAGE_PUBLIC_BASE_URL` = `https://njorckajlftgzruahqfo.supabase.co/storage/v1/object/public/paquetes`
 - El bucket es de **lectura pública** porque Meta descarga la imagen para armar el mensaje de WhatsApp. La URL lleva un UUID (no enumerable) pero no hay control de acceso: quien tenga el link entra. Tenelo en cuenta — la etiqueta del envío suele mostrar nombre y dirección del residente.
-- La foto **siempre se pide** si hay storage configurado, y se **borra a los 30 días** de que el paquete se cierra: son reglas del sistema, no opciones del edificio. Lo único que el admin configura en `/[tenant]/admin` es el teléfono del mostrador que recibe copia (`Tenant.settings.conserjeriaPhone`, opcional). Sin las `STORAGE_*` el campo de foto se esconde y el alta sigue funcionando.
+- Cada edificio elige en `/[tenant]/admin` si la foto es **obligatoria / opcional / sin fotos** (`Tenant.settings.photoMode`, default `required`) y a qué teléfono del mostrador mandarle copia (`conserjeriaPhone`, opcional). La **retención de 30 días es del sistema**, no una opción: se cuenta desde que el paquete se retira o se cancela. Sin las `STORAGE_*` el campo de foto se esconde y el alta sigue funcionando.
 - Cuidado con el nombre EXACTO de cada var (un typo tipo `STORAGE_BUKCET` la deja invisible — verificá con `/api/health?debug=`).
 
 ## 5. Cron de recordatorios

@@ -9,7 +9,7 @@ import { UnitTilePicker } from "@/components/conserjeria/unit-tile-picker";
 import { SubmitButton } from "@/components/submit-button";
 import { PhotoCapture } from "@/components/conserjeria/photo-capture";
 import { getStorageClient } from "@/lib/storage/client";
-import { isPhotoRequired } from "@/lib/photo-policy";
+import { isPhotoRequired, photoMode, shouldShowPhotoField } from "@/lib/photo-policy";
 
 export default async function IngresoPage({
   params,
@@ -53,8 +53,10 @@ export default async function IngresoPage({
     select: { id: true, label: true },
   });
 
-  const photoRequired = isPhotoRequired(getStorageClient().isConfigured);
-  const photoEnabled = photoRequired;
+  const storageConfigured = getStorageClient().isConfigured;
+  const mode = photoMode(tenant.settings);
+  const photoEnabled = shouldShowPhotoField(storageConfigured, mode);
+  const photoRequired = isPhotoRequired(storageConfigured, mode);
 
   async function action(formData: FormData) {
     "use server";
@@ -66,8 +68,8 @@ export default async function IngresoPage({
     const notes = formData.get("notes");
     const photoUrl = formData.get("photoUrl");
 
-    // La foto es parte del flujo, no una opción del edificio. El chequeo va del
-    // lado del server, independiente de la validación del navegador.
+    // La obligatoriedad la decide el admin del edificio. El chequeo va del lado
+    // del server, independiente de la validación del navegador.
     if (photoRequired && (typeof photoUrl !== "string" || !photoUrl)) {
       redirect(
         `/${slug}/conserjeria/ingreso?error=${encodeURIComponent(

@@ -7,7 +7,12 @@ import { setGuardPinAction, clearGuardPinAction } from "@/server/conserjeria/dev
 import { setPhotoSettingsAction } from "@/server/admin/photo-settings";
 import { formatDate } from "@/lib/datetime";
 import { getStorageClient } from "@/lib/storage/client";
-import { photoCopyPhone } from "@/lib/photo-policy";
+import {
+  PHOTO_RETENTION_DAYS,
+  photoCopyPhone,
+  photoMode,
+  type PhotoMode,
+} from "@/lib/photo-policy";
 
 export default async function AdminDashboard({
   params,
@@ -32,6 +37,7 @@ export default async function AdminDashboard({
   const setPin = setGuardPinAction.bind(null, slug);
   const clearPin = clearGuardPinAction.bind(null, slug);
 
+  const currentPhotoMode = photoMode(tenant.settings);
   const currentCopyPhone = photoCopyPhone(tenant.settings);
   const storageConfigured = getStorageClient().isConfigured;
   const savePhotoSettings = setPhotoSettingsAction.bind(null, slug);
@@ -213,8 +219,9 @@ export default async function AdminDashboard({
         </div>
       </section>
 
-      <ConserjeriaPhoneSection
+      <PhotoSettingsSection
         action={savePhotoSettings}
+        mode={currentPhotoMode}
         copyPhone={currentCopyPhone}
         storageConfigured={storageConfigured}
       />
@@ -222,35 +229,80 @@ export default async function AdminDashboard({
   );
 }
 
-function ConserjeriaPhoneSection({
+function PhotoSettingsSection({
   action,
+  mode,
   copyPhone,
   storageConfigured,
 }: {
   action: (formData: FormData) => Promise<void>;
+  mode: PhotoMode;
   copyPhone: string | null;
   storageConfigured: boolean;
 }) {
+  const options: { value: PhotoMode; label: string; hint: string }[] = [
+    {
+      value: "required",
+      label: "Obligatoria",
+      hint: "El guardia no puede registrar un paquete sin sacarle foto.",
+    },
+    {
+      value: "optional",
+      label: "Opcional",
+      hint: "Puede sacarla si quiere, pero no lo frena.",
+    },
+    {
+      value: "disabled",
+      label: "Sin fotos",
+      hint: "No se pide ni se muestra el campo.",
+    },
+  ];
+
   return (
     <section>
       <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-400">
-        Copia de fotos a la conserjería
+        Fotos de paquetes
       </h2>
       <div className="rounded-2xl border border-ink-700 bg-ink-850 p-5">
         {!storageConfigured && (
           <p className="mb-4 rounded-xl border border-warn/40 bg-warn/10 px-4 py-3 text-sm text-warn">
             El almacenamiento de fotos no está configurado en el servidor, así que por ahora
-            no se toman fotos ni se manda copia.
+            no se piden fotos sin importar lo que elijas acá.
           </p>
         )}
         <p className="mb-4 text-sm text-ink-400">
-          Además del residente, la foto del paquete se le puede mandar al teléfono del
-          mostrador, así le queda en su propio WhatsApp para buscarla después.
+          La foto se le manda al residente por WhatsApp junto con el aviso. Tené en cuenta que
+          la etiqueta del envío suele mostrar su nombre y dirección.
         </p>
-        <form action={action} className="flex flex-col gap-3">
+
+        <form action={action} className="flex flex-col gap-5">
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-2 text-xs font-semibold uppercase tracking-widest text-ink-400">
+              Al registrar un paquete
+            </legend>
+            {options.map((opt) => (
+              <label
+                key={opt.value}
+                className="flex cursor-pointer items-start gap-3 rounded-xl border border-ink-700 bg-ink-900 px-4 py-3 transition-colors hover:border-ink-500"
+              >
+                <input
+                  type="radio"
+                  name="photoMode"
+                  value={opt.value}
+                  defaultChecked={mode === opt.value}
+                  className="mt-1 accent-accent"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-ink-100">{opt.label}</span>
+                  <span className="block text-xs text-ink-400">{opt.hint}</span>
+                </span>
+              </label>
+            ))}
+          </fieldset>
+
           <label className="flex flex-col gap-1">
             <span className="text-xs font-semibold uppercase tracking-widest text-ink-400">
-              Teléfono del mostrador (opcional)
+              Copia al WhatsApp de la conserjería (opcional)
             </span>
             <input
               name="conserjeriaPhone"
@@ -260,9 +312,16 @@ function ConserjeriaPhoneSection({
               className="w-full max-w-xs rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 font-mono text-ink-100 placeholder:text-ink-500 focus:border-accent focus:outline-none"
             />
             <span className="text-xs text-ink-500">
-              Dejalo vacío para no mandar copia.
+              Le llega la misma foto al teléfono del mostrador, así queda en su chat para
+              buscarla después. Dejalo vacío para no mandar copia.
             </span>
           </label>
+
+          <p className="rounded-xl border border-ink-800 bg-ink-900 px-4 py-3 text-xs text-ink-500">
+            Las fotos se borran solas {PHOTO_RETENTION_DAYS} días después de que el paquete se
+            retira o se cancela. Las de paquetes pendientes no se borran nunca.
+          </p>
+
           <div>
             <button
               type="submit"
