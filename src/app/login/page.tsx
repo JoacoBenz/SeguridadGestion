@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { redirect } from "next/navigation";
 import { describeLoginError } from "@/lib/auth/login-errors";
+import { InstallHint } from "@/components/install-hint";
 
 const EmailSchema = z.string().trim().toLowerCase().email();
 
@@ -125,6 +126,8 @@ export default async function LoginPage({
           Enviar link de acceso
         </button>
       </form>
+
+      <InstallHint />
     </main>
   );
 }
