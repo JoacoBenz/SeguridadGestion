@@ -251,6 +251,27 @@ describe("registerPackage — invariantes", () => {
     expect(result.notifiedPhones).toEqual([residentPhone]);
   });
 
+  it("si TODOS los envíos fallan, el paquete igual se crea y notifiedPhones queda vacío", async () => {
+    // Meta caído no puede impedir recibir el paquete físico — pero el banner
+    // de la conserjería usa este vacío para avisar que nadie se enteró.
+    setWhatsAppClient({
+      async sendTemplate() {
+        throw new Error("Meta API 500: caída simulada");
+      },
+    });
+    const result = await registerPackage({ tenantId, unitId });
+    expect(result.notifiedPhones).toEqual([]);
+
+    const pkg = await prisma.package.findUniqueOrThrow({ where: { id: result.packageId } });
+    expect(pkg.status).toBe("awaiting_pickup");
+
+    // Y el fallo queda registrado para diagnóstico.
+    const failed = await prisma.notification.count({
+      where: { packageId: result.packageId, status: "failed" },
+    });
+    expect(failed).toBeGreaterThan(0);
+  });
+
   it("no registra paquetes si la suscripción está inactiva", async () => {
     await prisma.tenant.update({
       where: { id: tenantId },

@@ -13,10 +13,13 @@ export default async function ConserjeriaHome({
   searchParams,
 }: {
   params: Promise<{ tenant: string }>;
-  searchParams: Promise<{ codigo?: string }>;
+  searchParams: Promise<{ codigo?: string; avisados?: string }>;
 }) {
   const { tenant: slug } = await params;
-  const { codigo } = await searchParams;
+  const { codigo, avisados } = await searchParams;
+  // Sólo el 0 explícito activa la advertencia: sin el parámetro (links viejos,
+  // guardados) se asume el caso normal.
+  const nadieAvisado = avisados === "0";
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
     select: { id: true, name: true, subscriptionStatus: true, trialEndsAt: true },
@@ -75,7 +78,9 @@ export default async function ConserjeriaHome({
         daysLeft={trialDaysLeft(tenant)}
       />
 
-      {codigo && isValidPickupCode(codigo) && <RegisteredBanner code={codigo} />}
+      {codigo && isValidPickupCode(codigo) && (
+        <RegisteredBanner code={codigo} nobodyNotified={nadieAvisado} />
+      )}
 
       <section className="flex-1">
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-400">
@@ -108,7 +113,37 @@ export default async function ConserjeriaHome({
   );
 }
 
-function RegisteredBanner({ code }: { code: string }) {
+function RegisteredBanner({
+  code,
+  nobodyNotified,
+}: {
+  code: string;
+  nobodyNotified: boolean;
+}) {
+  // Si ningún WhatsApp salió, el paquete quedó registrado pero NADIE se
+  // enteró: el banner tiene que gritarlo, no festejar. Es el único caso en que
+  // el guardia puede resolverlo en el momento (avisar él, o revisar el número).
+  if (nobodyNotified) {
+    return (
+      <div
+        role="alert"
+        className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-warn/50 bg-warn/10 px-5 py-4 animate-slide-in-down"
+      >
+        <div>
+          <p className="font-semibold text-warn">Registrado, pero no se pudo avisar a nadie</p>
+          <p className="text-sm text-ink-300">
+            Ningún WhatsApp salió. Avisale vos al residente y pasale este código.
+          </p>
+        </div>
+        <code
+          className="rounded-lg border border-warn/50 bg-ink-900 px-3 py-2 font-mono text-base font-semibold tracking-widest text-warn"
+          aria-label="Código de retiro"
+        >
+          {code}
+        </code>
+      </div>
+    );
+  }
   return (
     <div
       role="status"

@@ -81,6 +81,7 @@ export default async function IngresoPage({
     // El redirect de éxito va FUERA del try: redirect() tira NEXT_REDIRECT
     // y un catch-all lo convertiría en ?error=.
     let pickupCode: string;
+    let notified = 0;
     try {
       const result = await registerPackage({
         tenantId: tenant!.id,
@@ -90,11 +91,15 @@ export default async function IngresoPage({
         photoUrl: typeof photoUrl === "string" && photoUrl ? photoUrl : undefined,
       });
       pickupCode = result.pickupCode;
+      notified = result.notifiedPhones.length;
     } catch (err) {
       const msg = registerErrorMessage(err);
       redirect(`/${slug}/conserjeria/ingreso?error=${encodeURIComponent(msg)}`);
     }
-    redirect(`/${slug}/conserjeria?codigo=${pickupCode}`);
+    // `avisados` decide el color del banner: 0 significa que TODOS los envíos
+    // fallaron (Meta caído, número dado de baja) y el guardia tiene que avisar
+    // a mano — el peor momento para un éxito verde falso.
+    redirect(`/${slug}/conserjeria?codigo=${pickupCode}&avisados=${notified}`);
   }
 
   return (
