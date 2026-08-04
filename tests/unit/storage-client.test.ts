@@ -3,6 +3,7 @@ import {
   assertAllowedImageType,
   getStorageClient,
   keyFromPublicUrl,
+  sniffImageType,
 } from "@/lib/storage/client";
 
 describe("storage client", () => {
@@ -85,5 +86,40 @@ describe("keyFromPublicUrl", () => {
 
   it("devuelve null si no queda key después del base", () => {
     expect(keyFromPublicUrl(`${base}/`, base)).toBeNull();
+  });
+});
+
+describe("sniffImageType — el Content-Type declarado no manda, los bytes sí", () => {
+  const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46]);
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
+  const webp = new Uint8Array([
+    ...Array.from("RIFF", (c) => c.charCodeAt(0)), 0x24, 0x00, 0x00, 0x00,
+    ...Array.from("WEBP", (c) => c.charCodeAt(0)),
+  ]);
+
+  it("reconoce los tres formatos permitidos", () => {
+    expect(sniffImageType(jpeg)).toBe("image/jpeg");
+    expect(sniffImageType(png)).toBe("image/png");
+    expect(sniffImageType(webp)).toBe("image/webp");
+  });
+
+  it("rechaza lo que no es imagen aunque venga etiquetado como tal", () => {
+    const html = new TextEncoder().encode("<html><script>alert(1)</script>");
+    const svg = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg">');
+    const pdf = new TextEncoder().encode("%PDF-1.4");
+    expect(sniffImageType(html)).toBeNull();
+    // SVG ejecuta scripts al servirse inline: jamás debe entrar al bucket.
+    expect(sniffImageType(svg)).toBeNull();
+    expect(sniffImageType(pdf)).toBeNull();
+    expect(sniffImageType(new Uint8Array([]))).toBeNull();
+    expect(sniffImageType(new Uint8Array([0xff, 0xd8]))).toBeNull(); // JPEG truncado
+  });
+
+  it("un RIFF que no es WebP (ej. AVI) no pasa", () => {
+    const avi = new Uint8Array([
+      ...Array.from("RIFF", (c) => c.charCodeAt(0)), 0x24, 0x00, 0x00, 0x00,
+      ...Array.from("AVI ", (c) => c.charCodeAt(0)),
+    ]);
+    expect(sniffImageType(avi)).toBeNull();
   });
 });

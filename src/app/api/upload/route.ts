@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireTenantRole } from "@/lib/auth";
-import { getStorageClient, assertAllowedImageType } from "@/lib/storage/client";
+import {
+  getStorageClient,
+  assertAllowedImageType,
+  sniffImageType,
+} from "@/lib/storage/client";
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8 MB — fotos de celular comprimen bien por debajo.
 
@@ -43,11 +47,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "BAD_TYPE" }, { status: 415 });
   }
 
-  const storage = getStorageClient();
   const bytes = Buffer.from(await file.arrayBuffer());
+
+  // El Content-Type lo declara el cliente; los magic bytes no mienten. Lo que
+  // se sube va a un bucket público y se sirve tal cual, así que el tipo real
+  // manda: un HTML etiquetado "image/jpeg" no tiene que entrar.
+  const sniffed = sniffImageType(bytes);
+  if (!sniffed) {
+    return NextResponse.json({ error: "BAD_TYPE" }, { status: 415 });
+  }
+
+  const storage = getStorageClient();
   const { url } = await storage.put({
     body: bytes,
-    contentType: file.type,
+    contentType: sniffed,
     keyPrefix: `packages/${tenant.id}`,
   });
 

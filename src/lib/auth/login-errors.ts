@@ -53,14 +53,24 @@ const AUTH_ERRORS: Record<string, LoginError> = {
 
 const GENERIC: LoginError = AUTH_ERRORS.Default!;
 
+// Los mensajes que la propia página de login genera. Es un conjunto CERRADO a
+// propósito: el ?error= de la URL lo controla quien arma el link, y reflejar
+// texto arbitrario en un cartel con aspecto oficial convierte al login en un
+// vector de phishing ("Tu cuenta fue bloqueada, llamá al…"). Si agregás un
+// redirect con mensaje nuevo en login/page.tsx, sumalo acá.
+const OWN_MESSAGES = new Set([
+  "Email inválido",
+  "Demasiados intentos. Esperá un minuto y probá de nuevo.",
+  "Ya te mandamos varios links. Revisá tu casilla (y spam) o esperá unos minutos.",
+  "No pudimos enviar el link. Probá de nuevo.",
+]);
+
 /**
  * Convierte el `?error=` de la URL en algo legible.
  *
- * Además de los códigos de Auth.js, la propia página de login redirige con
- * mensajes ya escritos en castellano ("Email inválido", "Demasiados
- * intentos…"). Esos pasan tal cual; lo que se filtra es cualquier código
- * desconocido, que sería una palabra suelta en inglés sin sentido para el
- * usuario.
+ * Sólo se muestran textos que este sistema puede haber generado: los códigos
+ * de Auth.js mapeados y los mensajes propios de la página. Todo lo demás cae
+ * en el genérico — nunca se refleja contenido de la URL en pantalla.
  */
 export function describeLoginError(raw: string | undefined): LoginError | null {
   if (!raw) return null;
@@ -69,10 +79,7 @@ export function describeLoginError(raw: string | undefined): LoginError | null {
 
   const known = AUTH_ERRORS[value];
   if (known) return known;
+  if (OWN_MESSAGES.has(value)) return { title: value, action: "" };
 
-  // Un token CamelCase de una sola palabra es un código de Auth.js que no
-  // mapeamos: mostrarlo sería filtrar un internal.
-  if (/^[A-Za-z]+$/.test(value)) return GENERIC;
-
-  return { title: value, action: "" };
+  return GENERIC;
 }

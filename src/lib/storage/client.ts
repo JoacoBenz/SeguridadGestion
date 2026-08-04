@@ -58,6 +58,30 @@ export function assertAllowedImageType(contentType: string): void {
   }
 }
 
+/**
+ * Detecta el tipo real mirando los magic bytes, ignorando lo que declare el
+ * cliente. El Content-Type de un upload es un header que arma quien sube: sin
+ * esto, cualquier archivo etiquetado "image/jpeg" entraba al bucket público y
+ * se serviría como tal. Devuelve null si no es ninguno de los formatos que
+ * aceptamos.
+ */
+export function sniffImageType(bytes: Uint8Array): string | null {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return "image/jpeg";
+  }
+  const PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  if (bytes.length >= 8 && PNG.every((b, i) => bytes[i] === b)) {
+    return "image/png";
+  }
+  // RIFF....WEBP — los 4 bytes del medio son el tamaño y varían.
+  const ascii = (from: number, to: number) =>
+    String.fromCharCode(...bytes.slice(from, to));
+  if (bytes.length >= 12 && ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP") {
+    return "image/webp";
+  }
+  return null;
+}
+
 class S3StorageClient implements StorageClient {
   readonly isConfigured = true;
   private readonly client: S3Client;

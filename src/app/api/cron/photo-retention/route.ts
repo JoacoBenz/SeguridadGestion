@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { purgeExpiredPhotos, purgeOrphanPhotos } from "@/server/packages/photo-retention";
+import { prisma } from "@/lib/db";
 
 // Disparado por Vercel Cron (ver vercel.json) una vez por día. Misma auth que
 // /api/cron/reminders: `Authorization: Bearer ${CRON_SECRET}`.
@@ -33,5 +34,22 @@ export async function GET(req: Request) {
     `[cron/photo-retention] huérfanos listed=${orphans.listed} deleted=${orphans.orphansDeleted} failed=${orphans.failed}`,
   );
 
-  return NextResponse.json({ ok: true, ...result, orphans });
+  // Mantenimiento de auth: las sesiones y los magic links vencidos no los
+  // borra nadie más. Auth.js sólo purga una sesión vencida cuando ESA cookie
+  // vuelve a usarse — las de dispositivos que no volvieron quedan para siempre.
+  const now = new Date();
+  const [sessions, tokens] = await Promise.all([
+    prisma.session.deleteMany({ where: { expires: { lt: now } } }),
+    prisma.verificationToken.deleteMany({ where: { expires: { lt: now } } }),
+  ]);
+  console.log(
+    `[cron/photo-retention] auth: sesiones vencidas=${sessions.count} tokens vencidos=${tokens.count}`,
+  );
+
+  return NextResponse.json({
+    ok: true,
+    ...result,
+    orphans,
+    auth: { expiredSessions: sessions.count, expiredTokens: tokens.count },
+  });
 }

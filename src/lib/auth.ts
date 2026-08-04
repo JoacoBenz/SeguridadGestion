@@ -118,6 +118,3 @@ export async function requireTenantRoleOrRedirect(
   return session;
 }
 
-export async function getUserById(id: string) {
-  return prisma.user.findUnique({ where: { id } });
-}

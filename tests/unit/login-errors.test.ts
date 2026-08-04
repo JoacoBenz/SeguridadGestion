@@ -58,6 +58,21 @@ describe("describeLoginError — mensajes propios de la app", () => {
   });
 });
 
+describe("describeLoginError — texto arbitrario de la URL", () => {
+  it("NUNCA refleja contenido de la URL en pantalla — sería un vector de phishing", () => {
+    for (const crafted of [
+      "Tu cuenta fue bloqueada. Llamá al 11-5555-0000 para desbloquearla.",
+      "ATENCIÓN: transferí a este alias para reactivar el servicio",
+      "<b>hola</b>",
+      "Error: contactá a soporte@atacante.com",
+    ]) {
+      const e = describeLoginError(crafted)!;
+      expect(e.title).not.toContain(crafted);
+      expect(e.title).toMatch(/no pudimos/i);
+    }
+  });
+});
+
 describe("describeLoginError — sin error", () => {
   it("null cuando no hay nada que mostrar", () => {
     expect(describeLoginError(undefined)).toBeNull();

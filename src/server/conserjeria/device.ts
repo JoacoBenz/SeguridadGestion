@@ -161,10 +161,3 @@ export async function unlockDeviceAction(slug: string, formData: FormData) {
 
   redirect(`/${slug}/conserjeria`);
 }
-
-export async function lockDeviceAction(slug: string, formData: FormData) {
-  void formData;
-  const store = await cookies();
-  store.delete(DEVICE_COOKIE);
-  redirect(`/${slug}/conserjeria/desbloquear`);
-}
