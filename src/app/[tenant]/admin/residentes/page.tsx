@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { PAGE_SIZE, Pager, pageFromParam, skipFor } from "@/components/admin/pager";
 import { SearchBox } from "@/components/admin/search-box";
+import { normalizeUnitLabel } from "@/lib/unit-label";
 import {
   createResidentAction,
   deleteResidentAction,
@@ -38,25 +39,34 @@ export default async function ResidentesPage({
   // Las pages no pueden delegar el auth al layout (renderizan en paralelo).
   await requireTenantRoleOrRedirect(tenant.id, ["admin"], `/${slug}/admin/residentes`);
 
-  // El filtro busca por nombre, teléfono, email o etiqueta de depto: son las
-  // cuatro cosas por las que un admin llega a un residente.
+  // "3B" es inequívocamente una búsqueda por departamento: se compara EXACTO y
+  // no se mezcla con nombre/teléfono/email. Sin eso, buscar 3B traía también a
+  // los de 13B y 23B (por la etiqueta) y a cualquiera cuyo email contuviera
+  // "3b" — justo el ruido que estorba cuando querés llegar a uno puntual.
+  // Cualquier otra cosa busca parcial en los cuatro campos.
+  const asUnitLabel = normalizeUnitLabel(query);
+
   const where = {
     tenantId: tenant.id,
     role: "resident" as const,
-    ...(query
-      ? {
-          OR: [
-            { name: { contains: query, mode: "insensitive" as const } },
-            { phone: { contains: query } },
-            { email: { contains: query, mode: "insensitive" as const } },
-            {
-              unitMemberships: {
-                some: { unit: { label: { contains: query, mode: "insensitive" as const } } },
+    ...(!query
+      ? {}
+      : asUnitLabel
+        ? { unitMemberships: { some: { unit: { label: asUnitLabel } } } }
+        : {
+            OR: [
+              { name: { contains: query, mode: "insensitive" as const } },
+              { phone: { contains: query } },
+              { email: { contains: query, mode: "insensitive" as const } },
+              {
+                unitMemberships: {
+                  some: {
+                    unit: { label: { contains: query, mode: "insensitive" as const } },
+                  },
+                },
               },
-            },
-          ],
-        }
-      : {}),
+            ],
+          }),
   };
 
   const [units, residents, total] = await Promise.all([
@@ -94,7 +104,7 @@ export default async function ResidentesPage({
       <SearchBox
         basePath={`/${slug}/admin/residentes`}
         defaultValue={query}
-        placeholder="Buscar por nombre, teléfono, email o depto"
+        placeholder="Buscar por depto (3B), nombre, teléfono o email"
       />
 
       {ok && (
