@@ -23,7 +23,7 @@ export async function GET(req: Request) {
 
   const result = await purgeExpiredPhotos();
   console.log(
-    `[cron/photo-retention] scanned=${result.scanned} deleted=${result.photosDeleted} failed=${result.failed} tenantsSkipped=${result.tenantsSkipped}`,
+    `[cron/photo-retention] scanned=${result.scanned} deleted=${result.photosDeleted} failed=${result.failed}`,
   );
 
   // Después de limpiar por retención, barre lo que quedó sin dueño: fotos

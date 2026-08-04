@@ -1,12 +1,11 @@
 import { prisma } from "@/lib/db";
 import { getStorageClient } from "@/lib/storage/client";
-import { photoRetentionCutoff, photoRetentionDays } from "@/lib/photo-policy";
+import { photoRetentionCutoff } from "@/lib/photo-policy";
 
 export interface PhotoPurgeResult {
   scanned: number;
   photosDeleted: number;
   failed: number;
-  tenantsSkipped: number;
 }
 
 // Cuántos paquetes procesa una corrida. Acota el tiempo del serverless; el
@@ -34,40 +33,23 @@ export async function purgeExpiredPhotos(
 ): Promise<PhotoPurgeResult> {
   const storage = getStorageClient();
   if (!storage.isConfigured) {
-    return { scanned: 0, photosDeleted: 0, failed: 0, tenantsSkipped: 0 };
+    return { scanned: 0, photosDeleted: 0, failed: 0 };
   }
 
-  // La retención se configura por edificio, así que no se puede filtrar por
-  // fecha en SQL con un único cutoff. Traemos los candidatos por la ventana
-  // más larga posible y filtramos por tenant en memoria.
-  const tenants = await prisma.tenant.findMany({ select: { id: true, settings: true } });
-  const cutoffByTenant = new Map<string, Date | null>();
-  let tenantsSkipped = 0;
-  for (const tenant of tenants) {
-    const cutoff = photoRetentionCutoff(now, photoRetentionDays(tenant.settings));
-    if (!cutoff) tenantsSkipped++;
-    cutoffByTenant.set(tenant.id, cutoff);
-  }
-
-  const activeCutoffs = [...cutoffByTenant.values()].filter((c): c is Date => c !== null);
-  if (activeCutoffs.length === 0) {
-    return { scanned: 0, photosDeleted: 0, failed: 0, tenantsSkipped };
-  }
-  const widestCutoff = new Date(Math.max(...activeCutoffs.map((c) => c.getTime())));
+  const cutoff = photoRetentionCutoff(now);
 
   const candidates = await prisma.package.findMany({
     where: {
       status: { in: ["picked_up", "cancelled"] },
       OR: [{ photoUrl: { not: null } }, { pickupPhotoUrl: { not: null } }],
-      // `closedAt` no existe como columna; receivedAt siempre es anterior al
-      // cierre, así que sirve como filtro grueso y el fino va abajo.
-      receivedAt: { lte: widestCutoff },
+      // `receivedAt` es siempre anterior al cierre, así que sirve de filtro
+      // grueso en SQL; el corte fino por fecha de cierre va en el bucle.
+      receivedAt: { lte: cutoff },
     },
     orderBy: { receivedAt: "asc" },
     take: limit,
     select: {
       id: true,
-      tenantId: true,
       photoUrl: true,
       pickupPhotoUrl: true,
       pickedUpAt: true,
@@ -80,9 +62,6 @@ export async function purgeExpiredPhotos(
   let failed = 0;
 
   for (const pkg of candidates) {
-    const cutoff = cutoffByTenant.get(pkg.tenantId);
-    if (!cutoff) continue;
-
     // El plazo corre desde que el paquete se cerró, no desde que llegó.
     const closedAt = pkg.pickedUpAt ?? pkg.cancelledAt ?? pkg.receivedAt;
     if (closedAt > cutoff) continue;
@@ -111,7 +90,7 @@ export async function purgeExpiredPhotos(
     }
   }
 
-  return { scanned: candidates.length, photosDeleted, failed, tenantsSkipped };
+  return { scanned: candidates.length, photosDeleted, failed };
 }
 
 export interface OrphanPurgeResult {
