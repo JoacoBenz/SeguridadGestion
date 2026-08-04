@@ -41,10 +41,11 @@ jobs:
       - run: pnpm db:generate
       - run: pnpm typecheck
       - run: pnpm lint
-      - run: pnpm test
-      # Las migraciones tienen que aplicar limpias sobre una DB vacía y el
-      # seed correr encima — es lo mismo que pasa en cada deploy nuevo.
+      # Las migraciones tienen que aplicar limpias sobre una DB vacía — es lo
+      # mismo que pasa en cada deploy nuevo. Van antes de `test` porque
+      # tests/integration corre contra este Postgres.
       - run: pnpm db:deploy
+      - run: pnpm test
       - run: pnpm db:seed
       - run: pnpm build
       # E2E contra el build real: login por magic link, registrar → retirar,
