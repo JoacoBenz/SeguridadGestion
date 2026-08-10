@@ -8,6 +8,8 @@ import { SubscriptionBlockedScreen } from "@/components/subscription-banner";
 import { UnitTilePicker } from "@/components/conserjeria/unit-tile-picker";
 import { SubmitButton } from "@/components/submit-button";
 import { PhotoCapture } from "@/components/conserjeria/photo-capture";
+import { CarrierField } from "@/components/conserjeria/carrier-field";
+import { foldCarrierSuggestions } from "@/lib/carriers";
 import { getStorageClient } from "@/lib/storage/client";
 import { isPhotoRequired, photoMode, shouldShowPhotoField } from "@/lib/photo-policy";
 
@@ -47,11 +49,22 @@ export default async function IngresoPage({
     );
   }
 
-  const units = await prisma.unit.findMany({
-    where: { tenantId: tenant.id },
-    orderBy: { label: "asc" },
-    select: { id: true, label: true },
-  });
+  const [units, carrierRows] = await Promise.all([
+    prisma.unit.findMany({
+      where: { tenantId: tenant.id },
+      orderBy: { label: "asc" },
+      select: { id: true, label: true },
+    }),
+    // Transportistas ya usados en el edificio, para ofrecerlos como chips.
+    prisma.package.groupBy({
+      by: ["carrier"],
+      where: { tenantId: tenant.id, carrier: { not: null } },
+      _count: { _all: true },
+    }),
+  ]);
+  const carrierSuggestions = foldCarrierSuggestions(
+    carrierRows.map((r) => ({ carrier: r.carrier, count: r._count._all })),
+  );
 
   const storageConfigured = getStorageClient().isConfigured;
   const mode = photoMode(tenant.settings);
@@ -116,33 +129,34 @@ export default async function IngresoPage({
       )}
 
       <form action={action} className="flex flex-col gap-8">
+        {/* Cada paso completado desliza la pantalla al siguiente (advanceTo):
+            depto → transportista → foto (si aplica) → registrar. */}
         <section>
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-400">
             Para qué departamento
           </h2>
-          <UnitTilePicker name="unitId" units={units} />
+          <UnitTilePicker name="unitId" units={units} advanceToId="paso-transportista" />
         </section>
 
-        <section>
-          <label className="block">
-            <span className="mb-2 block text-xs font-semibold uppercase tracking-widest text-ink-400">
-              Transportista <span className="font-normal normal-case text-ink-500">(opcional)</span>
-            </span>
-            <input
-              name="carrier"
-              placeholder="Andreani, OCA, Mercado Libre…"
-              className="w-full rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-ink-100 placeholder:text-ink-500 focus:border-accent focus:outline-none"
-            />
-          </label>
+        <section id="paso-transportista" className="scroll-mt-4">
+          <span className="mb-2 block text-xs font-semibold uppercase tracking-widest text-ink-400">
+            Transportista <span className="font-normal normal-case text-ink-500">(opcional)</span>
+          </span>
+          <CarrierField
+            name="carrier"
+            suggestions={carrierSuggestions}
+            advanceToId={photoEnabled ? "paso-foto" : "paso-registrar"}
+          />
         </section>
 
         {photoEnabled && (
-          <section>
+          <section id="paso-foto" className="scroll-mt-4">
             <PhotoCapture
               slug={slug}
               name="photoUrl"
               label="Foto del paquete"
               required={photoRequired}
+              advanceToId="paso-registrar"
             />
           </section>
         )}
@@ -166,8 +180,9 @@ export default async function IngresoPage({
         </details>
 
         <SubmitButton
+          id="paso-registrar"
           pendingText="Registrando…"
-          className="rounded-2xl bg-accent px-4 py-4 text-lg font-bold text-accent-fg transition-transform active:scale-[0.98]"
+          className="scroll-mt-4 rounded-2xl bg-accent px-4 py-4 text-lg font-bold text-accent-fg transition-transform active:scale-[0.98]"
         >
           Registrar y notificar
         </SubmitButton>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { advanceTo } from "./advance";
 
 // Captura de foto. Usa la cámara nativa del celular (input capture), sube al
 // /api/upload y deja la URL en un field con el name que se pase. Con
@@ -13,11 +14,14 @@ export function PhotoCapture({
   name,
   label,
   required = false,
+  advanceToId,
 }: {
   slug: string;
   name: string;
   label: string;
   required?: boolean;
+  /** Sección a la que scrollear cuando la foto queda lista. */
+  advanceToId?: string;
 }) {
   const [url, setUrl] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -71,6 +75,9 @@ export function PhotoCapture({
       // La que se reemplaza se borra recién ahora: si el borrado saliera antes
       // y la nueva subida fallara, el guardia se quedaría sin ninguna.
       if (replaced) discard(replaced);
+      // Con la foto lista, el único paso que queda es registrar: llevá la
+      // pantalla ahí. En un retake no — el guardia ya sabe dónde está el botón.
+      if (!replaced) advanceTo(advanceToId);
     } catch {
       if (seq !== uploadSeq.current) return;
       setState("error");

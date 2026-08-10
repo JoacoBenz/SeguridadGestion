@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { compareUnitLabels } from "@/lib/unit-label";
+import { advanceTo } from "./advance";
 
 export interface UnitOption {
   id: string;
@@ -11,6 +12,8 @@ export interface UnitOption {
 interface Props {
   name: string;
   units: UnitOption[];
+  /** Sección a la que scrollear al elegir, para encadenar la carga. */
+  advanceToId?: string;
 }
 
 // A partir de acá la grilla completa deja de entrar en una pantalla de celular
@@ -24,7 +27,7 @@ const COLS = 4;
 const ROWS = 5;
 const PER_PAGE = COLS * ROWS;
 
-export function UnitTilePicker({ name, units }: Props) {
+export function UnitTilePicker({ name, units, advanceToId }: Props) {
   const [selected, setSelected] = useState<UnitOption | null>(null);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
@@ -69,6 +72,14 @@ export function UnitTilePicker({ name, units }: Props) {
     setPage(0);
     trackRef.current?.scrollTo({ left: 0 });
   }, [query]);
+
+  function select(u: UnitOption) {
+    // Avanza sólo en la PRIMERA elección: si el guardia vuelve a corregir el
+    // depto, arrastrarlo de nuevo hacia abajo sería pelearle la pantalla.
+    const first = selected === null;
+    setSelected(u);
+    if (first) advanceTo(advanceToId);
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -131,7 +142,7 @@ export function UnitTilePicker({ name, units }: Props) {
                     key={u.id}
                     unit={u}
                     active={u.id === selected?.id}
-                    onSelect={() => setSelected(u)}
+                    onSelect={() => select(u)}
                   />
                 ))}
               </div>
@@ -161,7 +172,7 @@ export function UnitTilePicker({ name, units }: Props) {
               key={u.id}
               unit={u}
               active={u.id === selected?.id}
-              onSelect={() => setSelected(u)}
+              onSelect={() => select(u)}
             />
           ))}
         </div>

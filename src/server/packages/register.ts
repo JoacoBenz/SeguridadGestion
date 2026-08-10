@@ -13,7 +13,14 @@ import { qrImageUrl } from "@/lib/urls";
 const RegisterPackageInput = z.object({
   tenantId: z.string().min(1),
   unitId: z.string().min(1),
-  carrier: z.string().max(80).optional(),
+  // trim: " Andreani" y "Andreani" deben contar como el mismo transportista
+  // en el ranking de reportes y en las sugerencias del alta. Un valor que
+  // queda vacío pasa a undefined para no guardar "" en vez de null.
+  carrier: z
+    .string()
+    .max(80)
+    .transform((s) => s.trim() || undefined)
+    .optional(),
   notes: z.string().max(500).optional(),
   photoUrl: z.string().url().optional(),
 });

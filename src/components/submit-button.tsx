@@ -10,14 +10,17 @@ export function SubmitButton({
   children,
   pendingText = "Procesando…",
   className,
+  id,
 }: {
   children: React.ReactNode;
   pendingText?: string;
   className?: string;
+  id?: string;
 }) {
   const { pending } = useFormStatus();
   return (
     <button
+      id={id}
       type="submit"
       disabled={pending}
       aria-busy={pending}
