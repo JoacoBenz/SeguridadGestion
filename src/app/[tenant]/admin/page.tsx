@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { KpiCard } from "@/components/admin/kpi-card";
+import { OnboardingChecklist } from "@/components/admin/onboarding-checklist";
+import { onboardingState } from "@/lib/onboarding";
 import { setGuardPinAction, clearGuardPinAction } from "@/server/seguridad/device";
 import { setPhotoSettingsAction } from "@/server/admin/photo-settings";
 import { formatDate, startOfMonthInTimeZone } from "@/lib/datetime";
@@ -40,8 +42,15 @@ export default async function AdminDashboard({
   const startOfMonth = startOfMonthInTimeZone(now, tenant.timezone);
   const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
 
-  const [pending, stale, receivedThisMonth, pickedUpThisMonth, unitCount, residentCount] =
-    await Promise.all([
+  const [
+    pending,
+    stale,
+    receivedThisMonth,
+    pickedUpThisMonth,
+    unitCount,
+    residentCount,
+    packageCount,
+  ] = await Promise.all([
       prisma.package.count({
         where: { tenantId: tenant.id, status: "awaiting_pickup" },
       }),
@@ -66,7 +75,10 @@ export default async function AdminDashboard({
       prisma.user.count({
         where: { tenantId: tenant.id, role: "resident" },
       }),
+      prisma.package.count({ where: { tenantId: tenant.id } }),
     ]);
+
+  const onboarding = onboardingState({ unitCount, residentCount, hasPin, packageCount });
 
   return (
     <div className="flex flex-col gap-8">
@@ -80,6 +92,8 @@ export default async function AdminDashboard({
           {error}
         </div>
       )}
+
+      <OnboardingChecklist state={onboarding} slug={slug} />
 
       <section>
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-400">
@@ -154,7 +168,8 @@ export default async function AdminDashboard({
         </div>
       </section>
 
-      <section>
+      {/* id: destino del ancla del checklist de primeros pasos. */}
+      <section id="pin-seguridad" className="scroll-mt-4">
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-400">
           PIN de seguridad
         </h2>
