@@ -159,7 +159,7 @@ export const WhatsAppScene: React.FC<SceneProps> = ({ vertical }) => {
               }}
             >
               Hola <b>Juan</b> 👋 Llegó un paquete para <b>3B</b> en Edificio Libertad
-              (Andreani). Mostrá este QR en conserjería o decí el código:
+              (Andreani). Mostrá este QR en seguridad o decí el código:
             </div>
             <div
               style={{

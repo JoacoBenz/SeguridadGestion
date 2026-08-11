@@ -38,7 +38,7 @@ const csp = [
 ].join("; ");
 
 // Headers de seguridad base. camera=(self) queda permitido porque el scanner
-// de QR de la conserjería usa getUserMedia en el mismo origen.
+// de QR del puesto de seguridad usa getUserMedia en el mismo origen.
 const securityHeaders = [
   { key: "Content-Security-Policy", value: csp },
   { key: "X-Frame-Options", value: "DENY" },
@@ -51,6 +51,22 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
+  },
+  // La ruta del puesto era /conserjeria; hay tablets con la URL vieja anclada
+  // (PWA instalada, bookmarks). Redirect permanente para no dejarlas en un 404.
+  async redirects() {
+    return [
+      {
+        source: "/:tenant/conserjeria",
+        destination: "/:tenant/seguridad",
+        permanent: true,
+      },
+      {
+        source: "/:tenant/conserjeria/:path*",
+        destination: "/:tenant/seguridad/:path*",
+        permanent: true,
+      },
+    ];
   },
 };
 

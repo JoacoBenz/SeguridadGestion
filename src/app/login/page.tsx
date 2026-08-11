@@ -140,9 +140,9 @@ async function landingPathFor(session: Session): Promise<string> {
     select: { slug: true },
   });
   // Sin slug no se puede armar una ruta de tenant; un "" generaría
-  // "//conserjeria", que el browser trata como URL externa.
+  // "//seguridad", que el browser trata como URL externa.
   if (!t) return "/sin-edificio";
   if (session.role === "admin") return `/${t.slug}/admin`;
   if (session.role === "resident") return `/${t.slug}/residente/mis-paquetes`;
-  return `/${t.slug}/conserjeria`;
+  return `/${t.slug}/seguridad`;
 }

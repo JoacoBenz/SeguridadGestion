@@ -1,6 +1,6 @@
 # PackItO
 
-PWA multi-tenant para reemplazar el cuaderno de la conserjería de los edificios. La guardia 24/7 registra cada paquete que llega; el residente recibe un WhatsApp con un código + QR únicos; el retiro se confirma escaneando el QR o tipeando el código.
+PWA multi-tenant para reemplazar el cuaderno de la seguridad de los edificios. La guardia 24/7 registra cada paquete que llega; el residente recibe un WhatsApp con un código + QR únicos; el retiro se confirma escaneando el QR o tipeando el código.
 
 ## Estado
 
@@ -20,7 +20,7 @@ pnpm dev
 Por defecto, sin credenciales de Meta, los mensajes de WhatsApp se loguean en consola en vez de enviarse de verdad. Ver `src/lib/whatsapp/client.ts`.
 
 Edificio piloto sembrado: `edificio-libertad`.
-- Conserjería: http://localhost:3000/edificio-libertad/conserjeria
+- Seguridad: http://localhost:3000/edificio-libertad/seguridad
 - Admin: http://localhost:3000/edificio-libertad/admin (próximamente)
 
 ## Scripts

@@ -92,7 +92,7 @@ export default async function MisPaquetesPage({
                     Llegó {formatDateTime(p.receivedAt, tenant.timezone)}
                   </p>
                   <p className="mt-2 text-xs text-ink-500">
-                    Mostrá el QR o decí el código en la conserjería.
+                    Mostrá el QR o decí el código en la seguridad.
                   </p>
                 </div>
               </li>

@@ -20,7 +20,7 @@ test("health endpoint reports db up", async ({ request }) => {
 
 test("protected routes redirect to login when unauthenticated", async ({ page }) => {
   for (const path of [
-    `/${SLUG}/conserjeria`,
+    `/${SLUG}/seguridad`,
     `/${SLUG}/admin`,
     `/${SLUG}/residente/mis-paquetes`,
     "/superadmin",
@@ -36,7 +36,7 @@ test("unknown QR token 404s", async ({ request }) => {
 });
 
 test("device unlock page renders for a real tenant", async ({ page }) => {
-  const res = await page.goto(`/${SLUG}/conserjeria/desbloquear`);
+  const res = await page.goto(`/${SLUG}/seguridad/desbloquear`);
   expect(res?.status()).toBe(200);
-  await expect(page.getByText("Conserjería").first()).toBeVisible();
+  await expect(page.getByText("Seguridad").first()).toBeVisible();
 });

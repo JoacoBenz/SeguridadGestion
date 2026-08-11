@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { pickupByCodeAction } from "@/server/packages/pickup-actions";
-import { PickupFlow } from "@/components/conserjeria/pickup-flow";
+import { PickupFlow } from "@/components/seguridad/pickup-flow";
 
 export default async function RetiroPage({
   params,
@@ -21,7 +21,7 @@ export default async function RetiroPage({
   });
   if (!tenant) notFound();
 
-  await requireTenantRoleOrRedirect(tenant.id, ["guard", "admin"], `/${slug}/conserjeria/retiro`);
+  await requireTenantRoleOrRedirect(tenant.id, ["guard", "admin"], `/${slug}/seguridad/retiro`);
 
   const codeAction = pickupByCodeAction.bind(null, slug);
 
@@ -38,7 +38,7 @@ function PageHeader({ slug, tenantName }: { slug: string; tenantName: string }) 
   return (
     <header className="mb-8 flex items-center gap-3">
       <Link
-        href={`/${slug}/conserjeria`}
+        href={`/${slug}/seguridad`}
         aria-label="Volver"
         className="flex h-10 w-10 items-center justify-center rounded-xl border border-ink-700 bg-ink-800 text-ink-300 transition-colors hover:text-ink-100"
       >

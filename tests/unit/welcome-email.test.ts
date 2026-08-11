@@ -58,7 +58,7 @@ describe("mail de bienvenida", () => {
   it("el texto cambia según el rol", () => {
     expect(admin().text).toMatch(/administrar/);
     expect(admin().text).toMatch(/residentes/);
-    expect(guard().text).toMatch(/conserjer/i);
+    expect(guard().text).toMatch(/seguridad/i);
     expect(guard().text).toMatch(/retiros/);
   });
 

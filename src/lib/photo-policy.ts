@@ -40,11 +40,11 @@ export function photoMode(settings: unknown): PhotoMode {
 }
 
 /**
- * Teléfono de la conserjería al que se manda una copia de la foto del paquete.
+ * Teléfono de la seguridad al que se manda una copia de la foto del paquete.
  * Vacío = no se manda copia.
  */
 export function photoCopyPhone(settings: unknown): string | null {
-  const value = settingsObject(settings).conserjeriaPhone;
+  const value = settingsObject(settings).seguridadPhone;
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 

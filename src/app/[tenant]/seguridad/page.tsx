@@ -5,10 +5,10 @@ import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { isValidPickupCode } from "@/lib/codes";
 import { subscriptionBlockReason, trialDaysLeft } from "@/lib/subscription";
 import { SubscriptionWarningBanner } from "@/components/subscription-banner";
-import { PackageCard } from "@/components/conserjeria/package-card";
+import { PackageCard } from "@/components/seguridad/package-card";
 import { LogoutButton } from "@/components/logout-button";
 
-export default async function ConserjeriaHome({
+export default async function SeguridadHome({
   params,
   searchParams,
 }: {
@@ -29,7 +29,7 @@ export default async function ConserjeriaHome({
   const session = await requireTenantRoleOrRedirect(
     tenant.id,
     ["guard", "admin"],
-    `/${slug}/conserjeria`,
+    `/${slug}/seguridad`,
   );
   // Los guardias (incl. sesiones de dispositivo) no ven accesos al panel.
   const canSeeAdmin = session.role === "admin" || session.role === "superadmin";
@@ -47,7 +47,7 @@ export default async function ConserjeriaHome({
       <header className="mb-8 flex items-baseline justify-between">
         <div>
           <p className="text-sm text-ink-400">{tenant.name}</p>
-          <h1 className="text-2xl font-bold tracking-tight">Conserjería</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Seguridad</h1>
         </div>
         <div className="flex flex-col items-end gap-2">
           <PendingBadge count={pendientes.length} />
@@ -191,14 +191,14 @@ function FloatingActions({ slug }: { slug: string }) {
     >
       <div className="mx-auto flex max-w-3xl gap-3 px-4 py-3">
         <Link
-          href={`/${slug}/conserjeria/ingreso`}
+          href={`/${slug}/seguridad/ingreso`}
           className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-ink-700 bg-ink-800 py-4 font-semibold text-ink-100 transition-colors hover:border-ink-500"
         >
           <span className="text-lg" aria-hidden>＋</span>
           Registrar
         </Link>
         <Link
-          href={`/${slug}/conserjeria/retiro`}
+          href={`/${slug}/seguridad/retiro`}
           className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-accent py-4 font-semibold text-accent-fg transition-transform active:scale-[0.98]"
         >
           <span className="text-lg" aria-hidden>✓</span>

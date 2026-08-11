@@ -25,7 +25,7 @@ export default function PrivacidadPage() {
       <div className="mt-8 flex flex-col gap-8 text-ink-300 leading-relaxed">
         <Section title="Quiénes somos">
           PackItO es un servicio de gestión de paquetes para edificios residenciales, operado
-          por BEXOVAR. Digitaliza la recepción y el retiro de paquetes en la conserjería de
+          por BEXOVAR. Digitaliza la recepción y el retiro de paquetes en la seguridad de
           cada edificio (consorcio) que contrata el servicio. Esta política describe qué datos
           tratamos y con qué fin.
         </Section>
@@ -44,7 +44,7 @@ export default function PrivacidadPage() {
             <li>
               <strong className="text-ink-100">De los paquetes:</strong> unidad de destino,
               transportista, fecha y hora de recepción y retiro, y una foto opcional del
-              paquete tomada por la conserjería.
+              paquete tomada por la seguridad.
             </li>
             <li>
               <strong className="text-ink-100">Registros de actividad:</strong> quién registró
@@ -60,7 +60,7 @@ export default function PrivacidadPage() {
               cuando llega un paquete a su nombre, con un código QR para el retiro.
             </li>
             <li>Enviar recordatorios cuando un paquete permanece sin retirar.</li>
-            <li>Permitir a la conserjería procesar el retiro y llevar el registro.</li>
+            <li>Permitir a la seguridad procesar el retiro y llevar el registro.</li>
             <li>Autenticar el acceso de administradores y guardias por enlace de correo.</li>
           </ul>
           <p className="mt-3">

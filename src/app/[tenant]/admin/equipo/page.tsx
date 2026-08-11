@@ -36,7 +36,7 @@ export default async function EquipoPage({
       tenantId: tenant.id,
       role: { in: ["admin", "guard"] },
       // Excluye el guard sintético del dispositivo-PIN: no es una persona, se
-      // gestiona desde "PIN de conserjería" en el panel, no acá.
+      // gestiona desde "PIN de seguridad" en el panel, no acá.
       NOT: { email: { endsWith: "@paqueteok.device" } },
     },
     orderBy: [{ role: "asc" }, { name: "asc" }],
@@ -57,7 +57,7 @@ export default async function EquipoPage({
       <p className="text-sm text-ink-400">
         Administradores y guardias que entran con su email (magic link). Los guardias también
         pueden usar el{" "}
-        <span className="text-ink-200">PIN de conserjería</span> en la tablet del mostrador.
+        <span className="text-ink-200">PIN de seguridad</span> en la tablet del mostrador.
       </p>
 
       {ok && (
@@ -100,7 +100,7 @@ export default async function EquipoPage({
             defaultValue="guard"
             className="w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 text-ink-100 focus:border-accent focus:outline-none"
           >
-            <option value="guard">Guardia — solo conserjería</option>
+            <option value="guard">Guardia — solo seguridad</option>
             <option value="admin">Administrador — panel completo</option>
           </select>
         </Field>

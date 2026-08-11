@@ -133,19 +133,19 @@ describe("registerPackage — qué mensajes salen", () => {
     expect(templatesSent()).not.toContain("paquete_foto_v1");
   });
 
-  it("sin foto tampoco manda la copia a la conserjería, aunque haya teléfono", async () => {
+  it("sin foto tampoco manda la copia a la seguridad, aunque haya teléfono", async () => {
     await prisma.tenant.update({
       where: { id: tenantId },
-      data: { settings: { conserjeriaPhone: "+5491100000000" } },
+      data: { settings: { seguridadPhone: "+5491100000000" } },
     });
     await registerPackage({ tenantId, unitId });
     expect(templatesSent()).toEqual(["paquete_recibido_v3"]);
   });
 
-  it("con foto y teléfono de conserjería manda las tres", async () => {
+  it("con foto y teléfono de seguridad manda las tres", async () => {
     await prisma.tenant.update({
       where: { id: tenantId },
-      data: { settings: { conserjeriaPhone: "+5491100000000" } },
+      data: { settings: { seguridadPhone: "+5491100000000" } },
     });
     await registerPackage({ tenantId, unitId, photoUrl: PHOTO_URL });
     expect(templatesSent()).toEqual([
@@ -246,14 +246,14 @@ describe("registerPackage — invariantes", () => {
     expect(audit).not.toBeNull();
   });
 
-  it("informa a quién se notificó, para que la conserjería pueda avisar si no fue a nadie", async () => {
+  it("informa a quién se notificó, para que la seguridad pueda avisar si no fue a nadie", async () => {
     const result = await registerPackage({ tenantId, unitId });
     expect(result.notifiedPhones).toEqual([residentPhone]);
   });
 
   it("si TODOS los envíos fallan, el paquete igual se crea y notifiedPhones queda vacío", async () => {
     // Meta caído no puede impedir recibir el paquete físico — pero el banner
-    // de la conserjería usa este vacío para avisar que nadie se enteró.
+    // de la seguridad usa este vacío para avisar que nadie se enteró.
     setWhatsAppClient({
       async sendTemplate() {
         throw new Error("Meta API 500: caída simulada");

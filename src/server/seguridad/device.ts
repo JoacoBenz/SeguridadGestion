@@ -18,7 +18,7 @@ import {
 
 const PinSchema = z.string().regex(/^\d{4,8}$/, "El PIN son 4 a 8 dígitos");
 
-// --- Admin: fija o borra el PIN de conserjería del edificio ---
+// --- Admin: fija o borra el PIN de seguridad del edificio ---
 
 export async function setGuardPinAction(slug: string, formData: FormData) {
   const tenant = await prisma.tenant.findUnique({ where: { slug }, select: { id: true } });
@@ -40,7 +40,7 @@ export async function setGuardPinAction(slug: string, formData: FormData) {
       email: `device+${tenant.id}@paqueteok.device`,
       tenantId: tenant.id,
       role: "guard",
-      name: "Conserjería (dispositivo)",
+      name: "Seguridad (dispositivo)",
     },
     select: { id: true },
   });
@@ -73,7 +73,7 @@ export async function setGuardPinAction(slug: string, formData: FormData) {
     metadata: {},
   });
 
-  redirect(`/${slug}/admin?ok=${encodeURIComponent("PIN de conserjería actualizado")}`);
+  redirect(`/${slug}/admin?ok=${encodeURIComponent("PIN de seguridad actualizado")}`);
 }
 
 export async function clearGuardPinAction(slug: string, formData: FormData) {
@@ -106,7 +106,7 @@ export async function clearGuardPinAction(slug: string, formData: FormData) {
     metadata: {},
   });
 
-  redirect(`/${slug}/admin?ok=${encodeURIComponent("PIN de conserjería borrado")}`);
+  redirect(`/${slug}/admin?ok=${encodeURIComponent("PIN de seguridad borrado")}`);
 }
 
 // --- Dispositivo: desbloquea con el PIN y deja la cookie de sesión ---
@@ -119,7 +119,7 @@ export async function unlockDeviceAction(slug: string, formData: FormData) {
   const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   if (!rateLimit(`pin:${ip}:${slug}`, { limit: 5, windowMs: 60_000 }).ok) {
     redirect(
-      `/${slug}/conserjeria/desbloquear?error=${encodeURIComponent(
+      `/${slug}/seguridad/desbloquear?error=${encodeURIComponent(
         "Demasiados intentos. Esperá un minuto.",
       )}`,
     );
@@ -130,7 +130,7 @@ export async function unlockDeviceAction(slug: string, formData: FormData) {
     select: { id: true, settings: true },
   });
   if (!tenant) {
-    redirect(`/${slug}/conserjeria/desbloquear?error=${encodeURIComponent("Edificio no encontrado")}`);
+    redirect(`/${slug}/seguridad/desbloquear?error=${encodeURIComponent("Edificio no encontrado")}`);
   }
 
   const settings = (tenant!.settings as Record<string, unknown>) ?? {};
@@ -141,7 +141,7 @@ export async function unlockDeviceAction(slug: string, formData: FormData) {
 
   const pin = formData.get("pin");
   if (!pinHash || !deviceUserId || typeof pin !== "string" || !verifyPin(pin, pinHash)) {
-    redirect(`/${slug}/conserjeria/desbloquear?error=${encodeURIComponent("PIN incorrecto")}`);
+    redirect(`/${slug}/seguridad/desbloquear?error=${encodeURIComponent("PIN incorrecto")}`);
   }
 
   const cookie = encodeDeviceCookie({
@@ -159,5 +159,5 @@ export async function unlockDeviceAction(slug: string, formData: FormData) {
     path: "/",
   });
 
-  redirect(`/${slug}/conserjeria`);
+  redirect(`/${slug}/seguridad`);
 }

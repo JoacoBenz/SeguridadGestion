@@ -53,10 +53,10 @@ export function AdminNav({ slug, tenantName, isSuperadmin = false }: Props) {
             </Link>
           )}
           <Link
-            href={`/${slug}/conserjeria`}
+            href={`/${slug}/seguridad`}
             className="rounded-xl border border-ink-700 bg-ink-800 px-3 py-2 text-xs text-ink-300 transition-colors hover:text-ink-100"
           >
-            Ir a conserjería →
+            Ir a seguridad →
           </Link>
           <LogoutButton />
         </div>

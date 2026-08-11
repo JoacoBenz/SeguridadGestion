@@ -60,7 +60,7 @@ function Hero() {
       <p className="max-w-2xl text-lg text-ink-300 sm:text-xl">
         El guardia registra el paquete en segundos, el residente recibe un WhatsApp con QR y
         código al instante, y cada retiro queda auditado. Sin apps para los residentes, sin
-        cuadernos para la conserjería.
+        cuadernos para la seguridad.
       </p>
       <div className="flex flex-col gap-3 sm:flex-row">
         <a
@@ -170,7 +170,7 @@ function Pricing() {
   const incluye = [
     "Unidades y residentes ilimitados",
     "Notificaciones por WhatsApp incluidas",
-    "Conserjería + panel de administración + reportes",
+    "Seguridad + panel de administración + reportes",
     "Auditoría completa de cada movimiento",
     "Soporte por WhatsApp y email",
   ];
@@ -226,7 +226,7 @@ function CierreCta() {
         Dejá el cuaderno. <span className="text-ink-400">Quedate con la trazabilidad.</span>
       </h2>
       <p className="mx-auto mt-4 max-w-xl text-ink-300">
-        En menos de un día tu conserjería registra paquetes con QR y tus residentes reciben
+        En menos de un día tu seguridad registra paquetes con QR y tus residentes reciben
         WhatsApp automáticos.
       </p>
       <a

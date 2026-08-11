@@ -4,7 +4,7 @@ import { useFormStatus } from "react-dom";
 
 // Botón de submit con estado pending: se deshabilita y cambia el texto
 // mientras la server action corre. Evita el doble-tap en funciones frías
-// (que en conserjería significaría registrar el mismo paquete dos veces).
+// (que en seguridad significaría registrar el mismo paquete dos veces).
 // Tiene que renderizarse DENTRO del <form> cuya action observa.
 export function SubmitButton({
   children,

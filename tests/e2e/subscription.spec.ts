@@ -20,7 +20,7 @@ test.describe.serial("gating de suscripción", () => {
     test.use({ storageState: "tests/e2e/.auth/guard.json" });
 
     test("queda un paquete pendiente antes de suspender", async ({ page }) => {
-      await page.goto("/edificio-libertad/conserjeria/ingreso");
+      await page.goto("/edificio-libertad/seguridad/ingreso");
       await page.click('button:has-text("1A")');
       await page.fill('input[name="carrier"]', carrier);
       await page.click('button:has-text("Registrar y notificar")');
@@ -44,13 +44,13 @@ test.describe.serial("gating de suscripción", () => {
     test.use({ storageState: "tests/e2e/.auth/guard.json" });
 
     test("suspendido: el ingreso está bloqueado", async ({ page }) => {
-      await page.goto("/edificio-libertad/conserjeria/ingreso");
+      await page.goto("/edificio-libertad/seguridad/ingreso");
       await expect(page.getByText("Suscripción inactiva")).toBeVisible();
       await expect(page.locator('button:has-text("Registrar y notificar")')).toHaveCount(0);
     });
 
     test("suspendido: el retiro del pendiente sigue funcionando", async ({ page }) => {
-      await page.goto("/edificio-libertad/conserjeria/retiro");
+      await page.goto("/edificio-libertad/seguridad/retiro");
       await page.click('button:has-text("Tipear código")');
       await typePickupCode(page, pendingCode);
       await page.click('button:has-text("Confirmar retiro")');
@@ -74,7 +74,7 @@ test.describe.serial("gating de suscripción", () => {
     test.use({ storageState: "tests/e2e/.auth/guard.json" });
 
     test("reactivado: el ingreso vuelve a estar disponible", async ({ page }) => {
-      await page.goto("/edificio-libertad/conserjeria/ingreso");
+      await page.goto("/edificio-libertad/seguridad/ingreso");
       await expect(page.locator('button:has-text("Registrar y notificar")')).toBeVisible();
     });
   });

@@ -3,16 +3,11 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { KpiCard } from "@/components/admin/kpi-card";
-import { setGuardPinAction, clearGuardPinAction } from "@/server/conserjeria/device";
+import { setGuardPinAction, clearGuardPinAction } from "@/server/seguridad/device";
 import { setPhotoSettingsAction } from "@/server/admin/photo-settings";
 import { formatDate, startOfMonthInTimeZone } from "@/lib/datetime";
 import { getStorageClient } from "@/lib/storage/client";
-import {
-  PHOTO_RETENTION_DAYS,
-  photoCopyPhone,
-  photoMode,
-  type PhotoMode,
-} from "@/lib/photo-policy";
+import { PHOTO_RETENTION_DAYS, photoMode, type PhotoMode } from "@/lib/photo-policy";
 
 export default async function AdminDashboard({
   params,
@@ -38,7 +33,6 @@ export default async function AdminDashboard({
   const clearPin = clearGuardPinAction.bind(null, slug);
 
   const currentPhotoMode = photoMode(tenant.settings);
-  const currentCopyPhone = photoCopyPhone(tenant.settings);
   const storageConfigured = getStorageClient().isConfigured;
   const savePhotoSettings = setPhotoSettingsAction.bind(null, slug);
 
@@ -162,7 +156,7 @@ export default async function AdminDashboard({
 
       <section>
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-400">
-          PIN de conserjería
+          PIN de seguridad
         </h2>
         <div className="rounded-2xl border border-ink-700 bg-ink-850 p-5">
           <p className="mb-4 text-sm text-ink-400">
@@ -211,8 +205,8 @@ export default async function AdminDashboard({
           {hasPin && (
             <p className="mt-3 text-xs text-ink-500">
               Los dispositivos se desbloquean en{" "}
-              <Link href={`/${slug}/conserjeria/desbloquear`} className="text-accent">
-                /{slug}/conserjeria/desbloquear
+              <Link href={`/${slug}/seguridad/desbloquear`} className="text-accent">
+                /{slug}/seguridad/desbloquear
               </Link>
             </p>
           )}
@@ -222,7 +216,6 @@ export default async function AdminDashboard({
       <PhotoSettingsSection
         action={savePhotoSettings}
         mode={currentPhotoMode}
-        copyPhone={currentCopyPhone}
         storageConfigured={storageConfigured}
       />
     </div>
@@ -232,12 +225,10 @@ export default async function AdminDashboard({
 function PhotoSettingsSection({
   action,
   mode,
-  copyPhone,
   storageConfigured,
 }: {
   action: (formData: FormData) => Promise<void>;
   mode: PhotoMode;
-  copyPhone: string | null;
   storageConfigured: boolean;
 }) {
   const options: { value: PhotoMode; label: string; hint: string }[] = [
@@ -299,23 +290,6 @@ function PhotoSettingsSection({
               </label>
             ))}
           </fieldset>
-
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-semibold uppercase tracking-widest text-ink-400">
-              Copia al WhatsApp de la conserjería (opcional)
-            </span>
-            <input
-              name="conserjeriaPhone"
-              type="tel"
-              defaultValue={copyPhone ?? ""}
-              placeholder="+54 9 11 0000-0000"
-              className="w-full max-w-xs rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 font-mono text-ink-100 placeholder:text-ink-500 focus:border-accent focus:outline-none"
-            />
-            <span className="text-xs text-ink-500">
-              Le llega la misma foto al teléfono del mostrador, así queda en su chat para
-              buscarla después. Dejalo vacío para no mandar copia.
-            </span>
-          </label>
 
           <p className="rounded-xl border border-ink-800 bg-ink-900 px-4 py-3 text-xs text-ink-500">
             Las fotos se borran solas {PHOTO_RETENTION_DAYS} días después de que el paquete se

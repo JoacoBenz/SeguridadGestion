@@ -38,7 +38,7 @@ function cameraErrorMessage(err: unknown): string {
   switch (name) {
     case "NotAllowedError":
     case "SecurityError":
-      // Sin nombrar un navegador: la conserjería puede estar en Chrome, Safari,
+      // Sin nombrar un navegador: la seguridad puede estar en Chrome, Safari,
       // Samsung Internet o la app instalada, y cada uno lo ubica en otro lado.
       return "La cámara está bloqueada. Habilitá el permiso desde los ajustes del navegador o del teléfono, o usá 'Tipear código'.";
     case "NotFoundError":
@@ -187,10 +187,10 @@ function PickupSuccess({
           Escanear otro
         </button>
         <Link
-          href={`/${tenantSlug}/conserjeria`}
+          href={`/${tenantSlug}/seguridad`}
           className="rounded-2xl border border-ink-700 bg-ink-850 px-4 py-3 font-medium text-ink-200 transition-colors hover:border-ink-500"
         >
-          Volver a conserjería
+          Volver a seguridad
         </Link>
       </div>
     </div>

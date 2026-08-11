@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { unlockDeviceAction } from "@/server/conserjeria/device";
+import { unlockDeviceAction } from "@/server/seguridad/device";
 
 // Página pública: el PIN ES la credencial. Deja la cookie de dispositivo y manda
-// a la conserjería. Si el edificio no tiene PIN configurado, lo dice.
+// a la seguridad. Si el edificio no tiene PIN configurado, lo dice.
 export default async function DesbloquearPage({
   params,
   searchParams,
@@ -36,7 +36,7 @@ export default async function DesbloquearPage({
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-8 px-6">
       <header className="text-center">
         <p className="text-sm text-ink-400">{tenant.name}</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">Conserjería</h1>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight">Seguridad</h1>
         <p className="mt-2 text-sm text-ink-400">
           Ingresá el PIN del edificio para desbloquear este dispositivo.
         </p>
@@ -50,7 +50,7 @@ export default async function DesbloquearPage({
 
       {!hasPin ? (
         <div className="rounded-2xl border border-dashed border-ink-700 bg-ink-850 px-6 py-8 text-center text-sm text-ink-400">
-          Este edificio todavía no tiene un PIN de conserjería. Pedile al administrador que lo
+          Este edificio todavía no tiene un PIN de seguridad. Pedile al administrador que lo
           configure desde el panel, o iniciá sesión con tu email.
         </div>
       ) : (

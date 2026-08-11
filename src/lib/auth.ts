@@ -23,7 +23,7 @@ const defaultResolver = async (): Promise<Session | null> => {
       name: nextSession.user.name,
     };
   }
-  // Fallback: sesión de dispositivo (PIN de conserjería). Cookie firmada -> guard.
+  // Fallback: sesión de dispositivo (PIN de seguridad). Cookie firmada -> guard.
   return resolveDeviceSession();
 };
 
@@ -53,7 +53,7 @@ async function resolveDeviceSession(): Promise<Session | null> {
     userId: payload.userId,
     tenantId: payload.tenantId,
     role: "guard",
-    name: "Conserjería (dispositivo)",
+    name: "Seguridad (dispositivo)",
   };
 }
 

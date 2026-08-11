@@ -24,7 +24,7 @@ pnpm render    # genera out/packito-demo.mp4
 
 - `src/theme.ts` — paleta ink/accent (espejo de `tailwind.config.ts` de la app) + fuentes Geist.
 - `src/ui.tsx` — primitivas: logo, cards, tags, typewriter, countUp, click pulse, QR falso, confetti.
-- `src/scenes-1.tsx` — Intro, Problema, Registro (conserjería).
+- `src/scenes-1.tsx` — Intro, Problema, Registro (seguridad).
 - `src/scenes-2.tsx` — WhatsApp al residente, Retiro con QR, Dashboard, Cierre.
 - `src/Demo.tsx` — composición: 7 escenas unidas con `TransitionSeries` + `springTiming`.
 

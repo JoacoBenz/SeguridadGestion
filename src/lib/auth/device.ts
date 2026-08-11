@@ -1,6 +1,6 @@
 import { createHmac, scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
 
-// Sesión de dispositivo para la conserjería compartida (una tablet en el mostrador,
+// Sesión de dispositivo para la seguridad compartida (una tablet en el mostrador,
 // guardias que rotan). El admin fija un PIN por edificio; el guardia lo tipea una
 // vez en el dispositivo y queda una cookie firmada de larga duración que
 // getSession() reconoce como un guard de ese tenant.

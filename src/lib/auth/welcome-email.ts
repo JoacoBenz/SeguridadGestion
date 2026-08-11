@@ -49,7 +49,7 @@ const ROLE_COPY: Record<WelcomeRole, { title: string; blurb: string }> = {
   guard: {
     title: "usar",
     blurb:
-      "Vas a poder registrar los paquetes que llegan y procesar los retiros desde la conserjería.",
+      "Vas a poder registrar los paquetes que llegan y procesar los retiros desde la seguridad.",
   },
 };
 

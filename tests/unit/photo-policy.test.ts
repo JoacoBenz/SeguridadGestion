@@ -62,15 +62,15 @@ describe("shouldShowPhotoField / isPhotoRequired", () => {
 
 describe("photoCopyPhone", () => {
   it("devuelve el teléfono configurado", () => {
-    expect(photoCopyPhone({ conserjeriaPhone: "+5491123885910" })).toBe("+5491123885910");
+    expect(photoCopyPhone({ seguridadPhone: "+5491123885910" })).toBe("+5491123885910");
   });
 
   it("null cuando está vacío, ausente o no es string", () => {
-    expect(photoCopyPhone({ conserjeriaPhone: "" })).toBeNull();
+    expect(photoCopyPhone({ seguridadPhone: "" })).toBeNull();
     expect(photoCopyPhone({})).toBeNull();
     expect(photoCopyPhone(null)).toBeNull();
     expect(photoCopyPhone("no soy un objeto")).toBeNull();
-    expect(photoCopyPhone({ conserjeriaPhone: 5491123885910 })).toBeNull();
+    expect(photoCopyPhone({ seguridadPhone: 5491123885910 })).toBeNull();
   });
 });
 

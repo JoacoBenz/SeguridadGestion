@@ -269,7 +269,7 @@ export const Registro: React.FC<SceneProps> = ({ vertical }) => {
             <div style={{ color: C.textDim, fontSize: 19 }}>Edificio Libertad</div>
             <div style={{ color: C.text, fontSize: 36, fontWeight: 700 }}>Nuevo paquete</div>
           </div>
-          <PersonBadge name="Conserjería 24hs" role="Guardia" />
+          <PersonBadge name="Seguridad 24hs" role="Guardia" />
         </div>
 
         <div
@@ -354,7 +354,7 @@ export const Registro: React.FC<SceneProps> = ({ vertical }) => {
         maxWidth: vertical ? 920 : undefined,
       }}
     >
-      <SectionLabel>Paso 1 · Conserjería</SectionLabel>
+      <SectionLabel>Paso 1 · Seguridad</SectionLabel>
       <div
         style={{
           color: C.text,

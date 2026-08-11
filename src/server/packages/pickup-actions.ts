@@ -31,11 +31,11 @@ export async function pickupByCodeAction(slug: string, formData: FormData) {
     where: { slug },
     select: { id: true },
   });
-  if (!tenant) redirect(`/${slug}/conserjeria/retiro?error=Edificio+no+encontrado`);
+  if (!tenant) redirect(`/${slug}/seguridad/retiro?error=Edificio+no+encontrado`);
 
   const raw = formData.get("pickupCode");
   if (typeof raw !== "string" || !raw.trim()) {
-    redirect(`/${slug}/conserjeria/retiro?error=${encodeURIComponent("Ingresá un código")}`);
+    redirect(`/${slug}/seguridad/retiro?error=${encodeURIComponent("Ingresá un código")}`);
   }
 
   // The success redirect must live OUTSIDE the try: redirect() throws
@@ -49,11 +49,11 @@ export async function pickupByCodeAction(slug: string, formData: FormData) {
     unitLabel = result.unitLabel;
   } catch (err) {
     redirect(
-      `/${slug}/conserjeria/retiro?error=${encodeURIComponent(friendlyPickupError(err))}`,
+      `/${slug}/seguridad/retiro?error=${encodeURIComponent(friendlyPickupError(err))}`,
     );
   }
 
-  redirect(`/${slug}/conserjeria/retiro?ok=${encodeURIComponent(`Depto ${unitLabel}`)}`);
+  redirect(`/${slug}/seguridad/retiro?ok=${encodeURIComponent(`Depto ${unitLabel}`)}`);
 }
 
 export type PickupByTokenResult =

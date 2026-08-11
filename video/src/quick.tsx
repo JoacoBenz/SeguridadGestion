@@ -238,7 +238,7 @@ const QRegistro: React.FC<SceneProps> = ({ vertical }) => {
       <div style={{ position: "relative", width: 880 }}>
         <Card style={{ padding: 36 }}>
           <div style={{ fontFamily: FONT, marginBottom: 24 }}>
-            <div style={{ color: C.textDim, fontSize: 18 }}>Edificio Libertad · Conserjería</div>
+            <div style={{ color: C.textDim, fontSize: 18 }}>Edificio Libertad · Seguridad</div>
             <div style={{ color: C.text, fontSize: 34, fontWeight: 700 }}>Nuevo paquete</div>
           </div>
 
@@ -436,7 +436,7 @@ const QWhatsApp: React.FC<SceneProps> = ({ vertical }) => {
               }}
             >
               Hola <b>Juan</b> 👋 Llegó un paquete para tu depto <b>3B</b> en{" "}
-              <b>Edificio Libertad</b>. Mostrá este QR en conserjería para
+              <b>Edificio Libertad</b>. Mostrá este QR en seguridad para
               retirarlo. ¿Lo busca otra persona? Reenviale este mensaje.
             </div>
             <div

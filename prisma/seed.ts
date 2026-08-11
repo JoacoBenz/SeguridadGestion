@@ -39,11 +39,11 @@ async function main() {
 
   const guard = await prisma.user.upsert({
     where: { email: "guardia@edificio-libertad.test" },
-    update: { tenantId: tenant.id, role: Role.guard, name: "Conserjería 24hs" },
+    update: { tenantId: tenant.id, role: Role.guard, name: "Seguridad 24hs" },
     create: {
       tenantId: tenant.id,
       role: Role.guard,
-      name: "Conserjería 24hs",
+      name: "Seguridad 24hs",
       email: "guardia@edificio-libertad.test",
     },
   });

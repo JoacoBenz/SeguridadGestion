@@ -203,7 +203,7 @@ export async function registerPackage(
     }
   }
 
-  // Copia de la foto a la conserjería: le deja el mismo mensaje en su propio
+  // Copia de la foto a la seguridad: le deja el mismo mensaje en su propio
   // WhatsApp, que es donde el guardia realmente va a buscarla después. No
   // depende del panel ni de que la foto siga en el bucket cuando venza la
   // retención. Independiente de los envíos al residente: si aquellos fallaron,
@@ -231,7 +231,7 @@ export async function registerPackage(
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(
-        `[whatsapp] copia a conserjería falló para ${copyPhone} (package ${pkg.id}): ${message}`,
+        `[whatsapp] copia a seguridad falló para ${copyPhone} (package ${pkg.id}): ${message}`,
       );
       await prisma.notification.create({
         data: {

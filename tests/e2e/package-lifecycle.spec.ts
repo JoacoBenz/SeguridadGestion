@@ -14,7 +14,7 @@ test.describe.serial("ciclo de vida del paquete", () => {
     test.use({ storageState: "tests/e2e/.auth/guard.json" });
 
     test("el guardia registra un paquete y ve el código", async ({ page }) => {
-      await page.goto("/edificio-libertad/conserjeria/ingreso");
+      await page.goto("/edificio-libertad/seguridad/ingreso");
       await page.click('button:has-text("3B")');
       await page.fill('input[name="carrier"]', carrier);
       await page.click('button:has-text("Registrar y notificar")');
@@ -29,7 +29,7 @@ test.describe.serial("ciclo de vida del paquete", () => {
     });
 
     test("el retiro por código funciona y desaparece de pendientes", async ({ page }) => {
-      await page.goto("/edificio-libertad/conserjeria/retiro");
+      await page.goto("/edificio-libertad/seguridad/retiro");
       await page.click('button:has-text("Tipear código")');
       await typePickupCode(page, pickupCode);
       await page.click('button:has-text("Confirmar retiro")');
@@ -38,12 +38,12 @@ test.describe.serial("ciclo de vida del paquete", () => {
       await expect(page.getByText("Retirado")).toBeVisible();
       await expect(page.getByText("Depto 3B")).toBeVisible();
 
-      await page.goto("/edificio-libertad/conserjeria");
+      await page.goto("/edificio-libertad/seguridad");
       await expect(page.getByText(carrier)).toHaveCount(0);
     });
 
     test("un código inexistente da error amigable en castellano", async ({ page }) => {
-      await page.goto("/edificio-libertad/conserjeria/retiro");
+      await page.goto("/edificio-libertad/seguridad/retiro");
       await page.click('button:has-text("Tipear código")');
       await typePickupCode(page, "222222");
       await page.click('button:has-text("Confirmar retiro")');

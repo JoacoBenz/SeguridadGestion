@@ -99,10 +99,10 @@ export default async function SuperadminHome({
                     Admin →
                   </Link>
                   <Link
-                    href={`/${t.slug}/conserjeria`}
+                    href={`/${t.slug}/seguridad`}
                     className="rounded-xl border border-ink-700 px-3 py-2 text-sm text-ink-300 hover:text-ink-100"
                   >
-                    Conserjería →
+                    Seguridad →
                   </Link>
                 </div>
               </li>

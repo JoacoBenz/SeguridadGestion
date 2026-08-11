@@ -5,10 +5,10 @@ import { registerPackage } from "@/server/packages/register";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { isTenantOperational } from "@/lib/subscription";
 import { SubscriptionBlockedScreen } from "@/components/subscription-banner";
-import { UnitTilePicker } from "@/components/conserjeria/unit-tile-picker";
+import { UnitTilePicker } from "@/components/seguridad/unit-tile-picker";
 import { SubmitButton } from "@/components/submit-button";
-import { PhotoCapture } from "@/components/conserjeria/photo-capture";
-import { CarrierField } from "@/components/conserjeria/carrier-field";
+import { PhotoCapture } from "@/components/seguridad/photo-capture";
+import { CarrierField } from "@/components/seguridad/carrier-field";
 import { foldCarrierSuggestions } from "@/lib/carriers";
 import { getStorageClient } from "@/lib/storage/client";
 import { isPhotoRequired, photoMode, shouldShowPhotoField } from "@/lib/photo-policy";
@@ -37,7 +37,7 @@ export default async function IngresoPage({
   await requireTenantRoleOrRedirect(
     tenant.id,
     ["guard", "admin"],
-    `/${slug}/conserjeria/ingreso`,
+    `/${slug}/seguridad/ingreso`,
   );
 
   if (!isTenantOperational(tenant)) {
@@ -75,7 +75,7 @@ export default async function IngresoPage({
     "use server";
     const unitId = formData.get("unitId");
     if (typeof unitId !== "string" || !unitId) {
-      redirect(`/${slug}/conserjeria/ingreso?error=Elegí+un+departamento`);
+      redirect(`/${slug}/seguridad/ingreso?error=Elegí+un+departamento`);
     }
     const carrier = formData.get("carrier");
     const notes = formData.get("notes");
@@ -85,7 +85,7 @@ export default async function IngresoPage({
     // del server, independiente de la validación del navegador.
     if (photoRequired && (typeof photoUrl !== "string" || !photoUrl)) {
       redirect(
-        `/${slug}/conserjeria/ingreso?error=${encodeURIComponent(
+        `/${slug}/seguridad/ingreso?error=${encodeURIComponent(
           "Sacale una foto al paquete antes de registrarlo.",
         )}`,
       );
@@ -107,12 +107,12 @@ export default async function IngresoPage({
       notified = result.notifiedPhones.length;
     } catch (err) {
       const msg = registerErrorMessage(err);
-      redirect(`/${slug}/conserjeria/ingreso?error=${encodeURIComponent(msg)}`);
+      redirect(`/${slug}/seguridad/ingreso?error=${encodeURIComponent(msg)}`);
     }
     // `avisados` decide el color del banner: 0 significa que TODOS los envíos
     // fallaron (Meta caído, número dado de baja) y el guardia tiene que avisar
     // a mano — el peor momento para un éxito verde falso.
-    redirect(`/${slug}/conserjeria?codigo=${pickupCode}&avisados=${notified}`);
+    redirect(`/${slug}/seguridad?codigo=${pickupCode}&avisados=${notified}`);
   }
 
   return (
@@ -195,7 +195,7 @@ function PageHeader({ slug, tenantName }: { slug: string; tenantName: string }) 
   return (
     <header className="mb-8 flex items-center gap-3">
       <Link
-        href={`/${slug}/conserjeria`}
+        href={`/${slug}/seguridad`}
         aria-label="Volver"
         className="flex h-10 w-10 items-center justify-center rounded-xl border border-ink-700 bg-ink-800 text-ink-300 transition-colors hover:text-ink-100"
       >

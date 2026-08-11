@@ -6,25 +6,15 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireTenantRole } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
-import { normalizePhone } from "@/lib/phone";
 import { PHOTO_MODES, type PhotoMode } from "@/lib/photo-policy";
 
-// El edificio elige si pide foto y a qué teléfono mandarle copia. Cuánto se
-// conservan NO está acá a propósito: es una regla del sistema
-// (PHOTO_RETENTION_DAYS), no una preferencia por edificio.
+// El edificio elige si pide foto. Cuánto se conservan NO está acá a propósito:
+// es una regla del sistema (PHOTO_RETENTION_DAYS), no una preferencia por
+// edificio. La copia al WhatsApp del mostrador (settings.seguridadPhone,
+// photoCopyPhone en photo-policy) quedó oculta: el envío sigue implementado,
+// pero ningún admin puede configurar el número desde la UI.
 const PhotoSettingsSchema = z.object({
   photoMode: z.enum(PHOTO_MODES as unknown as [PhotoMode, ...PhotoMode[]]),
-  // Vacío = no mandar copia. Si viene algo, se normaliza igual que el teléfono
-  // de un residente: un número mal cargado acá falla en silencio al enviar.
-  conserjeriaPhone: z.string().transform((raw, ctx) => {
-    if (!raw.trim()) return "";
-    const result = normalizePhone(raw);
-    if (!result.ok) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: result.error });
-      return z.NEVER;
-    }
-    return result.phone;
-  }),
 });
 
 export async function setPhotoSettingsAction(slug: string, formData: FormData) {
@@ -34,7 +24,6 @@ export async function setPhotoSettingsAction(slug: string, formData: FormData) {
 
   const parsed = PhotoSettingsSchema.safeParse({
     photoMode: formData.get("photoMode"),
-    conserjeriaPhone: formData.get("conserjeriaPhone") ?? "",
   });
   if (!parsed.success) {
     const msg = parsed.error.issues[0]?.message ?? "Configuración de fotos inválida";
@@ -53,7 +42,6 @@ export async function setPhotoSettingsAction(slug: string, formData: FormData) {
       settings: {
         ...settings,
         photoMode: parsed.data.photoMode,
-        conserjeriaPhone: parsed.data.conserjeriaPhone,
       } as Prisma.InputJsonValue,
     },
   });
@@ -66,9 +54,6 @@ export async function setPhotoSettingsAction(slug: string, formData: FormData) {
     entityId: tenant.id,
     metadata: {
       photoMode: parsed.data.photoMode,
-      // El número no va al audit: es un dato personal y el log lo lee cualquier
-      // admin. Alcanza con saber si quedó configurado o no.
-      copyToConserjeria: Boolean(parsed.data.conserjeriaPhone),
     },
   });
 
