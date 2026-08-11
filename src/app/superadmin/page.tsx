@@ -3,7 +3,12 @@ import type { SubscriptionStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireSuperadminOrRedirect } from "@/lib/auth";
 import { trialDaysLeft } from "@/lib/subscription";
+import { formatDateTime } from "@/lib/datetime";
 import { setTenantSubscriptionAction } from "@/server/superadmin/tenants";
+import {
+  getNotificationHealth,
+  type NotificationHealth,
+} from "@/server/superadmin/notification-health";
 
 const STATUS_LABEL: Record<SubscriptionStatus, string> = {
   trial: "Prueba",
@@ -30,12 +35,15 @@ export default async function SuperadminHome({
 
   const { ok, subok, error } = await searchParams;
 
-  const tenants = await prisma.tenant.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      _count: { select: { units: true, packages: true, users: true } },
-    },
-  });
+  const [tenants, health] = await Promise.all([
+    prisma.tenant.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        _count: { select: { units: true, packages: true, users: true } },
+      },
+    }),
+    getNotificationHealth(),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -55,6 +63,8 @@ export default async function SuperadminHome({
           {error}
         </div>
       )}
+
+      <WhatsAppHealth health={health} />
 
       <header className="flex items-baseline justify-between">
         <h2 className="text-xl font-bold">Edificios</h2>
@@ -111,6 +121,64 @@ export default async function SuperadminHome({
         </ul>
       )}
     </div>
+  );
+}
+
+// El semáforo de envíos: verde de un renglón cuando no hay fallos, panel rojo
+// con el detalle por edificio cuando los hay. El caso que tiene que saltar a
+// la vista es "el token de Meta murió anoche y nadie se enteró".
+function WhatsAppHealth({ health }: { health: NotificationHealth }) {
+  if (health.failedCount === 0) {
+    return (
+      <div className="rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm text-ink-400">
+        <span className="mr-2 text-positive" aria-hidden>
+          ●
+        </span>
+        WhatsApp: {health.okCount === 0 ? "sin actividad" : `${health.okCount} enviados, sin fallos`}{" "}
+        en las últimas {health.windowHours} h.
+      </div>
+    );
+  }
+
+  const attempts = health.okCount + health.failedCount;
+  return (
+    <section
+      role="alert"
+      className="rounded-2xl border border-critical/40 bg-critical/10 p-5"
+    >
+      <h2 className="font-bold text-critical">
+        WhatsApp: {health.failedCount}
+        {health.truncated ? "+" : ""} de {attempts}
+        {health.truncated ? "+" : ""} envíos fallaron en las últimas {health.windowHours} h
+      </h2>
+      <p className="mt-1 text-sm text-ink-300">
+        Los paquetes se registran igual, pero estos avisos no llegaron. Si el error se repite
+        en todos los edificios, lo más probable es el token de Meta o el número.
+      </p>
+      <ul className="mt-4 flex flex-col gap-2">
+        {health.tenants.map((t) => (
+          <li key={t.slug} className="rounded-xl border border-ink-700 bg-ink-900 px-4 py-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <p className="font-semibold text-ink-100">
+                {t.name} <span className="font-mono text-xs text-ink-500">/{t.slug}</span>
+              </p>
+              <p className="text-sm text-critical">
+                {t.count} fallo{t.count === 1 ? "" : "s"}
+                <span className="text-ink-500"> · último {formatDateTime(t.lastAt)}</span>
+              </p>
+            </div>
+            <p className="mt-1 font-mono text-xs text-ink-400">
+              {t.templates.join(", ")}
+            </p>
+            {t.lastError && (
+              <p className="mt-1 truncate font-mono text-xs text-warn" title={t.lastError}>
+                {t.lastError}
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
