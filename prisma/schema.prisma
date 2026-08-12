@@ -71,7 +71,12 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
-  phone         String?   @unique
+  // Único POR EDIFICIO, no global: la misma persona puede ser residente (o
+  // contacto de aviso) en varios edificios con el mismo número — el hijo que
+  // recibe los WhatsApp del depto de la madre en otro consorcio. Dentro de un
+  // edificio sí es único, para que una carga doble no duplique los avisos.
+  // El email sigue único global porque Auth.js lo exige para el login.
+  phone         String?
   pinHash       String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -84,6 +89,7 @@ model User {
   accounts          Account[]
   sessions          Session[]
 
+  @@unique([tenantId, phone])
   @@index([tenantId, role])
 }
 

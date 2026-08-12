@@ -22,6 +22,18 @@ const PhoneSchema = z.string().transform((raw, ctx) => {
   return result.phone;
 });
 
+// P2002 con el índice compuesto (tenantId, phone) trae target=["tenantId","phone"];
+// al admin le importa el campo que chocó, no el índice. El teléfono choca por
+// edificio (en otro edificio el mismo número es válido); el email es global
+// porque es la identidad de login de Auth.js.
+function duplicateMessage(err: Prisma.PrismaClientKnownRequestError): string {
+  const target = (err.meta?.target as string[] | undefined) ?? [];
+  if (target.includes("phone")) return "Ya hay un residente con ese teléfono en este edificio";
+  if (target.includes("email"))
+    return "Ese email ya está usado por un usuario del sistema (el email es único entre todos los edificios; podés dejarlo vacío)";
+  return "Ya hay un usuario con esos datos";
+}
+
 const CreateResidentSchema = z.object({
   name: z.string().trim().min(1, "Falta el nombre").max(80),
   phone: PhoneSchema,
@@ -96,11 +108,8 @@ export async function createResidentAction(slug: string, formData: FormData) {
     });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-      const target = (err.meta?.target as string[] | undefined)?.[0] ?? "campo";
       redirect(
-        `/${slug}/admin/residentes?error=${encodeURIComponent(
-          `Ya hay un usuario con ese ${target}`,
-        )}`,
+        `/${slug}/admin/residentes?error=${encodeURIComponent(duplicateMessage(err))}`,
       );
     }
     redirect(
@@ -188,11 +197,8 @@ export async function updateResidentAction(slug: string, formData: FormData) {
     });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-      const target = (err.meta?.target as string[] | undefined)?.[0] ?? "campo";
       redirect(
-        `/${slug}/admin/residentes?error=${encodeURIComponent(
-          `Ya hay un usuario con ese ${target}`,
-        )}`,
+        `/${slug}/admin/residentes?error=${encodeURIComponent(duplicateMessage(err))}`,
       );
     }
     redirect(
@@ -205,8 +211,9 @@ export async function updateResidentAction(slug: string, formData: FormData) {
 
 // Import masivo de residentes desde CSV. Crea unidades que no existan (por label)
 // y residentes vinculados. Si el parser encuentra CUALQUIER error de formato,
-// aborta sin escribir nada y devuelve al preview. Los residentes cuyo teléfono o
-// email ya existe se saltean (no rompen el resto del import).
+// aborta sin escribir nada y devuelve al preview. Los residentes cuyo teléfono ya
+// existe en ESTE edificio (o cuyo email ya existe en el sistema) se saltean, sin
+// romper el resto del import. El mismo teléfono en otro edificio es válido.
 export async function importResidentsAction(slug: string, formData: FormData) {
   const tenantId = await resolveTenant(slug);
   const session = await requireTenantRole(tenantId, ["admin"]);

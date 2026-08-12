@@ -32,7 +32,7 @@ async function runImport(csv: string): Promise<string> {
   throw new Error("la action no redirigió — no debería pasar");
 }
 
-// Teléfonos únicos por corrida: User.phone es único global.
+// Teléfonos únicos por corrida: User.phone es único por edificio.
 const stamp = String(Date.now()).slice(-6);
 // 11 (área) + stamp(6) + n(2) = NSN de 10 dígitos, como exige un móvil AR.
 const phone = (n: number) => `+54911${stamp}${String(n).padStart(2, "0")}`;
