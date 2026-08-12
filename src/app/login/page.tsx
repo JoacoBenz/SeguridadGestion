@@ -37,7 +37,7 @@ export default async function LoginPage({
     // Best-effort por IP (en memoria, por instancia) contra loops y spam burdo.
     const hdrs = await headers();
     const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-    if (!rateLimit(`login:${ip}`, { limit: 10, windowMs: 60_000 }).ok) {
+    if (!(await rateLimit(`login:${ip}`, { limit: 10, windowMs: 60_000 })).ok) {
       redirect(
         `/login?error=${encodeURIComponent("Demasiados intentos. Esperá un minuto y probá de nuevo.")}`,
       );

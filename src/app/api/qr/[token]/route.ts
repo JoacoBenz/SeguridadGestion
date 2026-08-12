@@ -30,7 +30,7 @@ export async function GET(
   // Los hits legítimos (Meta bajando la imagen una vez por mensaje) están
   // órdenes de magnitud por debajo de este límite.
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  if (!rateLimit(`qr:${ip}`, { limit: 30, windowMs: 60_000 }).ok) {
+  if (!(await rateLimit(`qr:${ip}`, { limit: 30, windowMs: 60_000 })).ok) {
     return new NextResponse("Too many requests", { status: 429 });
   }
 

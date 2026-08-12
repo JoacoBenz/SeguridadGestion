@@ -117,7 +117,7 @@ export async function unlockDeviceAction(slug: string, formData: FormData) {
   // magnitud; el bump de devicePinVersion cubre el resto del ciclo de vida.
   const hdrs = await headers();
   const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  if (!rateLimit(`pin:${ip}:${slug}`, { limit: 5, windowMs: 60_000 }).ok) {
+  if (!(await rateLimit(`pin:${ip}:${slug}`, { limit: 5, windowMs: 60_000 })).ok) {
     redirect(
       `/${slug}/seguridad/desbloquear?error=${encodeURIComponent(
         "Demasiados intentos. Esperá un minuto.",
