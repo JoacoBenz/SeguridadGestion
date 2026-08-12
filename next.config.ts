@@ -1,17 +1,25 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
-// El origen del bucket de fotos entra a img-src. Se resuelve en build: en
-// Vercel las env están presentes al compilar. Sin la var (dev pelado) se
+// Los orígenes del bucket de fotos entran a img-src. Se resuelve en build: en
+// Vercel las env están presentes al compilar. Sin las vars (dev pelado) se
 // permite https: para no romper el panel si el build y el runtime difieren.
+// Van DOS orígenes porque las URLs firmadas apuntan al endpoint S3 del bucket
+// (<account>.r2.cloudflarestorage.com), no al dominio público.
 function storageImgSource(): string {
-  const base = process.env.STORAGE_PUBLIC_BASE_URL;
-  if (!base) return "https:";
-  try {
-    return new URL(base).origin;
-  } catch {
-    return "https:";
+  const bases = [process.env.STORAGE_PUBLIC_BASE_URL, process.env.STORAGE_ENDPOINT].filter(
+    Boolean,
+  ) as string[];
+  if (bases.length === 0) return "https:";
+  const origins = new Set<string>();
+  for (const base of bases) {
+    try {
+      origins.add(new URL(base).origin);
+    } catch {
+      return "https:";
+    }
   }
+  return [...origins].join(" ");
 }
 
 // CSP sin nonces: Next hidrata con <script> inline, así que script-src lleva

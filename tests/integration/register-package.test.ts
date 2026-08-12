@@ -39,6 +39,9 @@ const fakeStorage: StorageClient = {
   async list() {
     return [];
   },
+  async signedUrl(url) {
+    return `${url}?sig=test`;
+  },
 };
 
 let tenantId: string;
@@ -125,6 +128,20 @@ describe("registerPackage — qué mensajes salen", () => {
   it("con foto manda el aviso con QR y además la foto", async () => {
     await registerPackage({ tenantId, unitId, photoUrl: PHOTO_URL });
     expect(templatesSent()).toEqual(["paquete_recibido_v3", "paquete_foto_v1"]);
+  });
+
+  it("a Meta va la URL FIRMADA; en la fila queda la canónica sin firma", async () => {
+    // El bucket es privado: si a Meta le llegara la canónica, recibiría un 403
+    // y el mensaje con foto fallaría. Y si en la DB quedara la firmada, la
+    // retención y el barrido de huérfanos (igualdad de strings) se romperían.
+    const result = await registerPackage({ tenantId, unitId, photoUrl: PHOTO_URL });
+    const fotoMsg = sent.find((s) => s.template === "paquete_foto_v1");
+    expect(fotoMsg?.headerImageUrl).toBe(`${PHOTO_URL}?sig=test`);
+    const row = await prisma.package.findUniqueOrThrow({
+      where: { id: result.packageId },
+      select: { photoUrl: true },
+    });
+    expect(row.photoUrl).toBe(PHOTO_URL);
   });
 
   it("SIN foto manda sólo el aviso con QR, nunca 'esta es la foto del paquete'", async () => {

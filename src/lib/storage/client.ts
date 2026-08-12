@@ -3,17 +3,23 @@ import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
   ListObjectsV2Command,
   type PutObjectCommandInput,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 // Almacenamiento de fotos (paquete al ingreso, paquete al retiro).
 // Igual patrón que el WhatsApp client: si hay credenciales S3/R2 usa el bucket
 // real, si no un cliente dev que loguea y no persiste nada.
 //
 // Compatible con Cloudflare R2 (setear STORAGE_ENDPOINT al endpoint de R2) y con
-// cualquier S3. El bucket tiene que ser de lectura pública o servido detrás de un
-// dominio público (STORAGE_PUBLIC_BASE_URL), porque las fotos se ven en el panel.
+// cualquier S3. El bucket puede (y debe) ser PRIVADO: en la DB se persiste la
+// URL canónica sin firma, y cada punto de consumo (el panel del admin, el envío
+// a Meta) pide una URL firmada efímera con signedUrl() en el momento de usarla.
+// Las firmadas no se persisten nunca — todas las comparaciones del sistema
+// (retención, barrido de huérfanos, PHOTO_IN_USE) son por igualdad de string
+// contra la canónica.
 
 export interface StorageClient {
   // Sube bytes y devuelve la URL pública para guardar en photoUrl / pickupPhotoUrl.
@@ -35,6 +41,11 @@ export interface StorageClient {
   // Lista objetos bajo un prefijo. Sirve para encontrar huérfanos: archivos
   // subidos que nunca quedaron referenciados por una fila.
   list(prefix: string, max?: number): Promise<StoredObject[]>;
+  // URL de lectura firmada y efímera a partir de la canónica guardada en la DB.
+  // Es lo único que sale hacia un browser o hacia Meta con el bucket privado.
+  // Si la URL no es de este storage, se devuelve tal cual (el llamador ya la
+  // validó con isOwnUrl al guardarla). NUNCA persistir el resultado.
+  signedUrl(url: string, expiresSeconds: number): Promise<string>;
   // Indica si el storage está configurado (para esconder la UI de foto en dev).
   readonly isConfigured: boolean;
 }
@@ -168,6 +179,18 @@ class S3StorageClient implements StorageClient {
       new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
     );
   }
+
+  async signedUrl(url: string, expiresSeconds: number): Promise<string> {
+    const key = this.keyOf(url);
+    if (!key) return url;
+    // Ojo: la firmada apunta al ENDPOINT S3 (p.ej. <account>.r2.cloudflarestorage.com),
+    // no al dominio público — el CSP de img-src incluye ambos orígenes por esto.
+    return getSignedUrl(
+      this.client,
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+      { expiresIn: expiresSeconds },
+    );
+  }
 }
 
 /**
@@ -209,6 +232,11 @@ class DevStorageClient implements StorageClient {
 
   async remove(url: string): Promise<void> {
     console.log(`[storage:dev] would delete ${url}`);
+  }
+
+  async signedUrl(url: string): Promise<string> {
+    // Dev no tiene bucket privado que proteger: passthrough.
+    return url;
   }
 }
 

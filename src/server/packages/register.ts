@@ -120,6 +120,13 @@ export async function registerPackage(
   const notifiedPhones: string[] = [];
   const whatsapp = getWhatsAppClient();
   const headerImageUrl = qrImageUrl(pkg.pickupToken);
+  // El bucket es privado: a Meta se le manda una URL firmada efímera (la fila
+  // guarda la canónica). Meta descarga la imagen una sola vez al construir el
+  // mensaje y la re-hospeda en su CDN — 6 h cubre el fetch y sus reintentos.
+  // Se firma una vez y se reusa para todos los envíos de este paquete.
+  const photoDeliveryUrl = input.photoUrl
+    ? await getStorageClient().signedUrl(input.photoUrl, 6 * 60 * 60)
+    : undefined;
 
   for (const membership of unit.residents) {
     const resident = membership.user;
@@ -171,7 +178,7 @@ export async function registerPackage(
           to: resident.phone,
           template: "paquete_foto_v1",
           params: [unit.label],
-          headerImageUrl: input.photoUrl,
+          headerImageUrl: photoDeliveryUrl,
         });
         await prisma.notification.create({
           data: {
@@ -215,7 +222,7 @@ export async function registerPackage(
         to: copyPhone,
         template: "paquete_foto_v1",
         params: [unit.label],
-        headerImageUrl: input.photoUrl,
+        headerImageUrl: photoDeliveryUrl,
       });
       await prisma.notification.create({
         data: {

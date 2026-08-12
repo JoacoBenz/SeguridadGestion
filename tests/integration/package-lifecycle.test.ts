@@ -32,6 +32,9 @@ const fakeStorage: StorageClient = {
     return { url: "dev-storage://x" };
   },
   async remove() {},
+  async signedUrl(url) {
+    return url;
+  },
   isOwnUrl: () => true,
   keyOf: () => null,
   async list() {

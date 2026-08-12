@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { requireTenantRoleOrRedirect } from "@/lib/auth";
 import { cancelPackageAction } from "@/server/admin/packages";
 import { formatDateTime } from "@/lib/datetime";
+import { getStorageClient } from "@/lib/storage/client";
 import { PAGE_SIZE, Pager, pageFromParam, skipFor } from "@/components/admin/pager";
 
 
@@ -81,6 +82,18 @@ export default async function PaquetesPage({
 
   const cancel = cancelPackageAction.bind(null, slug);
 
+  // El bucket es privado: la fila guarda la URL canónica y acá se firma una
+  // efímera por render (15 min alcanza para mirar la página). La firma es un
+  // HMAC local, sin viaje de red — una página entera se firma en microsegundos.
+  const storage = getStorageClient();
+  const signedPhotoUrls = new Map<string, string>(
+    await Promise.all(
+      packages
+        .filter((p) => p.photoUrl && p.photoUrl.startsWith("http"))
+        .map(async (p) => [p.id, await storage.signedUrl(p.photoUrl!, 15 * 60)] as const),
+    ),
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <header className="flex items-baseline justify-between">
@@ -112,11 +125,16 @@ export default async function PaquetesPage({
           {packages.map((p) => (
             <li key={p.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-1 items-center gap-4">
-                {p.photoUrl && p.photoUrl.startsWith("http") && (
+                {signedPhotoUrls.has(p.id) && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <a href={p.photoUrl} target="_blank" rel="noreferrer" title="Ver foto del paquete">
+                  <a
+                    href={signedPhotoUrls.get(p.id)}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Ver foto del paquete"
+                  >
                     <img
-                      src={p.photoUrl}
+                      src={signedPhotoUrls.get(p.id)}
                       alt="Foto del paquete"
                       className="h-12 w-12 shrink-0 rounded-lg object-cover"
                     />

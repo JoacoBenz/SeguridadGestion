@@ -32,6 +32,9 @@ const fakeStorage: StorageClient = {
   async list() {
     return listing;
   },
+  async signedUrl(url) {
+    return url;
+  },
 };
 
 let tenantId: string;

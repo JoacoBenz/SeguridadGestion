@@ -35,6 +35,11 @@ describe("storage client", () => {
     await expect(getStorageClient().remove("dev-storage://packages/t1/x")).resolves
       .toBeUndefined();
   });
+
+  it("signedUrl en dev es passthrough — no hay bucket privado que proteger", async () => {
+    const url = "dev-storage://packages/t1/foto.jpg";
+    await expect(getStorageClient().signedUrl(url, 900)).resolves.toBe(url);
+  });
 });
 
 describe("isOwnUrl — el campo photoUrl lo controla el cliente", () => {
