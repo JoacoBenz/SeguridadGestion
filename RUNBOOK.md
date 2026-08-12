@@ -11,7 +11,7 @@ de punta a punta** — ver la sección "Ensayo" al final.
   hay backups gestionados accesibles. **No dependemos de eso**: el backup
   lógico con `pg_dump` funciona en cualquier plan y es portable (se puede
   restaurar en Supabase, en otro proveedor o en local).
-- El bucket de fotos (R2) es aparte y sus objetos expiran solos a los 30 días
+- El bucket de fotos (Supabase Storage) es aparte y sus objetos expiran solos a los 30 días
   del cierre del paquete. Un restore de la base puede referenciar fotos que ya
   no están: no es un error, el panel simplemente no muestra esa foto.
 

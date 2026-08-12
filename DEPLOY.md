@@ -52,14 +52,14 @@ Crear en Business Manager → categoría **Utility**, idioma **Spanish (ARG) / e
 
 ## 4. Fotos (Supabase Storage) — opcional, se esconde si falta
 
-- [x] Bucket `paquetes` público en Supabase Storage.
+- [x] Bucket `paquetes` en Supabase Storage, **privado** (Storage → Edit bucket → "Public bucket" OFF).
 - [ ] **[vos]** S3 Access Keys (Project Settings → Storage → S3 Access Keys). Las 6 vars:
   - `STORAGE_BUCKET` = `paquetes`
   - `STORAGE_ENDPOINT` = `https://njorckajlftgzruahqfo.supabase.co/storage/v1/s3`
   - `STORAGE_REGION` = `sa-east-1`
   - `STORAGE_ACCESS_KEY_ID` / `STORAGE_SECRET_ACCESS_KEY` = las S3 keys
   - `STORAGE_PUBLIC_BASE_URL` = `https://njorckajlftgzruahqfo.supabase.co/storage/v1/object/public/paquetes`
-- El bucket es de **lectura pública** porque Meta descarga la imagen para armar el mensaje de WhatsApp. La URL lleva un UUID (no enumerable) pero no hay control de acceso: quien tenga el link entra. Tenelo en cuenta — la etiqueta del envío suele mostrar nombre y dirección del residente.
+- El bucket es **privado**: la DB guarda la URL canónica y las lecturas salen con URL firmada efímera (6 h para Meta, que descarga la imagen una vez y la re-hospeda en su CDN; 15 min por render en el panel). Orden al migrar de público a privado: **primero deploy del código, después el flip del bucket** — al revés rompe los envíos con foto.
 - Cada edificio elige en `/[tenant]/admin` si la foto es **obligatoria / opcional / sin fotos** (`Tenant.settings.photoMode`, default `required`) y a qué teléfono del mostrador mandarle copia (`seguridadPhone`, opcional). La **retención de 30 días es del sistema**, no una opción: se cuenta desde que el paquete se retira o se cancela. Sin las `STORAGE_*` el campo de foto se esconde y el alta sigue funcionando.
 - Cuidado con el nombre EXACTO de cada var (un typo tipo `STORAGE_BUKCET` la deja invisible — verificá con `/api/health?debug=`).
 
