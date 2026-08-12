@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 // El origen del bucket de fotos entra a img-src. Se resuelve en build: en
 // Vercel las env están presentes al compilar. Sin la var (dev pelado) se
@@ -70,4 +71,15 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// withSentryConfig: sube source maps en el build (si hay SENTRY_AUTH_TOKEN en
+// Vercel; sin token el build sigue andando, sólo sin stack traces legibles) y
+// habilita el tunnel: el browser manda los eventos a /monitoring del propio
+// dominio y Next los reenvía a Sentry — así connect-src 'self' del CSP queda
+// intacto y los ad-blockers no comen los reportes.
+export default withSentryConfig(nextConfig, {
+  org: "bexovar",
+  project: "packito",
+  silent: !process.env.CI,
+  tunnelRoute: "/monitoring",
+  disableLogger: true,
+});

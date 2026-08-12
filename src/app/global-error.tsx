@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 
 // Último recurso: si el que falla es el root layout, `error.tsx` no llega a
@@ -15,6 +16,8 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error("[global-error]", error.digest ?? "", error.message);
+    // Los error boundaries se tragan la excepción: sin esto, Sentry nunca la ve.
+    Sentry.captureException(error);
   }, [error]);
 
   return (

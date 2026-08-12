@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import Link from "next/link";
 import { useEffect } from "react";
 
@@ -16,6 +17,8 @@ export default function Error({
     // El digest es lo único que permite cruzar lo que vio el usuario con la
     // línea del log del server: el mensaje real nunca llega al cliente en prod.
     console.error("[error-boundary]", error.digest ?? "", error.message);
+    // El boundary se traga la excepción; se reporta a mano para que Sentry la vea.
+    Sentry.captureException(error);
   }, [error]);
 
   return (
