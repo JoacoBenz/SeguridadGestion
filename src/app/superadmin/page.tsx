@@ -9,6 +9,7 @@ import {
   getNotificationHealth,
   type NotificationHealth,
 } from "@/server/superadmin/notification-health";
+import { getCronHealth, type CronHealth as CronHealthData } from "@/server/superadmin/cron-health";
 
 const STATUS_LABEL: Record<SubscriptionStatus, string> = {
   trial: "Prueba",
@@ -35,7 +36,7 @@ export default async function SuperadminHome({
 
   const { ok, subok, error } = await searchParams;
 
-  const [tenants, health] = await Promise.all([
+  const [tenants, health, cronHealth] = await Promise.all([
     prisma.tenant.findMany({
       orderBy: { createdAt: "desc" },
       include: {
@@ -43,6 +44,7 @@ export default async function SuperadminHome({
       },
     }),
     getNotificationHealth(),
+    getCronHealth(),
   ]);
 
   return (
@@ -65,6 +67,7 @@ export default async function SuperadminHome({
       )}
 
       <WhatsAppHealth health={health} />
+      <CronHealthPanel health={cronHealth} />
 
       <header className="flex items-baseline justify-between">
         <h2 className="text-xl font-bold">Edificios</h2>
@@ -121,6 +124,73 @@ export default async function SuperadminHome({
         </ul>
       )}
     </div>
+  );
+}
+
+// Semáforo de crons: los recordatorios y la retención de fotos corren solos, y
+// si Vercel Cron deja de dispararlos nada falla — simplemente no pasa. Verde
+// de un renglón cuando todos corrieron hace poco; rojo cuando alguno está
+// vencido o su última corrida terminó con error; gris si nunca corrieron.
+function CronHealthPanel({ health }: { health: CronHealthData }) {
+  const LABELS: Record<string, string> = {
+    reminders: "Recordatorios",
+    "photo-retention": "Retención de fotos",
+  };
+
+  if (!health.attention) {
+    const allNever = health.jobs.every((j) => j.status === "never");
+    return (
+      <div className="rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm text-ink-400">
+        <span className={`mr-2 ${allNever ? "text-ink-500" : "text-positive"}`} aria-hidden>
+          ●
+        </span>
+        Crons:{" "}
+        {allNever
+          ? "todavía sin corridas registradas."
+          : health.jobs
+              .map(
+                (j) =>
+                  `${LABELS[j.name] ?? j.name} ${
+                    j.lastRunAt ? formatDateTime(j.lastRunAt) : "sin datos"
+                  }`,
+              )
+              .join(" · ")}
+      </div>
+    );
+  }
+
+  return (
+    <section role="alert" className="rounded-2xl border border-critical/40 bg-critical/10 p-5">
+      <h2 className="font-bold text-critical">Hay crons que necesitan atención</h2>
+      <p className="mt-1 text-sm text-ink-300">
+        Un cron vencido significa que Vercel dejó de dispararlo (mirá la config de Crons del
+        proyecto); uno fallado terminó con error en su última corrida (el detalle está en
+        Sentry y en los logs).
+      </p>
+      <ul className="mt-4 flex flex-col gap-2">
+        {health.jobs.map((j) => (
+          <li
+            key={j.name}
+            className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-xl border border-ink-700 bg-ink-900 px-4 py-3"
+          >
+            <p className="font-semibold text-ink-100">
+              {LABELS[j.name] ?? j.name} <span className="font-mono text-xs text-ink-500">/{j.name}</span>
+            </p>
+            <p className="text-sm">
+              {j.status === "ok" && <span className="text-positive">al día</span>}
+              {j.status === "failed" && <span className="text-critical">última corrida con error</span>}
+              {j.status === "stale" && (
+                <span className="text-critical">vencido — más de {health.staleHours} h sin correr</span>
+              )}
+              {j.status === "never" && <span className="text-ink-500">nunca corrió</span>}
+              {j.lastRunAt && (
+                <span className="text-ink-500"> · última {formatDateTime(j.lastRunAt)}</span>
+              )}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
