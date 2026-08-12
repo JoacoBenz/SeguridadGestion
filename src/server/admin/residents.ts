@@ -84,18 +84,25 @@ export async function createResidentAction(slug: string, formData: FormData) {
   }
 
   try {
-    const user = await prisma.user.create({
-      data: {
-        tenantId,
-        role: "resident",
-        name: parsed.data.name,
-        phone: parsed.data.phone,
-        email: parsed.data.email,
-      },
-    });
-
-    await prisma.unitResident.create({
-      data: { unitId: unit!.id, userId: user.id, isPrimary: true },
+    // Atómico: si el vínculo con la unidad falla, el User no debe quedar creado
+    // — un residente huérfano además ocupa el índice único de teléfono y el
+    // reintento del admin rebota con "ya existe". El audit va FUERA de la
+    // transacción (mismo criterio que createTenantAction): un audit caído no
+    // deshace un alta que ya está bien.
+    const user = await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          tenantId,
+          role: "resident",
+          name: parsed.data.name,
+          phone: parsed.data.phone,
+          email: parsed.data.email,
+        },
+      });
+      await tx.unitResident.create({
+        data: { unitId: unit!.id, userId: created.id, isPrimary: true },
+      });
+      return created;
     });
 
     await recordAudit({
@@ -255,17 +262,22 @@ export async function importResidentsAction(slug: string, formData: FormData) {
     }
 
     try {
-      const user = await prisma.user.create({
-        data: {
-          tenantId,
-          role: "resident",
-          name: row.name,
-          phone: row.phone,
-          email: row.email,
-        },
-      });
-      await prisma.unitResident.create({
-        data: { unitId, userId: user.id, isPrimary: true },
+      // Atómico por fila: un fallo a mitad no deja un User sin unidad ocupando
+      // el índice único de teléfono. El P2002 de la fila duplicada sale de la
+      // transacción entera y cae en el catch de abajo igual que antes.
+      await prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            tenantId,
+            role: "resident",
+            name: row.name,
+            phone: row.phone,
+            email: row.email,
+          },
+        });
+        await tx.unitResident.create({
+          data: { unitId, userId: user.id, isPrimary: true },
+        });
       });
       created++;
     } catch (err) {
