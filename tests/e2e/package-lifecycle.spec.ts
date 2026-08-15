@@ -28,15 +28,28 @@ test.describe.serial("ciclo de vida del paquete", () => {
       await expect(page.getByText(carrier)).toBeVisible();
     });
 
-    test("el retiro por código funciona y desaparece de pendientes", async ({ page }) => {
+    test("el retiro por código muestra el popup persistente y desaparece de pendientes", async ({
+      page,
+    }) => {
       await page.goto("/edificio-libertad/seguridad/retiro");
       await page.click('button:has-text("Tipear código")');
       await typePickupCode(page, pickupCode);
       await page.click('button:has-text("Confirmar retiro")');
 
-      await page.waitForURL(/ok=/);
-      await expect(page.getByText("Retirado")).toBeVisible();
-      await expect(page.getByText("Depto 3B")).toBeVisible();
+      // Popup modal de éxito (sin redirect): queda abierto hasta tocar Cerrar.
+      const dialog = page.getByRole("dialog", { name: "Retiro confirmado" });
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByText("Depto 3B")).toBeVisible();
+      await expect(dialog.getByText(carrier)).toBeVisible();
+
+      // No se cierra con Escape ni solo: sigue visible.
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(500);
+      await expect(dialog).toBeVisible();
+
+      // Cerrar lo cierra y vuelve al flujo de retiro.
+      await dialog.getByRole("button", { name: "Cerrar" }).click();
+      await expect(dialog).toHaveCount(0);
 
       await page.goto("/edificio-libertad/seguridad");
       await expect(page.getByText(carrier)).toHaveCount(0);
@@ -48,10 +61,11 @@ test.describe.serial("ciclo de vida del paquete", () => {
       await typePickupCode(page, "222222");
       await page.click('button:has-text("Confirmar retiro")');
 
-      await page.waitForURL(/error=/);
-      await expect(
-        page.getByText("No hay ningún paquete pendiente con ese código"),
-      ).toBeVisible();
+      // p[role=alert] puntual: Next mete su propio role=alert (route announcer)
+      // y getByRole a secas resuelve ambiguo.
+      await expect(page.locator('p[role="alert"]')).toContainText(
+        "No hay ningún paquete pendiente con ese código",
+      );
     });
   });
 

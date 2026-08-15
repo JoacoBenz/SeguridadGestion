@@ -33,7 +33,7 @@ const fakeStorage: StorageClient = {
   },
   async remove() {},
   async signedUrl(url) {
-    return url;
+    return `${url}?sig=test`;
   },
   isOwnUrl: () => true,
   keyOf: () => null,
@@ -125,6 +125,27 @@ describe("pickupPackage", () => {
     const pkg = await newPackage();
     const result = await pickupPackage({ tenantId, pickupToken: pkg.pickupToken });
     expect(result.packageId).toBe(pkg.packageId);
+  });
+
+  it("el resultado trae la foto del ingreso FIRMADA y el transportista", async () => {
+    // La foto es la que ve el guardia en el popup para saber cuál agarrar del
+    // depósito. Firmada (bucket privado) y nunca la canónica.
+    const pkg = await registerPackage({
+      tenantId,
+      unitId,
+      carrier: "Andreani",
+      photoUrl: "https://bucket.test/paquetes/packages/t/retiro.jpg",
+    });
+    const result = await pickupPackage({ tenantId, pickupCode: pkg.pickupCode });
+    expect(result.photoUrl).toBe("https://bucket.test/paquetes/packages/t/retiro.jpg?sig=test");
+    expect(result.carrier).toBe("Andreani");
+  });
+
+  it("sin foto, el resultado trae photoUrl null (no una URL rota)", async () => {
+    const pkg = await newPackage();
+    const result = await pickupPackage({ tenantId, pickupCode: pkg.pickupCode });
+    expect(result.photoUrl).toBeNull();
+    expect(result.carrier).toBeNull();
   });
 
   it("dos guardias escaneando el mismo QR: sólo uno retira", async () => {

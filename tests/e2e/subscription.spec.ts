@@ -54,8 +54,9 @@ test.describe.serial("gating de suscripción", () => {
       await page.click('button:has-text("Tipear código")');
       await typePickupCode(page, pendingCode);
       await page.click('button:has-text("Confirmar retiro")');
-      await page.waitForURL(/ok=/);
-      await expect(page.getByText("Depto 1A")).toBeVisible();
+      const dialog = page.getByRole("dialog", { name: "Retiro confirmado" });
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByText("Depto 1A")).toBeVisible();
     });
   });
 

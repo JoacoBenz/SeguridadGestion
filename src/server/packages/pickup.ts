@@ -24,6 +24,10 @@ export interface PickupResult {
   packageId: string;
   unitLabel: string;
   pickedUpAt: Date;
+  /** URL firmada efímera de la foto del INGRESO, para que el guardia sepa qué
+   *  paquete agarrar del depósito. null si el paquete no tiene foto. */
+  photoUrl: string | null;
+  carrier: string | null;
 }
 
 export async function pickupPackage(raw: PickupInput): Promise<PickupResult> {
@@ -126,5 +130,19 @@ export async function pickupPackage(raw: PickupInput): Promise<PickupResult> {
     }
   }
 
-  return { packageId: pkg.id, unitLabel: pkg.unit.label, pickedUpAt: now };
+  // La foto del ingreso, firmada al vuelo (15 min alcanza para el mostrador):
+  // el guardia la ve en el popup de éxito y sabe cuál agarrar del depósito.
+  // El startsWith filtra las dev-storage:// del cliente sin bucket.
+  const photoUrl =
+    pkg.photoUrl && pkg.photoUrl.startsWith("http")
+      ? await getStorageClient().signedUrl(pkg.photoUrl, 15 * 60)
+      : null;
+
+  return {
+    packageId: pkg.id,
+    unitLabel: pkg.unit.label,
+    pickedUpAt: now,
+    photoUrl,
+    carrier: pkg.carrier ?? null,
+  };
 }

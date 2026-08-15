@@ -24,9 +24,12 @@ prepareZXingModule({
       path.endsWith(".wasm") ? wasmUrl.href : prefix + path,
   },
 });
-import { pickupByTokenAction } from "@/server/packages/pickup-actions";
+import {
+  pickupByCodeAction,
+  pickupByTokenAction,
+  type PickupActionResult,
+} from "@/server/packages/pickup-actions";
 import { OtpCodeInput } from "./otp-code-input";
-import { SubmitButton } from "@/components/submit-button";
 
 type Mode = "qr" | "code";
 
@@ -53,19 +56,32 @@ function cameraErrorMessage(err: unknown): string {
 
 interface Props {
   tenantSlug: string;
-  codeAction: (formData: FormData) => Promise<void>;
 }
 
-export function PickupFlow({ tenantSlug, codeAction }: Props) {
+// Lo que el popup de éxito necesita mostrar del retiro confirmado.
+type DonePickup = Extract<PickupActionResult, { ok: true }>;
+
+export function PickupFlow({ tenantSlug }: Props) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("qr");
   const [error, setError] = useState<string | null>(null);
   const [scanning, startTransition] = useTransition();
   const [lastHandled, setLastHandled] = useState<string | null>(null);
-  // Al confirmar un retiro reemplazamos el escáner por la pantalla de éxito.
+  // Al confirmar un retiro reemplazamos el escáner por el popup de éxito.
   // Desmontar <Scanner> es lo que apaga la cámara: si sigue montado el visor
   // queda vivo detrás del cartel y el guardia no sabe si el escaneo funcionó.
-  const [done, setDone] = useState<string | null>(null);
+  const [done, setDone] = useState<DonePickup | null>(null);
+
+  function handleResult(result: PickupActionResult) {
+    if (result.ok) {
+      setDone(result);
+      // Refresca la lista de pendientes que quedó atrás.
+      router.refresh();
+    } else {
+      setError(result.error);
+      setTimeout(() => setLastHandled(null), 1500);
+    }
+  }
 
   function onScan(codes: IDetectedBarcode[]) {
     const first = codes[0]?.rawValue;
@@ -73,32 +89,47 @@ export function PickupFlow({ tenantSlug, codeAction }: Props) {
     setLastHandled(first);
     setError(null);
     startTransition(async () => {
-      let result: Awaited<ReturnType<typeof pickupByTokenAction>>;
+      let result: PickupActionResult;
       try {
         result = await pickupByTokenAction(tenantSlug, first);
       } catch {
         // Falla de red o del runtime de la action; el motivo real no llega al cliente.
         result = { ok: false, error: "No se pudo procesar el retiro. Probá de nuevo." };
       }
-      if (result.ok) {
-        setDone(result.unitLabel);
-        // Refresca la lista de pendientes que quedó atrás.
-        router.refresh();
-      } else {
-        setError(result.error);
-        setTimeout(() => setLastHandled(null), 1500);
-      }
+      handleResult(result);
     });
   }
 
-  function scanAnother() {
+  // Mismo camino RPC que el QR: el resultado vuelve al componente y los dos
+  // modos comparten el popup de éxito (antes el código redirigía a un toast
+  // y nunca veía esta pantalla).
+  function onCodeSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const code = new FormData(e.currentTarget).get("pickupCode");
+    if (typeof code !== "string" || !code.trim()) {
+      setError("Ingresá el código completo");
+      return;
+    }
+    setError(null);
+    startTransition(async () => {
+      let result: PickupActionResult;
+      try {
+        result = await pickupByCodeAction(tenantSlug, code);
+      } catch {
+        result = { ok: false, error: "No se pudo procesar el retiro. Probá de nuevo." };
+      }
+      handleResult(result);
+    });
+  }
+
+  function closeSuccess() {
     setDone(null);
     setError(null);
     setLastHandled(null);
   }
 
   if (done) {
-    return <PickupSuccess unitLabel={done} tenantSlug={tenantSlug} onScanAnother={scanAnother} />;
+    return <PickupSuccess pickup={done} tenantSlug={tenantSlug} onClose={closeSuccess} />;
   }
 
   return (
@@ -125,14 +156,16 @@ export function PickupFlow({ tenantSlug, codeAction }: Props) {
           </p>
         </div>
       ) : (
-        <form action={codeAction} className="flex flex-col items-center gap-6">
+        <form onSubmit={onCodeSubmit} className="flex flex-col items-center gap-6">
           <OtpCodeInput name="pickupCode" />
-          <SubmitButton
-            pendingText="Procesando…"
-            className="w-full max-w-sm rounded-2xl bg-accent px-4 py-4 text-lg font-bold text-accent-fg transition-transform active:scale-[0.98]"
+          <button
+            type="submit"
+            disabled={scanning}
+            aria-busy={scanning}
+            className={`w-full max-w-sm rounded-2xl bg-accent px-4 py-4 text-lg font-bold text-accent-fg transition-transform active:scale-[0.98] ${scanning ? "cursor-wait opacity-60" : ""}`}
           >
-            Confirmar retiro
-          </SubmitButton>
+            {scanning ? "Procesando…" : "Confirmar retiro"}
+          </button>
         </form>
       )}
 
@@ -148,50 +181,79 @@ export function PickupFlow({ tenantSlug, codeAction }: Props) {
   );
 }
 
+// Popup PERSISTENTE del retiro confirmado: no se cierra solo — ni timeout, ni
+// tap en el fondo, ni Escape — únicamente con "Cerrar". El guardia lo deja
+// abierto mientras busca el paquete en el depósito con la foto a la vista.
+// Overlay a mano (no <dialog> nativo) justamente para anular el light-dismiss.
+// El <Scanner> quedó desmontado (early return del padre): la cámara está
+// apagada mientras esto está en pantalla.
 function PickupSuccess({
-  unitLabel,
+  pickup,
   tenantSlug,
-  onScanAnother,
+  onClose,
 }: {
-  unitLabel: string;
+  pickup: DonePickup;
   tenantSlug: string;
-  onScanAnother: () => void;
+  onClose: () => void;
 }) {
   return (
     <div
-      role="status"
-      aria-live="polite"
-      className="flex flex-col items-center gap-6 rounded-2xl border border-positive/40 bg-positive/10 px-6 py-10 text-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Retiro confirmado"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
     >
-      <span
-        aria-hidden
-        className="flex h-20 w-20 items-center justify-center rounded-full bg-positive/20 text-4xl text-positive"
-      >
-        ✓
-      </span>
-      <div>
-        <p className="text-2xl font-bold text-positive">Retiro confirmado</p>
-        <p className="mt-1 text-ink-200">
-          Depto <span className="font-semibold text-ink-100">{unitLabel}</span>
-        </p>
-        <p className="mt-3 text-sm text-ink-400">
-          El residente recibió el aviso por WhatsApp.
-        </p>
-      </div>
-      <div className="flex w-full max-w-sm flex-col gap-3">
-        <button
-          type="button"
-          onClick={onScanAnother}
-          className="rounded-2xl bg-accent px-4 py-4 text-lg font-bold text-accent-fg transition-transform active:scale-[0.98]"
-        >
-          Escanear otro
-        </button>
-        <Link
-          href={`/${tenantSlug}/seguridad`}
-          className="rounded-2xl border border-ink-700 bg-ink-850 px-4 py-3 font-medium text-ink-200 transition-colors hover:border-ink-500"
-        >
-          Volver a seguridad
-        </Link>
+      <div className="flex max-h-full w-full max-w-sm flex-col items-center gap-5 overflow-y-auto rounded-2xl border border-positive/40 bg-ink-900 px-6 py-8 text-center">
+        {pickup.photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={pickup.photoUrl}
+            alt="Foto del paquete a entregar"
+            className="max-h-72 w-full rounded-xl border border-ink-700 object-contain"
+          />
+        ) : (
+          <span
+            aria-hidden
+            className="flex h-20 w-20 items-center justify-center rounded-full bg-positive/20 text-4xl text-positive"
+          >
+            ✓
+          </span>
+        )}
+        <div>
+          <p className="text-2xl font-bold text-positive">Retiro confirmado</p>
+          <p className="mt-1 text-lg text-ink-200">
+            Depto <span className="font-bold text-ink-100">{pickup.unitLabel}</span>
+            {pickup.carrier && (
+              <span className="text-ink-300">
+                {" "}
+                · {pickup.carrier}
+              </span>
+            )}
+          </p>
+          {pickup.photoUrl && (
+            <p className="mt-2 text-sm text-ink-300">
+              Este es el paquete que hay que entregar.
+            </p>
+          )}
+          <p className="mt-2 text-sm text-ink-400">
+            El residente recibió el aviso por WhatsApp.
+          </p>
+        </div>
+        <div className="flex w-full flex-col gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-2xl bg-accent px-4 py-4 text-lg font-bold text-accent-fg transition-transform active:scale-[0.98]"
+          >
+            Cerrar
+          </button>
+          <Link
+            href={`/${tenantSlug}/seguridad`}
+            className="rounded-2xl border border-ink-700 bg-ink-850 px-4 py-3 font-medium text-ink-200 transition-colors hover:border-ink-500"
+          >
+            Volver a seguridad
+          </Link>
+        </div>
       </div>
     </div>
   );

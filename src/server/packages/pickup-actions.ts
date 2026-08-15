@@ -1,6 +1,5 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { pickupPackage } from "@/server/packages/pickup";
 import { extractPickupToken } from "@/server/packages/pickup-token";
@@ -16,6 +15,8 @@ function friendlyPickupError(err: unknown): string {
       return "El código no tiene un formato válido";
     case "INVALID_QR":
       return "Ese QR no parece un código de retiro de PackItO";
+    case "INVALID_PHOTO_URL":
+      return "La foto del retiro no es válida. Probá de nuevo.";
     case "UNAUTHENTICATED":
       return "Tu sesión expiró. Volvé a iniciar sesión.";
     case "FORBIDDEN_TENANT":
@@ -26,47 +27,56 @@ function friendlyPickupError(err: unknown): string {
   }
 }
 
-export async function pickupByCodeAction(slug: string, formData: FormData) {
+// Contrato único para los dos modos (QR y código): el cliente recibe un
+// objeto y decide qué pintar — el popup de éxito con la foto, o el error.
+// Se devuelve objeto en vez de throwear porque en producción Next.js
+// reemplaza el message de los errores de server actions por uno genérico.
+export type PickupActionResult =
+  | {
+      ok: true;
+      unitLabel: string;
+      packageId: string;
+      /** Foto del ingreso, firmada y efímera — para saber cuál agarrar. */
+      photoUrl: string | null;
+      carrier: string | null;
+    }
+  | { ok: false; error: string };
+
+export async function pickupByCodeAction(
+  slug: string,
+  code: string,
+): Promise<PickupActionResult> {
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
     select: { id: true },
   });
-  if (!tenant) redirect(`/${slug}/seguridad/retiro?error=Edificio+no+encontrado`);
+  if (!tenant) return { ok: false, error: "Edificio no encontrado" };
 
-  const raw = formData.get("pickupCode");
-  if (typeof raw !== "string" || !raw.trim()) {
-    redirect(`/${slug}/seguridad/retiro?error=${encodeURIComponent("Ingresá un código")}`);
+  if (typeof code !== "string" || !code.trim()) {
+    return { ok: false, error: "Ingresá un código" };
   }
 
-  // The success redirect must live OUTSIDE the try: redirect() throws
-  // NEXT_REDIRECT, and a catch-all would convert success into ?error=NEXT_REDIRECT.
-  let unitLabel: string;
   try {
     const result = await pickupPackage({
       tenantId: tenant.id,
-      pickupCode: raw.trim().toUpperCase(),
+      pickupCode: code.trim().toUpperCase(),
     });
-    unitLabel = result.unitLabel;
+    return {
+      ok: true,
+      unitLabel: result.unitLabel,
+      packageId: result.packageId,
+      photoUrl: result.photoUrl,
+      carrier: result.carrier,
+    };
   } catch (err) {
-    redirect(
-      `/${slug}/seguridad/retiro?error=${encodeURIComponent(friendlyPickupError(err))}`,
-    );
+    return { ok: false, error: friendlyPickupError(err) };
   }
-
-  redirect(`/${slug}/seguridad/retiro?ok=${encodeURIComponent(`Depto ${unitLabel}`)}`);
 }
 
-export type PickupByTokenResult =
-  | { ok: true; unitLabel: string; packageId: string }
-  | { ok: false; error: string };
-
-// Devuelve un objeto en vez de throwear: en producción Next.js reemplaza el
-// message de los errores de server actions por uno genérico, así que el
-// cliente nunca vería el motivo real.
 export async function pickupByTokenAction(
   slug: string,
   scanned: string,
-): Promise<PickupByTokenResult> {
+): Promise<PickupActionResult> {
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
     select: { id: true },
@@ -81,7 +91,13 @@ export async function pickupByTokenAction(
       tenantId: tenant.id,
       pickupToken: token,
     });
-    return { ok: true, unitLabel: result.unitLabel, packageId: result.packageId };
+    return {
+      ok: true,
+      unitLabel: result.unitLabel,
+      packageId: result.packageId,
+      photoUrl: result.photoUrl,
+      carrier: result.carrier,
+    };
   } catch (err) {
     return { ok: false, error: friendlyPickupError(err) };
   }
